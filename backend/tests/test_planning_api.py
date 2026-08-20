@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import httpx
 import pytest
@@ -69,10 +69,13 @@ def test_http_failure_propagates(mock_get: Mock) -> None:
     mocked_response.raise_for_status.side_effect = http_error
     mock_get.return_value = mocked_response
 
-    with pytest.raises(httpx.HTTPStatusError) as exc_info:
-        fetch_planning_applications()
+    with patch("backend.app.services.planning_api.time.sleep") as mock_sleep:
+        with pytest.raises(httpx.HTTPStatusError) as exc_info:
+            fetch_planning_applications()
 
     assert exc_info.value is http_error
+    mock_get.assert_called_once()
+    mock_sleep.assert_not_called()
     mocked_response.json.assert_not_called()
 
 
@@ -94,8 +97,12 @@ def test_malformed_response_raises_application_error(
     response.json.return_value = payload
     mock_get.return_value = response
 
-    with pytest.raises(PlanningAPIResponseError):
-        fetch_planning_applications()
+    with patch("backend.app.services.planning_api.time.sleep") as mock_sleep:
+        with pytest.raises(PlanningAPIResponseError):
+            fetch_planning_applications()
+
+    mock_get.assert_called_once()
+    mock_sleep.assert_not_called()
 
 
 def _response_with_features(features: list[object]) -> Mock:
@@ -105,6 +112,71 @@ def _response_with_features(features: list[object]) -> Mock:
         "features": features,
     }
     return response
+
+
+@patch("backend.app.services.planning_api.time.sleep")
+@patch("backend.app.services.planning_api.httpx.get")
+def test_first_transient_failure_is_retried_then_succeeds(
+    mock_get: Mock,
+    mock_sleep: Mock,
+) -> None:
+    request = httpx.Request("GET", f"{PLANNING_APPLICATIONS_LAYER_URL}/query")
+    features = [{"id": 1}]
+    mock_get.side_effect = [
+        httpx.RemoteProtocolError(
+            "Server disconnected without sending a response.",
+            request=request,
+        ),
+        _response_with_features(features),
+    ]
+
+    result = fetch_planning_applications()
+
+    assert result is features
+    assert mock_get.call_count == 2
+    mock_sleep.assert_called_once_with(1)
+
+
+@patch("backend.app.services.planning_api.time.sleep")
+@patch("backend.app.services.planning_api.httpx.get")
+def test_two_transient_failures_use_exponential_backoff_then_succeed(
+    mock_get: Mock,
+    mock_sleep: Mock,
+) -> None:
+    request = httpx.Request("GET", f"{PLANNING_APPLICATIONS_LAYER_URL}/query")
+    features = [{"id": 1}]
+    mock_get.side_effect = [
+        httpx.ConnectError("Connection failed", request=request),
+        httpx.ReadTimeout("Read timed out", request=request),
+        _response_with_features(features),
+    ]
+
+    result = fetch_planning_applications()
+
+    assert result is features
+    assert mock_get.call_count == 3
+    assert mock_sleep.call_args_list == [call(1), call(2)]
+
+
+@patch("backend.app.services.planning_api.time.sleep")
+@patch("backend.app.services.planning_api.httpx.get")
+def test_third_transient_failure_is_propagated(
+    mock_get: Mock,
+    mock_sleep: Mock,
+) -> None:
+    request = httpx.Request("GET", f"{PLANNING_APPLICATIONS_LAYER_URL}/query")
+    failures = [
+        httpx.ConnectTimeout(f"Attempt {attempt} timed out", request=request)
+        for attempt in range(1, 4)
+    ]
+    mock_get.side_effect = failures
+
+    with pytest.raises(httpx.ConnectTimeout) as exc_info:
+        fetch_planning_applications()
+
+    assert exc_info.value is failures[-1]
+    assert mock_get.call_count == 3
+    assert mock_sleep.call_args_list == [call(1), call(2)]
 
 
 @patch("backend.app.services.planning_api.httpx.get")

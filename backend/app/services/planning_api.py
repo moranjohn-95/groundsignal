@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from datetime import datetime, timezone
+import time
 from typing import Any
 
 import httpx
@@ -8,6 +9,14 @@ import httpx
 PLANNING_APPLICATIONS_LAYER_URL = (
     "https://services.arcgis.com/NzlPQPKn5QF9v2US/ArcGIS/rest/services/"
     "IrishPlanningApplications/FeatureServer/0"
+)
+
+MAX_REQUEST_ATTEMPTS = 3
+TRANSIENT_REQUEST_ERRORS = (
+    httpx.RemoteProtocolError,
+    httpx.ConnectError,
+    httpx.ReadTimeout,
+    httpx.ConnectTimeout,
 )
 
 
@@ -35,11 +44,19 @@ def _fetch_planning_application_page(
     if order_by_fields is not None:
         params["orderByFields"] = order_by_fields
 
-    response = httpx.get(
-        f"{PLANNING_APPLICATIONS_LAYER_URL}/query",
-        params=params,
-        timeout=10.0,
-    )
+    for attempt in range(1, MAX_REQUEST_ATTEMPTS + 1):
+        try:
+            response = httpx.get(
+                f"{PLANNING_APPLICATIONS_LAYER_URL}/query",
+                params=params,
+                timeout=10.0,
+            )
+            break
+        except TRANSIENT_REQUEST_ERRORS:
+            if attempt == MAX_REQUEST_ATTEMPTS:
+                raise
+            time.sleep(2 ** (attempt - 1))
+
     response.raise_for_status()
 
     try:
