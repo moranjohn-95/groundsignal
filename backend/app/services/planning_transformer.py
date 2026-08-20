@@ -1,8 +1,11 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from math import isfinite
 from typing import Any
 
 from geoalchemy2.elements import WKTElement
+
+
+UNIX_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 class PlanningApplicationTransformationError(ValueError):
@@ -57,11 +60,8 @@ def _epoch_milliseconds_to_datetime(value: Any, field_name: str) -> datetime | N
         )
 
     try:
-        return datetime.fromtimestamp(
-            epoch_milliseconds / 1000,
-            tz=timezone.utc,
-        )
-    except (OverflowError, OSError, ValueError) as exc:
+        return UNIX_EPOCH + timedelta(milliseconds=epoch_milliseconds)
+    except (OverflowError, ValueError) as exc:
         raise PlanningApplicationTransformationError(
             f"{field_name} contains invalid Unix epoch milliseconds."
         ) from exc

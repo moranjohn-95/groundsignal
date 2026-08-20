@@ -67,6 +67,56 @@ def test_epoch_millisecond_dates_are_converted() -> None:
     )
 
 
+def test_verified_pre_1970_decision_date_transforms_successfully() -> None:
+    feature = deepcopy(VALID_FEATURE)
+    feature["properties"]["OBJECTID"] = 32462
+    feature["properties"]["DecisionDate"] = -2208988800000
+
+    result = transform_planning_application(feature)
+
+    assert result["decision_date"] == date(1900, 1, 1)
+
+
+def test_negative_epoch_milliseconds_preserve_utc_datetime() -> None:
+    feature = deepcopy(VALID_FEATURE)
+    feature["properties"]["ReceivedDate"] = -1000
+    feature["properties"]["ETL_DATE"] = -1000
+
+    result = transform_planning_application(feature)
+
+    assert result["received_date"] == date(1969, 12, 31)
+    assert result["source_updated_at"] == datetime(
+        1969,
+        12,
+        31,
+        23,
+        59,
+        59,
+        tzinfo=timezone.utc,
+    )
+    assert result["source_updated_at"].tzinfo is timezone.utc
+
+
+@pytest.mark.parametrize(
+    "epoch_milliseconds",
+    [
+        253402300800000,
+        -62135596800001,
+    ],
+)
+def test_epoch_milliseconds_outside_datetime_range_are_rejected(
+    epoch_milliseconds: int,
+) -> None:
+    feature = deepcopy(VALID_FEATURE)
+    feature["properties"]["DecisionDate"] = epoch_milliseconds
+
+    with pytest.raises(
+        PlanningApplicationTransformationError,
+        match="invalid Unix epoch milliseconds",
+    ):
+        transform_planning_application(feature)
+
+
 def test_description_line_endings_and_outer_whitespace_are_cleaned() -> None:
     feature = deepcopy(VALID_FEATURE)
     feature["properties"]["DevelopmentDescription"] = (
