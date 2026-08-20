@@ -1,3 +1,4 @@
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import httpx
@@ -8,6 +9,7 @@ from backend.app.services.planning_api import (
     PlanningAPIResponseError,
     fetch_planning_applications,
     iter_planning_application_pages,
+    iter_planning_application_pages_since,
 )
 
 
@@ -126,6 +128,8 @@ def test_pages_use_deterministic_order_and_actual_returned_offset(
     assert second_params["resultOffset"] == 2
     assert first_params["resultRecordCount"] == 2
     assert second_params["resultRecordCount"] == 2
+    assert first_params["where"] == "1=1"
+    assert second_params["where"] == "1=1"
     assert first_params["orderByFields"] == "OBJECTID ASC"
     assert second_params["orderByFields"] == "OBJECTID ASC"
     assert first_params["returnGeometry"] == "true"
@@ -207,3 +211,96 @@ def test_pagination_malformed_response_raises_application_error(
 
     with pytest.raises(PlanningAPIResponseError):
         next(iter_planning_application_pages())
+
+
+@patch("backend.app.services.planning_api.httpx.get")
+def test_since_query_uses_inclusive_utc_timestamp_and_ordering(
+    mock_get: Mock,
+) -> None:
+    short_page = [{"id": 1}]
+    mock_get.return_value = _response_with_features(short_page)
+    since = datetime(2024, 6, 1, 12, 34, 56, tzinfo=timezone.utc)
+
+    pages = list(iter_planning_application_pages_since(since, page_size=2))
+
+    assert pages == [short_page]
+    mock_get.assert_called_once()
+    params = mock_get.call_args.kwargs["params"]
+    assert params["where"] == (
+        "ETL_DATE >= TIMESTAMP '2024-06-01 12:34:56'"
+    )
+    assert params["orderByFields"] == "ETL_DATE ASC, OBJECTID ASC"
+    assert params["resultOffset"] == 0
+    assert params["resultRecordCount"] == 2
+    assert params["returnGeometry"] == "true"
+    assert params["outSR"] == 4326
+    assert params["f"] == "geojson"
+
+
+@patch("backend.app.services.planning_api.httpx.get")
+def test_since_datetime_is_converted_to_utc(mock_get: Mock) -> None:
+    mock_get.return_value = _response_with_features([])
+    local_timezone = timezone(timedelta(hours=5, minutes=30))
+    since = datetime(2024, 6, 1, 18, 4, 56, tzinfo=local_timezone)
+
+    assert list(iter_planning_application_pages_since(since)) == []
+
+    assert mock_get.call_args.kwargs["params"]["where"] == (
+        "ETL_DATE >= TIMESTAMP '2024-06-01 12:34:56'"
+    )
+
+
+def test_naive_since_datetime_is_rejected() -> None:
+    since = datetime(2024, 6, 1, 12, 34, 56)
+
+    with patch("backend.app.services.planning_api.httpx.get") as mock_get:
+        with pytest.raises(ValueError, match="timezone-aware datetime"):
+            list(iter_planning_application_pages_since(since))
+
+    mock_get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "since",
+    [None, "2024-06-01T12:34:56Z", date(2024, 6, 1), 1717245296],
+)
+def test_invalid_since_type_is_rejected(since: object) -> None:
+    with patch("backend.app.services.planning_api.httpx.get") as mock_get:
+        with pytest.raises(ValueError, match="timezone-aware datetime"):
+            list(iter_planning_application_pages_since(since))
+
+    mock_get.assert_not_called()
+
+
+@patch("backend.app.services.planning_api.httpx.get")
+def test_since_pagination_uses_offsets_and_stops_on_empty_page(
+    mock_get: Mock,
+) -> None:
+    first_page = [{"id": 1}, {"id": 2}]
+    mock_get.side_effect = [
+        _response_with_features(first_page),
+        _response_with_features([]),
+    ]
+    since = datetime(2024, 6, 1, tzinfo=timezone.utc)
+
+    pages = list(iter_planning_application_pages_since(since, page_size=2))
+
+    assert pages == [first_page]
+    assert mock_get.call_count == 2
+    first_params = mock_get.call_args_list[0].kwargs["params"]
+    second_params = mock_get.call_args_list[1].kwargs["params"]
+    assert first_params["resultOffset"] == 0
+    assert second_params["resultOffset"] == 2
+    assert first_params["orderByFields"] == "ETL_DATE ASC, OBJECTID ASC"
+    assert second_params["orderByFields"] == "ETL_DATE ASC, OBJECTID ASC"
+    assert first_params["where"] == second_params["where"]
+
+
+def test_since_pagination_preserves_page_size_validation() -> None:
+    since = datetime(2024, 6, 1, tzinfo=timezone.utc)
+
+    with patch("backend.app.services.planning_api.httpx.get") as mock_get:
+        with pytest.raises(ValueError, match="between 1 and 2000"):
+            list(iter_planning_application_pages_since(since, page_size=0))
+
+    mock_get.assert_not_called()

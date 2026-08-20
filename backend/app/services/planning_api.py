@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -17,11 +18,12 @@ class PlanningAPIResponseError(RuntimeError):
 def _fetch_planning_application_page(
     result_record_count: int,
     *,
+    where: str = "1=1",
     result_offset: int | None = None,
     order_by_fields: str | None = None,
 ) -> list[Any]:
     params: dict[str, str | int] = {
-        "where": "1=1",
+        "where": where,
         "outFields": "*",
         "returnGeometry": "true",
         "outSR": 4326,
@@ -68,7 +70,12 @@ def fetch_planning_applications(limit: int = 5) -> list[Any]:
     return _fetch_planning_application_page(result_record_count=limit)
 
 
-def iter_planning_application_pages(page_size: int = 500) -> Iterator[list[Any]]:
+def _iter_planning_application_pages(
+    page_size: int,
+    *,
+    where: str,
+    order_by_fields: str,
+) -> Iterator[list[Any]]:
     if (
         isinstance(page_size, bool)
         or not isinstance(page_size, int)
@@ -80,8 +87,9 @@ def iter_planning_application_pages(page_size: int = 500) -> Iterator[list[Any]]
     while True:
         features = _fetch_planning_application_page(
             result_record_count=page_size,
+            where=where,
             result_offset=offset,
-            order_by_fields="OBJECTID ASC",
+            order_by_fields=order_by_fields,
         )
         if not features:
             return
@@ -92,3 +100,31 @@ def iter_planning_application_pages(page_size: int = 500) -> Iterator[list[Any]]
         if returned_count < page_size:
             return
         offset += returned_count
+
+
+def iter_planning_application_pages(page_size: int = 500) -> Iterator[list[Any]]:
+    yield from _iter_planning_application_pages(
+        page_size,
+        where="1=1",
+        order_by_fields="OBJECTID ASC",
+    )
+
+
+def iter_planning_application_pages_since(
+    since: datetime,
+    page_size: int = 500,
+) -> Iterator[list[Any]]:
+    if not isinstance(since, datetime):
+        raise ValueError("since must be a timezone-aware datetime")
+    if since.tzinfo is None or since.utcoffset() is None:
+        raise ValueError("since must be a timezone-aware datetime")
+
+    since_utc = since.astimezone(timezone.utc)
+    timestamp = since_utc.strftime("%Y-%m-%d %H:%M:%S")
+    where = f"ETL_DATE >= TIMESTAMP '{timestamp}'"
+
+    yield from _iter_planning_application_pages(
+        page_size,
+        where=where,
+        order_by_fields="ETL_DATE ASC, OBJECTID ASC",
+    )
