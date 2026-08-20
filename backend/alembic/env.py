@@ -5,6 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 from app.database import DATABASE_URL
+from app.models import Base, PlanningApplication
+from geoalchemy2 import alembic_helpers
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,11 +22,20 @@ config.set_main_option(
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
+
+
+def include_name(
+    name: str | None,
+    type_: str,
+    parent_names: dict[str, str | None],
+) -> bool:
+    if type_ == "table":
+        qualified_table_name = parent_names["schema_qualified_table_name"]
+        return qualified_table_name in target_metadata.tables
+
+    return True
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -48,6 +59,10 @@ def run_migrations_offline() -> None:
     context.configure(
         url=url,
         target_metadata=target_metadata,
+        include_name=include_name,
+        include_object=alembic_helpers.include_object,
+        process_revision_directives=alembic_helpers.writer,
+        render_item=alembic_helpers.render_item,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -71,7 +86,12 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            include_name=include_name,
+            include_object=alembic_helpers.include_object,
+            process_revision_directives=alembic_helpers.writer,
+            render_item=alembic_helpers.render_item,
         )
 
         with context.begin_transaction():
