@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from geoalchemy2 import Geography
 from geoalchemy2.elements import WKBElement
-from sqlalchemy import Date, DateTime, Float, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, Float, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from . import Base
@@ -11,10 +11,10 @@ from . import Base
 class PlanningApplication(Base):
     __tablename__ = "planning_applications"
     __table_args__ = (
-        UniqueConstraint(
+        Index(
+            "ix_planning_applications_authority_application_number",
             "planning_authority",
             "application_number",
-            name="uq_planning_applications_authority_application_number",
         ),
     )
 

@@ -175,6 +175,57 @@ def test_repeated_source_id_does_not_create_duplicate_pending_inserts(
     assert inserted.planning_authority == "Latest Authority"
 
 
+def test_distinct_source_ids_can_share_authority_and_application_number(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    features = [
+        {"properties": {"OBJECTID": 21787}},
+        {"properties": {"OBJECTID": 21788}},
+    ]
+    shared_source_values = {
+        "planning_authority": "Cork City Council",
+        "application_number": "174041",
+    }
+    monkeypatch.setattr(
+        planning_ingestion,
+        "fetch_planning_applications",
+        Mock(return_value=features),
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(
+            side_effect=[
+                {
+                    **_transformed_application(21787),
+                    **shared_source_values,
+                },
+                {
+                    **_transformed_application(21788),
+                    **shared_source_values,
+                },
+            ]
+        ),
+    )
+    session = Mock(spec=Session)
+    session.scalar.side_effect = [None, None]
+
+    result = planning_ingestion.ingest_planning_applications(session, limit=2)
+
+    assert result == {"fetched": 2, "inserted": 2, "updated": 0}
+    inserted = [call.args[0] for call in session.add.call_args_list]
+    assert [application.source_object_id for application in inserted] == [
+        21787,
+        21788,
+    ]
+    assert all(
+        application.planning_authority == "Cork City Council"
+        and application.application_number == "174041"
+        for application in inserted
+    )
+    session.commit.assert_called_once_with()
+
+
 def test_transformation_failure_rolls_back_batch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
