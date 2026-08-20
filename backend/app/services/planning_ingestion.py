@@ -1,15 +1,23 @@
-from sqlalchemy import select
+from collections.abc import Iterable
+from datetime import datetime, timezone
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..models import PlanningApplication
 from .planning_api import (
     fetch_planning_applications,
     iter_planning_application_pages,
+    iter_planning_application_pages_since,
 )
 from .planning_transformer import transform_planning_application
 
 
 DATABASE_MANAGED_FIELDS = {"id", "created_at", "updated_at"}
+
+
+class InitialPlanningImportRequiredError(RuntimeError):
+    """Raised when incremental sync is attempted before an initial import."""
 
 
 def _persist_planning_application_page(
@@ -71,11 +79,7 @@ def ingest_planning_applications(session: Session, limit: int = 5) -> dict[str, 
     return result
 
 
-def ingest_all_planning_applications(
-    session: Session,
-    page_size: int = 500,
-    max_pages: int | None = None,
-) -> dict[str, int]:
+def _validate_max_pages(max_pages: int | None) -> None:
     if (
         max_pages is not None
         and (
@@ -86,6 +90,12 @@ def ingest_all_planning_applications(
     ):
         raise ValueError("max_pages must be None or a positive integer")
 
+
+def _ingest_planning_application_pages(
+    session: Session,
+    pages: Iterable[list[dict]],
+    max_pages: int | None,
+) -> dict[str, int]:
     totals = {
         "pages_processed": 0,
         "fetched": 0,
@@ -93,7 +103,7 @@ def ingest_all_planning_applications(
         "updated": 0,
     }
 
-    for features in iter_planning_application_pages(page_size):
+    for features in pages:
         try:
             page_result = _persist_planning_application_page(session, features)
             session.commit()
@@ -110,3 +120,33 @@ def ingest_all_planning_applications(
             break
 
     return totals
+
+
+def ingest_all_planning_applications(
+    session: Session,
+    page_size: int = 500,
+    max_pages: int | None = None,
+) -> dict[str, int]:
+    _validate_max_pages(max_pages)
+    pages = iter_planning_application_pages(page_size)
+    return _ingest_planning_application_pages(session, pages, max_pages)
+
+
+def sync_planning_applications(
+    session: Session,
+    page_size: int = 500,
+    max_pages: int | None = None,
+) -> dict[str, int | datetime]:
+    _validate_max_pages(max_pages)
+
+    watermark = session.scalar(select(func.max(PlanningApplication.source_updated_at)))
+    if watermark is None:
+        raise InitialPlanningImportRequiredError(
+            "Incremental planning sync requires an initial import to be completed first."
+        )
+
+    watermark_utc = watermark.astimezone(timezone.utc)
+    pages = iter_planning_application_pages_since(watermark_utc, page_size)
+    totals = _ingest_planning_application_pages(session, pages, max_pages)
+
+    return {"watermark": watermark_utc, **totals}

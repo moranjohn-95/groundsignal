@@ -446,3 +446,189 @@ def test_invalid_max_pages_is_rejected(
     page_iterator.assert_not_called()
     session.commit.assert_not_called()
     session.rollback.assert_not_called()
+
+
+def test_sync_uses_max_watermark_and_aggregates_page_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    watermark = datetime(2024, 6, 1, 12, 0, tzinfo=timezone.utc)
+    boundary_feature = {
+        "properties": {
+            "OBJECTID": 1101,
+            "ETL_DATE": int(watermark.timestamp() * 1000),
+        }
+    }
+    pages = [
+        [boundary_feature, {"properties": {"OBJECTID": 1102}}],
+        [{"properties": {"OBJECTID": 1103}}],
+    ]
+    existing = PlanningApplication(
+        source_object_id=1102,
+        planning_authority="Old Authority",
+        application_number="old-number",
+    )
+    filtered_iterator = Mock(return_value=iter(pages))
+    transform = Mock(
+        side_effect=[
+            {
+                **_transformed_application(1101),
+                "source_updated_at": watermark,
+            },
+            _transformed_application(1102, "Updated Authority"),
+            _transformed_application(1103),
+        ]
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages_since",
+        filtered_iterator,
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        transform,
+    )
+    session = Mock(spec=Session)
+    session.scalar.side_effect = [watermark, None, existing, None]
+
+    result = planning_ingestion.sync_planning_applications(
+        session,
+        page_size=200,
+    )
+
+    assert result == {
+        "watermark": watermark,
+        "pages_processed": 2,
+        "fetched": 3,
+        "inserted": 2,
+        "updated": 1,
+    }
+    watermark_statement = session.scalar.call_args_list[0].args[0]
+    compiled_statement = str(watermark_statement.compile()).lower()
+    assert "max(planning_applications.source_updated_at)" in compiled_statement
+    filtered_iterator.assert_called_once_with(watermark, 200)
+    transform.assert_any_call(boundary_feature)
+    assert existing.planning_authority == "Updated Authority"
+    assert session.add.call_count == 2
+    assert session.commit.call_count == 2
+    session.rollback.assert_not_called()
+
+
+def test_sync_later_page_failure_rolls_back_current_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    watermark = datetime(2024, 6, 1, tzinfo=timezone.utc)
+    pages = [
+        [{"properties": {"OBJECTID": 1201}}],
+        [{"properties": {"OBJECTID": 1202}}],
+    ]
+    failure = ValueError("invalid filtered feature")
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages_since",
+        Mock(return_value=iter(pages)),
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(side_effect=[_transformed_application(1201), failure]),
+    )
+    session = Mock(spec=Session)
+    session.scalar.side_effect = [watermark, None]
+
+    with pytest.raises(ValueError) as exc_info:
+        planning_ingestion.sync_planning_applications(session)
+
+    assert exc_info.value is failure
+    assert session.commit.call_count == 1
+    session.rollback.assert_called_once_with()
+    method_names = [method_call[0] for method_call in session.method_calls]
+    assert method_names.index("commit") < method_names.index("rollback")
+
+
+def test_sync_max_pages_does_not_consume_another_filtered_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    watermark = datetime(2024, 6, 1, tzinfo=timezone.utc)
+    consumed_source_ids = []
+
+    def lazy_pages():
+        for source_object_id in [1301, 1302, 1303]:
+            consumed_source_ids.append(source_object_id)
+            yield [{"properties": {"OBJECTID": source_object_id}}]
+
+    filtered_iterator = Mock(return_value=lazy_pages())
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages_since",
+        filtered_iterator,
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(
+            side_effect=[
+                _transformed_application(1301),
+                _transformed_application(1302),
+            ]
+        ),
+    )
+    session = Mock(spec=Session)
+    session.scalar.side_effect = [watermark, None, None]
+
+    result = planning_ingestion.sync_planning_applications(
+        session,
+        max_pages=2,
+    )
+
+    assert result == {
+        "watermark": watermark,
+        "pages_processed": 2,
+        "fetched": 2,
+        "inserted": 2,
+        "updated": 0,
+    }
+    assert consumed_source_ids == [1301, 1302]
+    assert session.commit.call_count == 2
+    filtered_iterator.assert_called_once_with(watermark, 500)
+
+
+def test_sync_without_watermark_requires_initial_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    filtered_iterator = Mock()
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages_since",
+        filtered_iterator,
+    )
+    session = Mock(spec=Session)
+    session.scalar.return_value = None
+
+    with pytest.raises(
+        planning_ingestion.InitialPlanningImportRequiredError,
+        match="initial import",
+    ):
+        planning_ingestion.sync_planning_applications(session)
+
+    filtered_iterator.assert_not_called()
+    session.commit.assert_not_called()
+    session.rollback.assert_not_called()
+
+
+def test_sync_rejects_invalid_max_pages_before_querying_watermark(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    filtered_iterator = Mock()
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages_since",
+        filtered_iterator,
+    )
+    session = Mock(spec=Session)
+
+    with pytest.raises(ValueError, match="positive integer"):
+        planning_ingestion.sync_planning_applications(session, max_pages=0)
+
+    session.scalar.assert_not_called()
+    filtered_iterator.assert_not_called()
