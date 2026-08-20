@@ -243,3 +243,206 @@ def test_successful_empty_batch_commits_once(monkeypatch: pytest.MonkeyPatch) ->
     transform.assert_not_called()
     session.commit.assert_called_once_with()
     session.rollback.assert_not_called()
+
+
+def test_all_ingestion_processes_pages_and_aggregates_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pages = [
+        [
+            {"properties": {"OBJECTID": 701}},
+            {"properties": {"OBJECTID": 702}},
+        ],
+        [{"properties": {"OBJECTID": 703}}],
+    ]
+    existing = PlanningApplication(
+        source_object_id=702,
+        planning_authority="Old Authority",
+        application_number="old-number",
+    )
+    page_iterator = Mock(return_value=iter(pages))
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages",
+        page_iterator,
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(
+            side_effect=[
+                _transformed_application(701),
+                _transformed_application(702, "Updated Authority"),
+                _transformed_application(703),
+            ]
+        ),
+    )
+    session = Mock(spec=Session)
+    session.scalar.side_effect = [None, existing, None]
+
+    result = planning_ingestion.ingest_all_planning_applications(
+        session,
+        page_size=250,
+        max_pages=None,
+    )
+
+    assert result == {
+        "pages_processed": 2,
+        "fetched": 3,
+        "inserted": 2,
+        "updated": 1,
+    }
+    page_iterator.assert_called_once_with(250)
+    assert existing.planning_authority == "Updated Authority"
+    assert session.add.call_count == 2
+    assert session.commit.call_count == 2
+    session.rollback.assert_not_called()
+
+
+def test_later_page_failure_rolls_back_only_current_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pages = [
+        [{"properties": {"OBJECTID": 801}}],
+        [
+            {"properties": {"OBJECTID": 802}},
+            {"properties": {"OBJECTID": 803}},
+        ],
+    ]
+    failure = ValueError("invalid later-page feature")
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages",
+        Mock(return_value=iter(pages)),
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(
+            side_effect=[
+                _transformed_application(801),
+                _transformed_application(802),
+                failure,
+            ]
+        ),
+    )
+    session = Mock(spec=Session)
+    session.scalar.return_value = None
+
+    with pytest.raises(ValueError) as exc_info:
+        planning_ingestion.ingest_all_planning_applications(session)
+
+    assert exc_info.value is failure
+    assert session.commit.call_count == 1
+    session.rollback.assert_called_once_with()
+    method_names = [method_call[0] for method_call in session.method_calls]
+    assert method_names.index("commit") < method_names.index("rollback")
+
+
+def test_pages_are_processed_without_collecting_iterator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = Mock(spec=Session)
+    session.scalar.return_value = None
+
+    def lazy_pages():
+        yield [{"properties": {"OBJECTID": 901}}]
+        assert session.commit.call_count == 1
+        yield [{"properties": {"OBJECTID": 902}}]
+
+    page_iterator = Mock(return_value=lazy_pages())
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages",
+        page_iterator,
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(
+            side_effect=[
+                _transformed_application(901),
+                _transformed_application(902),
+            ]
+        ),
+    )
+
+    result = planning_ingestion.ingest_all_planning_applications(session)
+
+    assert result == {
+        "pages_processed": 2,
+        "fetched": 2,
+        "inserted": 2,
+        "updated": 0,
+    }
+    page_iterator.assert_called_once_with(500)
+    assert session.commit.call_count == 2
+
+
+def test_max_pages_limits_processing_without_consuming_another_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consumed_source_ids = []
+
+    def lazy_pages():
+        for source_object_id in [1001, 1002, 1003]:
+            consumed_source_ids.append(source_object_id)
+            yield [{"properties": {"OBJECTID": source_object_id}}]
+
+    page_iterator = Mock(return_value=lazy_pages())
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages",
+        page_iterator,
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(
+            side_effect=[
+                _transformed_application(1001),
+                _transformed_application(1002),
+            ]
+        ),
+    )
+    session = Mock(spec=Session)
+    session.scalar.return_value = None
+
+    result = planning_ingestion.ingest_all_planning_applications(
+        session,
+        max_pages=2,
+    )
+
+    assert result == {
+        "pages_processed": 2,
+        "fetched": 2,
+        "inserted": 2,
+        "updated": 0,
+    }
+    assert consumed_source_ids == [1001, 1002]
+    assert session.commit.call_count == 2
+    page_iterator.assert_called_once_with(500)
+
+
+@pytest.mark.parametrize("max_pages", [0, -1, True, 1.5, "2", []])
+def test_invalid_max_pages_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    max_pages: object,
+) -> None:
+    page_iterator = Mock()
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages",
+        page_iterator,
+    )
+    session = Mock(spec=Session)
+
+    with pytest.raises(ValueError, match="positive integer"):
+        planning_ingestion.ingest_all_planning_applications(
+            session,
+            max_pages=max_pages,
+        )
+
+    page_iterator.assert_not_called()
+    session.commit.assert_not_called()
+    session.rollback.assert_not_called()
