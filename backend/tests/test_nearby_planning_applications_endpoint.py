@@ -60,6 +60,16 @@ def _valid_params(**overrides):
     return params
 
 
+def _compiled_statements(session):
+    dialect = postgresql.dialect()
+    count_statement = session.scalar.call_args.args[0]
+    item_statement = session.execute.call_args.args[0]
+    return (
+        count_statement.compile(dialect=dialect),
+        item_statement.compile(dialect=dialect),
+    )
+
+
 @pytest.mark.parametrize("latitude", [-90.01, 90.01])
 def test_nearby_rejects_invalid_latitude(nearby_client, latitude):
     client, session = nearby_client
@@ -165,6 +175,173 @@ def test_nearby_uses_default_pagination(nearby_client):
     }
 
 
+@pytest.mark.parametrize(
+    ("parameter", "value", "expected_value", "sql_predicate"),
+    [
+        (
+            "received_from",
+            "2025-01-02",
+            date(2025, 1, 2),
+            "planning_applications.received_date >=",
+        ),
+        (
+            "received_to",
+            "2025-03-04",
+            date(2025, 3, 4),
+            "planning_applications.received_date <=",
+        ),
+        (
+            "application_status",
+            "Pending",
+            "Pending",
+            "planning_applications.application_status =",
+        ),
+        (
+            "decision",
+            "Refused",
+            "Refused",
+            "planning_applications.decision =",
+        ),
+    ],
+)
+def test_nearby_applies_individual_relevance_filters(
+    nearby_client,
+    parameter,
+    value,
+    expected_value,
+    sql_predicate,
+):
+    client, session = nearby_client
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(**{parameter: value}),
+    )
+
+    assert response.status_code == 200
+    count_compiled, item_compiled = _compiled_statements(session)
+    assert sql_predicate in str(count_compiled)
+    assert sql_predicate in str(item_compiled)
+    assert expected_value in count_compiled.params.values()
+    assert expected_value in item_compiled.params.values()
+
+
+def test_nearby_date_boundaries_are_inclusive(nearby_client):
+    client, session = nearby_client
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(
+            received_from="2025-01-02",
+            received_to="2025-01-02",
+        ),
+    )
+
+    assert response.status_code == 200
+    count_compiled, item_compiled = _compiled_statements(session)
+    for compiled in (count_compiled, item_compiled):
+        sql = str(compiled)
+        assert "planning_applications.received_date >=" in sql
+        assert "planning_applications.received_date <=" in sql
+        assert date(2025, 1, 2) in compiled.params.values()
+
+
+def test_nearby_combines_date_status_and_decision_filters(nearby_client):
+    client, session = nearby_client
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(
+            received_from="2025-01-01",
+            received_to="2025-01-31",
+            application_status="Decided",
+            decision="Granted",
+        ),
+    )
+
+    assert response.status_code == 200
+    count_compiled, item_compiled = _compiled_statements(session)
+    predicates = (
+        "planning_applications.received_date >=",
+        "planning_applications.received_date <=",
+        "planning_applications.application_status =",
+        "planning_applications.decision =",
+    )
+    expected_values = {
+        date(2025, 1, 1),
+        date(2025, 1, 31),
+        "Decided",
+        "Granted",
+    }
+    for compiled in (count_compiled, item_compiled):
+        sql = str(compiled)
+        assert all(predicate in sql for predicate in predicates)
+        assert expected_values.issubset(set(compiled.params.values()))
+
+
+def test_nearby_combines_relevance_filters_with_spatial_radius(nearby_client):
+    client, session = nearby_client
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(application_status="Decided"),
+    )
+
+    assert response.status_code == 200
+    count_compiled, item_compiled = _compiled_statements(session)
+    for compiled in (count_compiled, item_compiled):
+        sql = str(compiled)
+        assert "ST_DWithin" in sql
+        assert "planning_applications.application_status =" in sql
+        assert " AND " in sql
+
+
+def test_nearby_filtered_total_is_before_pagination(nearby_client):
+    client, session = nearby_client
+    session.scalar.return_value = 8
+    session.execute.return_value.all.return_value = [
+        (_application(identifier=1, source_object_id=101), 1.25),
+    ]
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(
+            application_status="Decided",
+            limit=1,
+            offset=3,
+        ),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 8
+    assert len(response.json()["items"]) == 1
+    count_compiled, item_compiled = _compiled_statements(session)
+    count_sql = str(count_compiled).upper()
+    item_sql = str(item_compiled).upper()
+    assert "PLANNING_APPLICATIONS.APPLICATION_STATUS =" in count_sql
+    assert "LIMIT" not in count_sql
+    assert "OFFSET" not in count_sql
+    assert "LIMIT" in item_sql
+    assert "OFFSET" in item_sql
+
+
+def test_nearby_without_relevance_filters_keeps_radius_only(nearby_client):
+    client, session = nearby_client
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(),
+    )
+
+    assert response.status_code == 200
+    count_compiled, _ = _compiled_statements(session)
+    count_sql = str(count_compiled)
+    assert "ST_DWithin" in count_sql
+    assert "planning_applications.received_date" not in count_sql
+    assert "planning_applications.application_status" not in count_sql
+    assert "planning_applications.decision" not in count_sql
+
+
 def test_nearby_builds_postgis_geography_queries(nearby_client):
     client, session = nearby_client
 
@@ -174,11 +351,7 @@ def test_nearby_builds_postgis_geography_queries(nearby_client):
     )
 
     assert response.status_code == 200
-    count_statement = session.scalar.call_args.args[0]
-    item_statement = session.execute.call_args.args[0]
-    dialect = postgresql.dialect()
-    count_compiled = count_statement.compile(dialect=dialect)
-    item_compiled = item_statement.compile(dialect=dialect)
+    count_compiled, item_compiled = _compiled_statements(session)
     count_sql = str(count_compiled)
     item_sql = str(item_compiled)
 
