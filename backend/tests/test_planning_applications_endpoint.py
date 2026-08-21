@@ -17,6 +17,10 @@ PLANNING_APPLICATION_ROWS = [
         "source_object_id": 1001,
         "planning_authority": "Cork City Council",
         "application_number": "174041",
+        "description": "Construction of a detached dwelling.",
+        "application_type": "Permission",
+        "number_residential_units": 1,
+        "floor_area": 120.0,
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2024-01-10",
@@ -26,6 +30,10 @@ PLANNING_APPLICATION_ROWS = [
         "source_object_id": 1002,
         "planning_authority": "Cork City Council",
         "application_number": "174041",
+        "description": "Construction of a retail store.",
+        "application_type": "Permission",
+        "number_residential_units": None,
+        "floor_area": 350.0,
         "application_status": "Pending",
         "decision": None,
         "received_date": "2024-01-15",
@@ -35,6 +43,10 @@ PLANNING_APPLICATION_ROWS = [
         "source_object_id": 1003,
         "planning_authority": "Dublin City Council",
         "application_number": "DCC-1",
+        "description": "Development of a solar farm.",
+        "application_type": "Permission",
+        "number_residential_units": None,
+        "floor_area": None,
         "application_status": "Decided",
         "decision": "REFUSE",
         "received_date": "2024-02-01",
@@ -44,6 +56,10 @@ PLANNING_APPLICATION_ROWS = [
         "source_object_id": 1004,
         "planning_authority": "Galway City Council",
         "application_number": "GCC-1",
+        "description": "Retention of an agricultural storage shed.",
+        "application_type": "Retention",
+        "number_residential_units": None,
+        "floor_area": 80.0,
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2024-02-01",
@@ -53,6 +69,10 @@ PLANNING_APPLICATION_ROWS = [
         "source_object_id": 1005,
         "planning_authority": "Cork City Council",
         "application_number": "CORK-5",
+        "description": None,
+        "application_type": "Permission",
+        "number_residential_units": None,
+        "floor_area": None,
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2024-03-01",
@@ -62,6 +82,10 @@ PLANNING_APPLICATION_ROWS = [
         "source_object_id": 1006,
         "planning_authority": "Cork City Council",
         "application_number": "CORK-6",
+        "description": "Retention of boundary walls.",
+        "application_type": "Retention",
+        "number_residential_units": None,
+        "floor_area": None,
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2023-12-31",
@@ -113,6 +137,10 @@ def client() -> TestClient:
                     source_object_id,
                     planning_authority,
                     application_number,
+                    description,
+                    application_type,
+                    number_residential_units,
+                    floor_area,
                     application_status,
                     decision,
                     received_date
@@ -121,6 +149,10 @@ def client() -> TestClient:
                     :source_object_id,
                     :planning_authority,
                     :application_number,
+                    :description,
+                    :application_type,
+                    :number_residential_units,
+                    :floor_area,
                     :application_status,
                     :decision,
                     :received_date
@@ -163,6 +195,7 @@ def test_detail_returns_application_by_internal_id(client: TestClient) -> None:
     assert data["source_object_id"] == 1001
     assert data["planning_authority"] == "Cork City Council"
     assert data["application_number"] == "174041"
+    assert data["category"] == "residential"
 
 
 def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
@@ -187,7 +220,23 @@ def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
         "floor_area",
         "application_url",
         "source_updated_at",
+        "category",
     }
+
+
+def test_list_returns_representative_computed_categories(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/planning-applications")
+
+    assert response.status_code == 200
+    categories_by_id = {
+        item["id"]: item["category"] for item in response.json()["items"]
+    }
+    assert categories_by_id[1] == "residential"
+    assert categories_by_id[2] == "commercial"
+    assert categories_by_id[3] == "energy"
+    assert categories_by_id[4] == "other"
 
 
 def test_detail_unknown_id_returns_404(client: TestClient) -> None:

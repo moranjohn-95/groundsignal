@@ -2,6 +2,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from ..services.planning_classifier import PlanningApplicationCategory
+
 
 class PlanningApplicationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -23,6 +25,7 @@ class PlanningApplicationResponse(BaseModel):
     floor_area: float | None
     application_url: str | None
     source_updated_at: datetime | None
+    category: PlanningApplicationCategory
 
 
 class PlanningApplicationListResponse(BaseModel):

@@ -153,6 +153,10 @@ def test_nearby_returns_paginated_items_with_distance(nearby_client):
     assert payload["total"] == 37
     assert [item["distance_km"] for item in payload["items"]] == [1.25, 2.5]
     assert payload["items"][0]["source_object_id"] == 101
+    assert [item["category"] for item in payload["items"]] == [
+        "residential",
+        "residential",
+    ]
     assert "location" not in payload["items"][0]
     assert "created_at" not in payload["items"][0]
     assert "updated_at" not in payload["items"][0]

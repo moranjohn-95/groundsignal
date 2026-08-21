@@ -15,6 +15,7 @@ from ..schemas import (
     PlanningApplicationListResponse,
     PlanningApplicationResponse,
 )
+from ..services.planning_classifier import classify_planning_application
 
 
 router = APIRouter(
@@ -41,6 +42,23 @@ PUBLIC_COLUMNS = (
     PlanningApplication.application_url,
     PlanningApplication.source_updated_at,
 )
+
+
+def _planning_application_response(
+    application: PlanningApplication,
+) -> PlanningApplicationResponse:
+    public_values = {
+        column.key: getattr(application, column.key) for column in PUBLIC_COLUMNS
+    }
+    return PlanningApplicationResponse(
+        **public_values,
+        category=classify_planning_application(
+            description=application.description,
+            application_type=application.application_type,
+            number_residential_units=application.number_residential_units,
+            floor_area=application.floor_area,
+        ),
+    )
 
 
 def _planning_application_filters(
@@ -112,7 +130,7 @@ def list_nearby_planning_applications(
     rows = session.execute(statement).all()
     items = [
         NearbyPlanningApplicationResponse(
-            **PlanningApplicationResponse.model_validate(application).model_dump(),
+            **_planning_application_response(application).model_dump(),
             distance_km=float(distance),
         )
         for application, distance in rows
@@ -142,7 +160,7 @@ def get_planning_application(
             detail="Planning application not found.",
         )
 
-    return PlanningApplicationResponse.model_validate(application)
+    return _planning_application_response(application)
 
 
 @router.get("", response_model=PlanningApplicationListResponse)
@@ -178,7 +196,10 @@ def list_planning_applications(
         .offset(offset)
         .limit(limit)
     )
-    items = list(session.scalars(statement).all())
+    items = [
+        _planning_application_response(application)
+        for application in session.scalars(statement).all()
+    ]
 
     return PlanningApplicationListResponse(
         items=items,
