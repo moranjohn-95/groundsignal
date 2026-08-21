@@ -28,3 +28,14 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build API image
+        run: docker build --file backend/Dockerfile --tag groundsignal-api:ci .
