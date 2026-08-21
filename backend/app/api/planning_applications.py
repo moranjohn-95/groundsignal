@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from geoalchemy2 import Geography
 from sqlalchemy import cast, func, select
 from sqlalchemy.orm import Session, load_only
@@ -124,6 +124,25 @@ def list_nearby_planning_applications(
         offset=offset,
         total=total,
     )
+
+
+@router.get("/{application_id}", response_model=PlanningApplicationResponse)
+def get_planning_application(
+    session: Annotated[Session, Depends(get_db)],
+    application_id: Annotated[int, Path(gt=0)],
+) -> PlanningApplicationResponse:
+    application = session.scalar(
+        select(PlanningApplication)
+        .options(load_only(*PUBLIC_COLUMNS))
+        .where(PlanningApplication.id == application_id)
+    )
+    if application is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Planning application not found.",
+        )
+
+    return PlanningApplicationResponse.model_validate(application)
 
 
 @router.get("", response_model=PlanningApplicationListResponse)

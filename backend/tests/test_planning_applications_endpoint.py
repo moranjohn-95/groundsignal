@@ -154,6 +154,76 @@ def _item_ids(response_data: dict) -> list[int]:
     return [item["id"] for item in response_data["items"]]
 
 
+def test_detail_returns_application_by_internal_id(client: TestClient) -> None:
+    response = client.get("/api/v1/planning-applications/1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == 1
+    assert data["source_object_id"] == 1001
+    assert data["planning_authority"] == "Cork City Council"
+    assert data["application_number"] == "174041"
+
+
+def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
+    response = client.get("/api/v1/planning-applications/1")
+
+    assert response.status_code == 200
+    assert set(response.json()) == {
+        "id",
+        "source_object_id",
+        "planning_authority",
+        "application_number",
+        "description",
+        "address",
+        "postcode",
+        "application_status",
+        "application_type",
+        "decision",
+        "received_date",
+        "decision_date",
+        "grant_date",
+        "number_residential_units",
+        "floor_area",
+        "application_url",
+        "source_updated_at",
+    }
+
+
+def test_detail_unknown_id_returns_404(client: TestClient) -> None:
+    response = client.get("/api/v1/planning-applications/1001")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Planning application not found."}
+
+
+@pytest.mark.parametrize("application_id", [0, -1])
+def test_detail_rejects_non_positive_id(
+    client: TestClient,
+    application_id: int,
+) -> None:
+    response = client.get(f"/api/v1/planning-applications/{application_id}")
+
+    assert response.status_code == 422
+
+
+def test_detail_rejects_non_integer_id(client: TestClient) -> None:
+    response = client.get("/api/v1/planning-applications/not-an-integer")
+
+    assert response.status_code == 422
+
+
+def test_nearby_route_is_not_treated_as_application_id(client: TestClient) -> None:
+    response = client.get("/api/v1/planning-applications/nearby")
+
+    assert response.status_code == 422
+    error_locations = [error["loc"] for error in response.json()["detail"]]
+    assert ["query", "latitude"] in error_locations
+    assert ["query", "longitude"] in error_locations
+    assert ["query", "radius_km"] in error_locations
+    assert ["path", "application_id"] not in error_locations
+
+
 def test_default_pagination_and_response_structure(client: TestClient) -> None:
     response = client.get("/api/v1/planning-applications")
 
