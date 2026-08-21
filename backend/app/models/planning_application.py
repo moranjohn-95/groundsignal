@@ -2,10 +2,29 @@ from datetime import date, datetime
 
 from geoalchemy2 import Geography
 from geoalchemy2.elements import WKBElement
-from sqlalchemy import Date, DateTime, Float, Index, Integer, String, Text, func
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
+from ..services.planning_classifier import (
+    PLANNING_APPLICATION_CATEGORIES,
+    PlanningApplicationCategory,
+)
 from . import Base
+
+
+_CATEGORY_CHECK_VALUES = ", ".join(
+    repr(category) for category in PLANNING_APPLICATION_CATEGORIES
+)
 
 
 class PlanningApplication(Base):
@@ -15,6 +34,15 @@ class PlanningApplication(Base):
             "ix_planning_applications_authority_application_number",
             "planning_authority",
             "application_number",
+        ),
+        CheckConstraint(
+            f"category IS NULL OR category IN ({_CATEGORY_CHECK_VALUES})",
+            name="ck_planning_applications_category",
+        ),
+        Index(
+            "ix_planning_applications_category",
+            "category",
+            postgresql_using="btree",
         ),
     )
 
@@ -62,6 +90,10 @@ class PlanningApplication(Base):
     )
     floor_area: Mapped[float | None] = mapped_column(Float, nullable=True)
     application_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[PlanningApplicationCategory | None] = mapped_column(
+        String(32),
+        nullable=True,
+    )
     location: Mapped[WKBElement | None] = mapped_column(
         Geography(geometry_type="POINT", srid=4326),
         nullable=True,
