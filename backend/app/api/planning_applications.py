@@ -2,12 +2,18 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from geoalchemy2 import Geography
+from sqlalchemy import cast, func, select
 from sqlalchemy.orm import Session, load_only
 
 from ..dependencies import get_db
 from ..models import PlanningApplication
-from ..schemas import PlanningApplicationListResponse
+from ..schemas import (
+    NearbyPlanningApplicationListResponse,
+    NearbyPlanningApplicationResponse,
+    PlanningApplicationListResponse,
+    PlanningApplicationResponse,
+)
 
 
 router = APIRouter(
@@ -34,6 +40,57 @@ PUBLIC_COLUMNS = (
     PlanningApplication.application_url,
     PlanningApplication.source_updated_at,
 )
+
+
+@router.get("/nearby", response_model=NearbyPlanningApplicationListResponse)
+def list_nearby_planning_applications(
+    session: Annotated[Session, Depends(get_db)],
+    latitude: Annotated[float, Query(ge=-90, le=90)],
+    longitude: Annotated[float, Query(ge=-180, le=180)],
+    radius_km: Annotated[float, Query(gt=0, le=50)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> NearbyPlanningApplicationListResponse:
+    search_point = cast(
+        func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326),
+        Geography(geometry_type="POINT", srid=4326),
+    )
+    radius_metres = radius_km * 1000.0
+    within_radius = func.ST_DWithin(
+        PlanningApplication.location,
+        search_point,
+        radius_metres,
+    )
+    distance_km = (
+        func.ST_Distance(PlanningApplication.location, search_point) / 1000.0
+    ).label("distance_km")
+
+    total = session.scalar(
+        select(func.count(PlanningApplication.id)).where(within_radius)
+    ) or 0
+    statement = (
+        select(PlanningApplication, distance_km)
+        .options(load_only(*PUBLIC_COLUMNS))
+        .where(within_radius)
+        .order_by(distance_km.asc(), PlanningApplication.id.asc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = session.execute(statement).all()
+    items = [
+        NearbyPlanningApplicationResponse(
+            **PlanningApplicationResponse.model_validate(application).model_dump(),
+            distance_km=float(distance),
+        )
+        for application, distance in rows
+    ]
+
+    return NearbyPlanningApplicationListResponse(
+        items=items,
+        limit=limit,
+        offset=offset,
+        total=total,
+    )
 
 
 @router.get("", response_model=PlanningApplicationListResponse)

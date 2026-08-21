@@ -30,3 +30,14 @@ class PlanningApplicationListResponse(BaseModel):
     limit: int
     offset: int
     total: int
+
+
+class NearbyPlanningApplicationResponse(PlanningApplicationResponse):
+    distance_km: float
+
+
+class NearbyPlanningApplicationListResponse(BaseModel):
+    items: list[NearbyPlanningApplicationResponse]
+    limit: int
+    offset: int
+    total: int
