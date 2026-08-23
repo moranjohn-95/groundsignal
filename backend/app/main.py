@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 
+from .api.opportunities import router as opportunities_router
 from .api.planning_applications import router as planning_applications_router
 
 app = FastAPI()
 
+app.include_router(opportunities_router)
 app.include_router(planning_applications_router)
 
 

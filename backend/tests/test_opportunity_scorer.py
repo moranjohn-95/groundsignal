@@ -38,6 +38,22 @@ ACCOMMODATION_SOLAR_DESCRIPTION = (
     "- All associated site development works."
 )
 
+OWN_DOOR_MAISONETTE_DESCRIPTION = (
+    "amendments to the Large-Scale Residential Development (LRD) permitted "
+    "by Kerry County Council (Reference 2560640) and An Coimisiún Pleanála "
+    "(Reference ACP-323735-25).\n\n"
+    "The proposed amendments relate to alterations to 66 no. own-door "
+    "maisonette/apartment units over 2 no. storeys (32 no. 1 bed units, 34 "
+    "no. 2 bed units) comprising units 78 – 109 Hanafin Park Maisonette "
+    "Block and units 01 – 34 Racecourse Demesne Maisonette Block. The "
+    "amendments will consist of: a change in plan of the own-door "
+    "maisonette/apartment blocks, including reconfiguration of units, and "
+    "consequent increase in external communal amenity space; roofline and "
+    "elevational changes, including balconies, window openings, treatment "
+    "and finish materials; and all associated landscaping and associated "
+    "site development works."
+)
+
 
 def _score(**overrides):
     values = {
@@ -357,6 +373,47 @@ def test_explicit_textual_scale_is_used_when_structured_values_are_missing() -> 
 
     assert result.score_breakdown.project_scale == 16
     assert "Significant residential unit count" in result.reasons
+
+
+def test_real_own_door_maisonette_wording_scores_large_residential_scale() -> None:
+    result = _score(
+        description=OWN_DOOR_MAISONETTE_DESCRIPTION,
+        number_residential_units=0,
+        floor_area=0.0,
+        received_date=date(2024, 12, 16),
+        category="residential",
+    )
+
+    assert result.opportunity_score == 80
+    assert result.opportunity_level == "very_high"
+    assert result.score_breakdown == OpportunityScoreBreakdown(30, 15, 20, 8, 7)
+    assert "Large residential unit count" in result.reasons
+    assert (
+        "Electrical work implied by large residential development"
+        in result.reasons
+    )
+
+
+@pytest.mark.parametrize(
+    ("unit_count", "expected_scale"),
+    [(1, 4), (8, 8)],
+)
+def test_own_door_wording_does_not_inflate_single_or_small_developments(
+    unit_count: int,
+    expected_scale: int,
+) -> None:
+    unit_label = "unit" if unit_count == 1 else "units"
+    result = _score(
+        description=(
+            f"Alterations to {unit_count} no. own-door maisonette/apartment "
+            f"{unit_label}."
+        ),
+        category="residential",
+    )
+
+    assert result.score_breakdown.project_scope == 10
+    assert result.score_breakdown.project_scale == expected_scale
+    assert result.score_breakdown.electrical_relevance == 0
 
 
 @pytest.mark.parametrize(

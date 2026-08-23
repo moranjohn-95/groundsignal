@@ -37,6 +37,15 @@ ACCOMMODATION_SOLAR_DESCRIPTION = (
     "- All associated site development works."
 )
 
+HOUSES_APARTMENTS_DUPLEXES_COMMERCIAL_DESCRIPTION = (
+    "to construct a development consisting of: (A) 5 No. three-bedroom "
+    "terrace dwelling houses, (B) 1 No. one bed apartment (C) 5 No. two "
+    "bedrooms apartments, (D) 5 no. three bedrooms duplex (E) 2 No. "
+    "commercial units (F) 1 No. office building (G) ancillary services "
+    "including bins and bikes storage, (H) site services including roads, "
+    "paths, green areas and associated site works"
+)
+
 
 def test_supported_categories_are_stable() -> None:
     assert PLANNING_APPLICATION_CATEGORIES == (
@@ -187,6 +196,38 @@ def test_layout_and_residential_unit_count_can_establish_mixed_use() -> None:
     )
 
     assert result == "mixed_use"
+
+
+def test_separate_residential_and_commercial_units_are_mixed_use() -> None:
+    assert (
+        classify_planning_application(
+            HOUSES_APARTMENTS_DUPLEXES_COMMERCIAL_DESCRIPTION
+        )
+        == "mixed_use"
+    )
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        (
+            "Construction of two commercial units and an ancillary office.",
+            "commercial",
+        ),
+        (
+            "Construction of eight apartments with a home office for each "
+            "resident.",
+            "residential",
+        ),
+        ("A warehouse containing ancillary offices.", "industrial"),
+        ("A hotel containing a staff apartment.", "commercial"),
+    ],
+)
+def test_separate_commercial_unit_rule_preserves_single_use_developments(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category
 
 
 def test_demolished_use_does_not_determine_replacement_use() -> None:

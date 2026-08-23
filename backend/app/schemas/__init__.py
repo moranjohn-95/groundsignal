@@ -5,10 +5,13 @@ from .planning_application import (
     PlanningApplicationListResponse,
     PlanningApplicationResponse,
 )
+from .opportunity import OpportunityFeedResponse, OpportunityResponse
 
 __all__ = [
     "NearbyPlanningApplicationListResponse",
     "NearbyPlanningApplicationResponse",
+    "OpportunityFeedResponse",
+    "OpportunityResponse",
     "PlanningApplicationCategorySummaryResponse",
     "PlanningApplicationListResponse",
     "PlanningApplicationResponse",

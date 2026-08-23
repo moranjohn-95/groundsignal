@@ -134,7 +134,9 @@ _MINOR_LIGHTING_PATTERN = re.compile(
 
 _EXPLICIT_UNIT_COUNT_PATTERN = re.compile(
     r"\b(?P<count>\d+)\s+(?:no\s+)?"
-    r"(?:residential\s+units?|dwellings?|houses?|apartments?)\b"
+    r"(?:residential\s+units?|dwellings?|houses?|apartments?|"
+    r"(?:own\s+door\s+)?(?:maisonette|apartment|duplex)"
+    r"(?:\s+(?:maisonette|apartment|duplex))*\s+units?)\b"
 )
 
 _EXPLICIT_FLOOR_AREA_PATTERN = re.compile(
@@ -387,6 +389,7 @@ def _score_electrical_relevance(
     category: PlanningApplicationCategory,
     project_scope: int,
     project_scale: int,
+    has_large_residential_unit_count: bool,
 ) -> tuple[int, str | None]:
     if _MINOR_LIGHTING_PATTERN.search(text):
         return 5, "Minor lighting replacement"
@@ -410,10 +413,9 @@ def _score_electrical_relevance(
         return 15, "Plant or electrical equipment identified"
     if project_scope >= 20 and category in ("commercial", "industrial"):
         return 12, "Electrical work implied by substantial business development"
-    if (
-        project_scope == 30
-        and project_scale >= 12
-        and category in ("residential", "mixed_use")
+    if category in ("residential", "mixed_use") and (
+        (project_scope == 30 and project_scale >= 12)
+        or (project_scope >= 10 and has_large_residential_unit_count)
     ):
         return 15, "Electrical work implied by large residential development"
     return 0, None
@@ -485,11 +487,15 @@ def score_planning_application_opportunity(
         number_residential_units,
         floor_area,
     )
+    residential_units = _valid_units(number_residential_units)
+    if residential_units is None:
+        residential_units = _textual_units(full_text)
     electrical_relevance, electrical_reason = _score_electrical_relevance(
         full_text,
         category,
         project_scope,
         project_scale,
+        residential_units is not None and residential_units >= 10,
     )
     lead_timing, timing_reason = _score_lead_timing(
         received_date,

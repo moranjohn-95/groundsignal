@@ -245,6 +245,21 @@ _MIXED_USE_LAYOUT_PHRASES = (
     "above",
 )
 
+_SEPARATE_COMMERCIAL_USE_PHRASES = (
+    "commercial unit",
+    "commercial units",
+)
+
+_PLURAL_RESIDENTIAL_USE_PHRASES = (
+    "dwelling houses",
+    "houses",
+    "apartments",
+    "duplexes",
+    "duplex apartments",
+    "maisonettes",
+    "residential units",
+)
+
 _VERBAL_HOUSE_PATTERN = re.compile(
     r"\b(?:(?:(?:designed|used|intended)\s+)?to|will|shall|may|might|can|"
     r"could|would|should)\s+house\b"
@@ -413,6 +428,13 @@ def _has_mixed_use_evidence(
 ) -> bool:
     if any(
         _contains_any_phrase(text, _EXPLICIT_MIXED_USE_PHRASES)
+        for text in texts
+    ):
+        return True
+
+    if any(
+        _contains_any_phrase(text, _SEPARATE_COMMERCIAL_USE_PHRASES)
+        and _contains_any_phrase(text, _PLURAL_RESIDENTIAL_USE_PHRASES)
         for text in texts
     ):
         return True
