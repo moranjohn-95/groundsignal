@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
+from backend.app.api import planning_applications
 from backend.app.dependencies import get_db
 from backend.app.main import app
 from backend.app.models import PlanningApplication
@@ -311,6 +312,32 @@ def test_nearby_combines_relevance_filters_with_spatial_radius(nearby_client):
         assert "planning_applications.application_status =" in sql
         assert "planning_applications.category =" in sql
         assert " AND " in sql
+
+
+def test_nearby_combines_recent_cutoff_with_spatial_and_category_filters(
+    nearby_client,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    client, session = nearby_client
+    monkeypatch.setattr(
+        planning_applications,
+        "_current_utc_date",
+        lambda: date(2025, 2, 1),
+    )
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(recent_days=30, category="commercial"),
+    )
+
+    assert response.status_code == 200
+    count_compiled, item_compiled = _compiled_statements(session)
+    for compiled in (count_compiled, item_compiled):
+        sql = str(compiled)
+        assert "ST_DWithin" in sql
+        assert "planning_applications.received_date >=" in sql
+        assert "planning_applications.category =" in sql
+        assert date(2025, 1, 2) in compiled.params.values()
 
 
 def test_nearby_filtered_total_is_before_pagination(nearby_client):

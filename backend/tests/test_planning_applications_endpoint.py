@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import Mock
 
 import pytest
@@ -211,6 +212,17 @@ def _category_counts(**overrides: int) -> dict[str, int]:
     return {**ALL_CATEGORY_COUNTS, **overrides}
 
 
+@pytest.fixture
+def fixed_current_utc_date(monkeypatch: pytest.MonkeyPatch) -> date:
+    current_date = date(2024, 3, 1)
+    monkeypatch.setattr(
+        planning_applications,
+        "_current_utc_date",
+        lambda: current_date,
+    )
+    return current_date
+
+
 def test_category_summary_returns_grouped_counts_and_total(
     client: TestClient,
 ) -> None:
@@ -319,6 +331,22 @@ def test_category_summary_combines_listing_filters(client: TestClient) -> None:
     assert response.json() == {
         "total": 2,
         "categories": _category_counts(residential=1, other=1),
+    }
+
+
+def test_category_summary_uses_shared_recent_cutoff(
+    client: TestClient,
+    fixed_current_utc_date: date,
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications/categories/summary",
+        params={"recent_days": 30},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total": 3,
+        "categories": _category_counts(energy=1, other=2),
     }
 
 
@@ -579,6 +607,157 @@ def test_date_boundaries_are_inclusive(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert _item_ids(response.json()) == [4, 3]
+
+
+@pytest.mark.parametrize(
+    ("recent_days", "expected_ids"),
+    [
+        (1, [5]),
+        (30, [5, 4, 3]),
+        (365, [5, 4, 3, 2, 1, 6]),
+    ],
+)
+def test_listing_filters_by_recent_days(
+    client: TestClient,
+    fixed_current_utc_date: date,
+    recent_days: int,
+    expected_ids: list[int],
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={"recent_days": recent_days},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert _item_ids(data) == expected_ids
+    assert data["total"] == len(expected_ids)
+
+
+def test_recent_days_cutoff_is_inclusive(
+    client: TestClient,
+    fixed_current_utc_date: date,
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={"recent_days": 29},
+    )
+
+    assert response.status_code == 200
+    assert _item_ids(response.json()) == [5, 4, 3]
+
+
+def test_recent_days_combines_with_received_to(
+    client: TestClient,
+    fixed_current_utc_date: date,
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={"recent_days": 30, "received_to": "2024-02-01"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert _item_ids(data) == [4, 3]
+    assert data["total"] == 2
+
+
+def test_recent_days_combines_with_category(
+    client: TestClient,
+    fixed_current_utc_date: date,
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={"recent_days": 30, "category": "other"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert _item_ids(data) == [5, 4]
+    assert data["total"] == 2
+
+
+def test_recent_days_combines_with_planning_authority(
+    client: TestClient,
+    fixed_current_utc_date: date,
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={
+            "recent_days": 30,
+            "planning_authority": "Cork City Council",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert _item_ids(data) == [5]
+    assert data["total"] == 1
+
+
+@pytest.mark.parametrize(
+    ("path", "required_params"),
+    [
+        ("/api/v1/planning-applications", {}),
+        ("/api/v1/planning-applications/categories/summary", {}),
+        (
+            "/api/v1/planning-applications/nearby",
+            {
+                "latitude": 53.3498,
+                "longitude": -6.2603,
+                "radius_km": 5,
+            },
+        ),
+    ],
+)
+@pytest.mark.parametrize("recent_days", [0, -1, 366, "1.5", "thirty"])
+def test_recent_days_validation_on_supported_endpoints(
+    client: TestClient,
+    path: str,
+    required_params: dict,
+    recent_days: object,
+) -> None:
+    response = client.get(
+        path,
+        params={**required_params, "recent_days": recent_days},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("path", "required_params"),
+    [
+        ("/api/v1/planning-applications", {}),
+        ("/api/v1/planning-applications/categories/summary", {}),
+        (
+            "/api/v1/planning-applications/nearby",
+            {
+                "latitude": 53.3498,
+                "longitude": -6.2603,
+                "radius_km": 5,
+            },
+        ),
+    ],
+)
+def test_recent_days_conflicts_with_received_from(
+    client: TestClient,
+    path: str,
+    required_params: dict,
+) -> None:
+    response = client.get(
+        path,
+        params={
+            **required_params,
+            "recent_days": 30,
+            "received_from": "2024-01-01",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "recent_days cannot be combined with received_from."
+    }
 
 
 def test_ordering_is_deterministic(client: TestClient) -> None:

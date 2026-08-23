@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -49,6 +49,10 @@ PUBLIC_COLUMNS = (
 )
 
 
+def _current_utc_date() -> date:
+    return datetime.now(timezone.utc).date()
+
+
 def _planning_application_response(
     application: PlanningApplication,
 ) -> PlanningApplicationResponse:
@@ -74,7 +78,14 @@ def _planning_application_filters(
     received_from: date | None = None,
     received_to: date | None = None,
     category: PlanningApplicationCategory | None = None,
+    recent_days: int | None = None,
 ) -> list[ColumnElement[bool]]:
+    if recent_days is not None and received_from is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="recent_days cannot be combined with received_from.",
+        )
+
     filters = []
     if planning_authority is not None:
         filters.append(PlanningApplication.planning_authority == planning_authority)
@@ -82,7 +93,10 @@ def _planning_application_filters(
         filters.append(PlanningApplication.application_status == application_status)
     if decision is not None:
         filters.append(PlanningApplication.decision == decision)
-    if received_from is not None:
+    if recent_days is not None:
+        cutoff = _current_utc_date() - timedelta(days=recent_days)
+        filters.append(PlanningApplication.received_date >= cutoff)
+    elif received_from is not None:
         filters.append(PlanningApplication.received_date >= received_from)
     if received_to is not None:
         filters.append(PlanningApplication.received_date <= received_to)
@@ -104,6 +118,7 @@ def list_nearby_planning_applications(
     application_status: str | None = None,
     decision: str | None = None,
     category: PlanningApplicationCategory | None = None,
+    recent_days: Annotated[int | None, Query(ge=1, le=365)] = None,
 ) -> NearbyPlanningApplicationListResponse:
     search_point = cast(
         func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326),
@@ -124,6 +139,7 @@ def list_nearby_planning_applications(
         received_from=received_from,
         received_to=received_to,
         category=category,
+        recent_days=recent_days,
     )
 
     total = session.scalar(
@@ -165,6 +181,7 @@ def summarize_planning_application_categories(
     decision: str | None = None,
     received_from: date | None = None,
     received_to: date | None = None,
+    recent_days: Annotated[int | None, Query(ge=1, le=365)] = None,
 ) -> PlanningApplicationCategorySummaryResponse:
     filters = _planning_application_filters(
         planning_authority=planning_authority,
@@ -172,6 +189,7 @@ def summarize_planning_application_categories(
         decision=decision,
         received_from=received_from,
         received_to=received_to,
+        recent_days=recent_days,
     )
     total = session.scalar(
         select(func.count(PlanningApplication.id)).where(*filters)
@@ -228,6 +246,7 @@ def list_planning_applications(
     received_from: date | None = None,
     received_to: date | None = None,
     category: PlanningApplicationCategory | None = None,
+    recent_days: Annotated[int | None, Query(ge=1, le=365)] = None,
 ) -> PlanningApplicationListResponse:
     filters = _planning_application_filters(
         planning_authority=planning_authority,
@@ -236,6 +255,7 @@ def list_planning_applications(
         received_from=received_from,
         received_to=received_to,
         category=category,
+        recent_days=recent_days,
     )
 
     total = session.scalar(
