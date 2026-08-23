@@ -1,32 +1,85 @@
-const categories = [
-  ['residential', 'Residential'],
-  ['commercial', 'Commercial'],
-  ['industrial', 'Industrial'],
-  ['energy', 'Energy'],
-  ['infrastructure', 'Infrastructure'],
-  ['mixed_use', 'Mixed use'],
-  ['other', 'Other'],
-] as const
+import type { FormEvent } from 'react'
 
-function OpportunityFilters() {
+import {
+  planningApplicationCategories,
+  type PlanningApplicationCategory,
+} from '../../api/opportunities'
+
+export interface OpportunityFilterValues {
+  latitude: number
+  longitude: number
+  radiusKm: number
+  recentDays: number
+  category?: PlanningApplicationCategory
+}
+
+interface OpportunityFiltersProps {
+  isLoading: boolean
+  onSearch: (filters: OpportunityFilterValues) => void
+}
+
+function formatCategory(category: PlanningApplicationCategory) {
+  const label = category.replace('_', ' ')
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+function OpportunityFilters({ isLoading, onSearch }: OpportunityFiltersProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const data = new FormData(event.currentTarget)
+    const category = data.get('category')
+
+    onSearch({
+      latitude: Number(data.get('latitude')),
+      longitude: Number(data.get('longitude')),
+      radiusKm: Number(data.get('radiusKm')),
+      recentDays: Number(data.get('recentDays')),
+      category:
+        typeof category === 'string' && category !== ''
+          ? (category as PlanningApplicationCategory)
+          : undefined,
+    })
+  }
+
   return (
-    <form className="opportunity-filters" aria-label="Opportunity filters">
+    <form
+      className="opportunity-filters"
+      aria-label="Opportunity filters"
+      onSubmit={handleSubmit}
+    >
       <fieldset>
         <legend>Search criteria</legend>
 
         <div className="form-field">
-          <label htmlFor="opportunity-location">Location</label>
+          <label htmlFor="opportunity-latitude">Latitude</label>
           <input
-            id="opportunity-location"
-            name="location"
-            type="text"
-            autoComplete="street-address"
+            id="opportunity-latitude"
+            name="latitude"
+            type="number"
+            min="-90"
+            max="90"
+            step="any"
+            required
+          />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="opportunity-longitude">Longitude</label>
+          <input
+            id="opportunity-longitude"
+            name="longitude"
+            type="number"
+            min="-180"
+            max="180"
+            step="any"
+            required
           />
         </div>
 
         <div className="form-field">
           <label htmlFor="opportunity-radius">Radius</label>
-          <select id="opportunity-radius" name="radius" defaultValue="25">
+          <select id="opportunity-radius" name="radiusKm" defaultValue="25">
             <option value="10">10 km</option>
             <option value="25">25 km</option>
             <option value="50">50 km</option>
@@ -37,7 +90,7 @@ function OpportunityFilters() {
           <label htmlFor="opportunity-recent-period">Recent period</label>
           <select
             id="opportunity-recent-period"
-            name="recentPeriod"
+            name="recentDays"
             defaultValue="30"
           >
             <option value="7">7 days</option>
@@ -51,16 +104,18 @@ function OpportunityFilters() {
           <label htmlFor="opportunity-category">Category</label>
           <select id="opportunity-category" name="category" defaultValue="">
             <option value="">All categories</option>
-            {categories.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+            {planningApplicationCategories.map((category) => (
+              <option key={category} value={category}>
+                {formatCategory(category)}
               </option>
             ))}
           </select>
         </div>
       </fieldset>
 
-      <button type="submit">Find opportunities</button>
+      <button type="submit" disabled={isLoading}>
+        Find opportunities
+      </button>
     </form>
   )
 }

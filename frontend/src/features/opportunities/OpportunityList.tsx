@@ -1,8 +1,8 @@
+import type { Opportunity } from '../../api/opportunities'
 import OpportunityCard from './OpportunityCard'
-import type { OpportunityFixture } from './opportunityFixtures'
 
 interface OpportunityListProps {
-  opportunities: OpportunityFixture[]
+  opportunities: Opportunity[]
   labelledBy: string
 }
 
