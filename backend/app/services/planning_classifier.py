@@ -41,6 +41,7 @@ _CATEGORY_KEYWORDS: dict[PlanningApplicationCategory, tuple[str, ...]] = {
         "dwellinghouses",
         "farmhouse",
         "farmhouses",
+        "staff accommodation",
     ),
     "commercial": (
         "retail",
@@ -340,6 +341,15 @@ def _extract_primary_proposal(text: str) -> str:
     demolition_position = _first_phrase_position(text, _DEMOLITION_PHRASES)
     if demolition_position is None:
         return text
+
+    preceding_text = text[:demolition_position].strip()
+    if any(
+        pattern.search(preceding_text)
+        for pattern in _PROPOSED_AFTER_DEMOLITION_PATTERNS
+    ):
+        # A proposal stated before a later demolition clause remains primary;
+        # uses named only in that demolition clause are historical/ancillary.
+        return preceding_text
 
     demolition_section = text[demolition_position:]
     replacement_candidates = []

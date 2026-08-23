@@ -6,6 +6,38 @@ from backend.app.services.planning_classifier import (
 )
 
 
+WAREHOUSE_DEMOLITION_DESCRIPTION = (
+    "PLANNING PERMISSION FOR THE CONSTRUCTION OF A WAREHOUSE, HGV LOADING "
+    "BAYS AND OFFICES TOGETHER WITH THE PROVISION OF NEW BOUNDARY FENCING, "
+    "CAR PARKING AND DEMOLITION OF THE EXISTING WING WALLS ALONG THE SOUTH "
+    "WESTERN BOUNDARY, INCLUSIVE OF ALL ANCILLARY SITE WORKS, LANDSCAPING "
+    "AND DRAINAGE, ALL AT TONBWEE, CASTLEISLAND, CO. KERRY"
+)
+
+ACCOMMODATION_SOLAR_DESCRIPTION = (
+    "Planning permission is sought for development comprising:\n"
+    "The phased development of staff accommodation lodges in two connected "
+    "three-storey blocks arranged around a central courtyard area, comprising:\n"
+    "- Phase A development of 60 no. staff accommodation rooms and 6 no. "
+    "common room areas; and\n"
+    "- Optional Phase B development of a further 18 no. staff accommodation "
+    "rooms in an extension to one of the blocks.\n"
+    "- Roof-mounted photovoltaic panels and green roof systems on the proposed "
+    "accommodation lodge buildings.\n"
+    "- Construction of a single-storey gym building with attached bicycle and "
+    "bin storage facilities.\n"
+    "- Staff car parking facilities and associated internal vehicular and "
+    "pedestrian connections to existing parking area, including provision for "
+    "fire tender access.\n"
+    "- Landscaping works including localised ground reprofiling, hard and soft "
+    "landscaping works.\n"
+    "- Lighting provision.\n"
+    "- Localised connections to existing wastewater and water supply and "
+    "provision of surface water drainage including soakaway area.\n"
+    "- All associated site development works."
+)
+
+
 def test_supported_categories_are_stable() -> None:
     assert PLANNING_APPLICATION_CATEGORIES == (
         "residential",
@@ -163,6 +195,54 @@ def test_demolished_use_does_not_determine_replacement_use() -> None:
     )
 
     assert result == "residential"
+
+
+def test_primary_warehouse_before_ancillary_demolition_is_industrial() -> None:
+    assert (
+        classify_planning_application(WAREHOUSE_DEMOLITION_DESCRIPTION)
+        == "industrial"
+    )
+
+
+def test_staff_accommodation_outranks_ancillary_photovoltaic_panels() -> None:
+    assert (
+        classify_planning_application(ACCOMMODATION_SOLAR_DESCRIPTION)
+        == "residential"
+    )
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        ("Construction of a standalone warehouse.", "industrial"),
+        (
+            "Construction of a warehouse with ancillary loading bays and "
+            "offices.",
+            "industrial",
+        ),
+        ("Development of a standalone solar farm.", "energy"),
+        (
+            "Installation of a ground-mounted photovoltaic array with inverter "
+            "equipment and associated electrical works.",
+            "energy",
+        ),
+        (
+            "Construction of a detached dwelling with ancillary roof-mounted "
+            "photovoltaic panels.",
+            "residential",
+        ),
+        (
+            "Construction of a commercial office building with ancillary "
+            "roof-mounted solar panels.",
+            "commercial",
+        ),
+    ],
+)
+def test_warehouse_and_solar_scoping_protections(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category
 
 
 @pytest.mark.parametrize(

@@ -120,6 +120,13 @@ _MINOR_SCOPE_PATTERN = re.compile(
     r"boundary\s+walls?|light\s+fittings?|lighting\s+fixtures?)\b"
 )
 
+_ERECT_SIGNAGE_PATTERN = re.compile(
+    r"\b(?:erect|erection\s+of)\s+"
+    r"(?:(?:a|an|the|new|standalone|freestanding|free\s+standing|"
+    r"advertising|commercial|illuminated)\s+){0,4}"
+    r"(?:signage|signs?)\b"
+)
+
 _MINOR_LIGHTING_PATTERN = re.compile(
     r"\b(?:replacement\s+of|replace)\s+(?:one|1|a|an)\s+"
     r"(?:external\s+)?(?:light|lighting)\s+(?:fitting|fixture)\b"
@@ -249,7 +256,9 @@ def _score_project_scope(
     if not primary_text:
         return 0, None
 
-    if _MINOR_SCOPE_PATTERN.search(primary_text):
+    if _MINOR_SCOPE_PATTERN.search(primary_text) or _ERECT_SIGNAGE_PATTERN.search(
+        primary_text
+    ):
         return 5, "Minor signage, boundary or lighting works"
 
     if primary_text.startswith("retention ") or primary_text == "retention":

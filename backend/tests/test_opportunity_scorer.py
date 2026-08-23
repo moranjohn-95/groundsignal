@@ -15,6 +15,29 @@ from backend.app.services.planning_classifier import (
 
 CURRENT_DATE = date(2025, 1, 15)
 
+ACCOMMODATION_SOLAR_DESCRIPTION = (
+    "Planning permission is sought for development comprising:\n"
+    "The phased development of staff accommodation lodges in two connected "
+    "three-storey blocks arranged around a central courtyard area, comprising:\n"
+    "- Phase A development of 60 no. staff accommodation rooms and 6 no. "
+    "common room areas; and\n"
+    "- Optional Phase B development of a further 18 no. staff accommodation "
+    "rooms in an extension to one of the blocks.\n"
+    "- Roof-mounted photovoltaic panels and green roof systems on the proposed "
+    "accommodation lodge buildings.\n"
+    "- Construction of a single-storey gym building with attached bicycle and "
+    "bin storage facilities.\n"
+    "- Staff car parking facilities and associated internal vehicular and "
+    "pedestrian connections to existing parking area, including provision for "
+    "fire tender access.\n"
+    "- Landscaping works including localised ground reprofiling, hard and soft "
+    "landscaping works.\n"
+    "- Lighting provision.\n"
+    "- Localised connections to existing wastewater and water supply and "
+    "provision of surface water drainage including soakaway area.\n"
+    "- All associated site development works."
+)
+
 
 def _score(**overrides):
     values = {
@@ -204,6 +227,68 @@ def test_ancillary_major_phrase_does_not_inflate_primary_minor_scope() -> None:
 
     assert result.score_breakdown.project_scope == 5
     assert result.score_breakdown.electrical_relevance == 0
+
+
+def test_erect_signage_is_minor_without_commercial_electrical_inference() -> None:
+    result = _score(
+        description="ERECT SIGNAGE TO FRONT OF EXISTING OFFICE",
+        floor_area=50.0,
+        received_date=date(2024, 1, 1),
+        category="commercial",
+    )
+
+    assert result.opportunity_score == 19
+    assert result.opportunity_level == "very_low"
+    assert result.score_breakdown == OpportunityScoreBreakdown(5, 0, 4, 0, 10)
+    assert "Minor signage, boundary or lighting works" in result.reasons
+    assert not any("implied" in reason.casefold() for reason in result.reasons)
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Erect standalone signage.",
+        "Erect a free-standing sign.",
+        "Erection of new illuminated advertising signage.",
+    ],
+)
+def test_erect_signage_variants_remain_minor(description: str) -> None:
+    result = _score(description=description, category="commercial")
+
+    assert result.score_breakdown.project_scope == 5
+    assert result.score_breakdown.electrical_relevance == 0
+
+
+@pytest.mark.parametrize(
+    ("description", "category"),
+    [
+        ("Erect warehouse.", "industrial"),
+        ("Erect industrial unit.", "industrial"),
+        ("Erect dwelling house.", "residential"),
+        ("Erect commercial building.", "commercial"),
+    ],
+)
+def test_erect_legitimate_buildings_remain_major(
+    description: str,
+    category: str,
+) -> None:
+    result = _score(description=description, category=category)
+
+    assert result.score_breakdown.project_scope == 30
+    assert "Minor signage, boundary or lighting works" not in result.reasons
+
+
+def test_accommodation_solar_retains_strong_electrical_relevance() -> None:
+    result = _score(
+        description=ACCOMMODATION_SOLAR_DESCRIPTION,
+        received_date=CURRENT_DATE,
+        category="residential",
+    )
+
+    assert result.opportunity_score == 72
+    assert result.opportunity_level == "high"
+    assert result.score_breakdown == OpportunityScoreBreakdown(30, 25, 0, 10, 7)
+    assert "Renewable electrical installation identified" in result.reasons
 
 
 def test_commercial_fit_out_has_contextual_electrical_relevance() -> None:
