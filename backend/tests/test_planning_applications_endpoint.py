@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import date
 from unittest.mock import Mock
 
@@ -11,6 +12,12 @@ from backend.app import dependencies
 from backend.app.api import planning_applications
 from backend.app.dependencies import get_db
 from backend.app.main import app
+from backend.app.models import PlanningApplication
+from backend.app.services.opportunity_scorer import (
+    OpportunityScoreBreakdown,
+    OpportunityScoreResult,
+    score_planning_application_opportunity,
+)
 
 
 PLANNING_APPLICATION_ROWS = [
@@ -212,6 +219,22 @@ def _category_counts(**overrides: int) -> dict[str, int]:
     return {**ALL_CATEGORY_COUNTS, **overrides}
 
 
+def _expected_opportunity(row: dict) -> dict:
+    result = score_planning_application_opportunity(
+        description=row["description"],
+        application_type=row["application_type"],
+        number_residential_units=row["number_residential_units"],
+        floor_area=row["floor_area"],
+        received_date=date.fromisoformat(row["received_date"]),
+        category=row["category"],
+    )
+    return {
+        "opportunity_score": result.opportunity_score,
+        "opportunity_level": result.opportunity_level,
+        "opportunity_breakdown": asdict(result.score_breakdown),
+    }
+
+
 @pytest.fixture
 def fixed_current_utc_date(monkeypatch: pytest.MonkeyPatch) -> date:
     current_date = date(2024, 3, 1)
@@ -242,15 +265,21 @@ def test_category_summary_returns_grouped_counts_and_total(
     }
 
 
-def test_category_summary_does_not_run_classifier(
+def test_category_summary_does_not_run_classifier_or_scorer(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     classifier = Mock(side_effect=AssertionError("classifier must not run"))
+    scorer = Mock(side_effect=AssertionError("scorer must not run"))
     monkeypatch.setattr(
         planning_applications,
         "classify_planning_application",
         classifier,
+    )
+    monkeypatch.setattr(
+        planning_applications,
+        "score_planning_application_opportunity",
+        scorer,
     )
 
     response = client.get(
@@ -259,6 +288,7 @@ def test_category_summary_does_not_run_classifier(
 
     assert response.status_code == 200
     classifier.assert_not_called()
+    scorer.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -360,6 +390,14 @@ def test_detail_returns_application_by_internal_id(client: TestClient) -> None:
     assert data["planning_authority"] == "Cork City Council"
     assert data["application_number"] == "174041"
     assert data["category"] == "residential"
+    assert {
+        field: data[field]
+        for field in (
+            "opportunity_score",
+            "opportunity_level",
+            "opportunity_breakdown",
+        )
+    } == _expected_opportunity(PLANNING_APPLICATION_ROWS[0])
 
 
 def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
@@ -385,6 +423,9 @@ def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
         "application_url",
         "source_updated_at",
         "category",
+        "opportunity_score",
+        "opportunity_level",
+        "opportunity_breakdown",
     }
 
 
@@ -401,6 +442,70 @@ def test_list_returns_representative_computed_categories(
     assert categories_by_id[2] == "commercial"
     assert categories_by_id[3] == "energy"
     assert categories_by_id[4] == "other"
+
+
+def test_list_opportunity_values_exactly_match_existing_scorer(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/v1/planning-applications")
+
+    assert response.status_code == 200
+    items_by_id = {
+        item["id"]: item for item in response.json()["items"]
+    }
+    for row in PLANNING_APPLICATION_ROWS[:4]:
+        expected = _expected_opportunity(row)
+        assert {
+            field: items_by_id[row["id"]][field] for field in expected
+        } == expected
+
+
+def test_shared_response_mapper_passes_exact_fields_to_scorer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    application = PlanningApplication(
+        id=42,
+        source_object_id=1042,
+        planning_authority="Test Council",
+        application_number="26/0042",
+        description="Construction of a medical centre.",
+        application_type="Permission",
+        number_residential_units=2,
+        floor_area=850.5,
+        received_date=date(2026, 8, 10),
+    )
+    score_result = OpportunityScoreResult(
+        opportunity_score=65,
+        opportunity_level="high",
+        score_breakdown=OpportunityScoreBreakdown(30, 12, 8, 5, 10),
+        reasons=("Test evidence",),
+    )
+    classifier = Mock(return_value="commercial")
+    scorer = Mock(return_value=score_result)
+    monkeypatch.setattr(
+        planning_applications,
+        "classify_planning_application",
+        classifier,
+    )
+    monkeypatch.setattr(
+        planning_applications,
+        "score_planning_application_opportunity",
+        scorer,
+    )
+
+    response = planning_applications._planning_application_response(application)
+
+    scorer.assert_called_once_with(
+        description="Construction of a medical centre.",
+        application_type="Permission",
+        number_residential_units=2,
+        floor_area=850.5,
+        received_date=date(2026, 8, 10),
+        category="commercial",
+    )
+    assert response.opportunity_score == 65
+    assert response.opportunity_level == "high"
+    assert response.opportunity_breakdown == score_result.score_breakdown
 
 
 def test_detail_unknown_id_returns_404(client: TestClient) -> None:

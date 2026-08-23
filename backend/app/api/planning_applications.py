@@ -21,6 +21,7 @@ from ..services.planning_classifier import (
     PlanningApplicationCategory,
     classify_planning_application,
 )
+from ..services.opportunity_scorer import score_planning_application_opportunity
 
 
 router = APIRouter(
@@ -59,14 +60,26 @@ def _planning_application_response(
     public_values = {
         column.key: getattr(application, column.key) for column in PUBLIC_COLUMNS
     }
+    category = classify_planning_application(
+        description=application.description,
+        application_type=application.application_type,
+        number_residential_units=application.number_residential_units,
+        floor_area=application.floor_area,
+    )
+    opportunity = score_planning_application_opportunity(
+        description=application.description,
+        application_type=application.application_type,
+        number_residential_units=application.number_residential_units,
+        floor_area=application.floor_area,
+        received_date=application.received_date,
+        category=category,
+    )
     return PlanningApplicationResponse(
         **public_values,
-        category=classify_planning_application(
-            description=application.description,
-            application_type=application.application_type,
-            number_residential_units=application.number_residential_units,
-            floor_area=application.floor_area,
-        ),
+        category=category,
+        opportunity_score=opportunity.opportunity_score,
+        opportunity_level=opportunity.opportunity_level,
+        opportunity_breakdown=opportunity.score_breakdown,
     )
 
 

@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import date, datetime, timezone
 from unittest.mock import Mock
 
@@ -10,6 +11,9 @@ from backend.app.api import planning_applications
 from backend.app.dependencies import get_db
 from backend.app.main import app
 from backend.app.models import PlanningApplication
+from backend.app.services.opportunity_scorer import (
+    score_planning_application_opportunity,
+)
 
 
 def _application(*, identifier: int, source_object_id: int) -> PlanningApplication:
@@ -137,9 +141,13 @@ def test_nearby_rejects_invalid_pagination(nearby_client, pagination):
 def test_nearby_returns_paginated_items_with_distance(nearby_client):
     client, session = nearby_client
     session.scalar.return_value = 37
+    applications = [
+        _application(identifier=1, source_object_id=101),
+        _application(identifier=2, source_object_id=102),
+    ]
     session.execute.return_value.all.return_value = [
-        (_application(identifier=1, source_object_id=101), 1.25),
-        (_application(identifier=2, source_object_id=102), 2.5),
+        (applications[0], 1.25),
+        (applications[1], 2.5),
     ]
 
     response = client.get(
@@ -158,6 +166,19 @@ def test_nearby_returns_paginated_items_with_distance(nearby_client):
         "residential",
         "residential",
     ]
+    expected = score_planning_application_opportunity(
+        description=applications[0].description,
+        application_type=applications[0].application_type,
+        number_residential_units=applications[0].number_residential_units,
+        floor_area=applications[0].floor_area,
+        received_date=applications[0].received_date,
+        category="residential",
+    )
+    assert payload["items"][0]["opportunity_score"] == expected.opportunity_score
+    assert payload["items"][0]["opportunity_level"] == expected.opportunity_level
+    assert payload["items"][0]["opportunity_breakdown"] == asdict(
+        expected.score_breakdown
+    )
     assert "location" not in payload["items"][0]
     assert "created_at" not in payload["items"][0]
     assert "updated_at" not in payload["items"][0]

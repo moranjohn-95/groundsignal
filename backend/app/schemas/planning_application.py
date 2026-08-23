@@ -2,6 +2,10 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from ..services.opportunity_scorer import (
+    OpportunityLevel,
+    OpportunityScoreBreakdown,
+)
 from ..services.planning_classifier import PlanningApplicationCategory
 
 
@@ -26,6 +30,9 @@ class PlanningApplicationResponse(BaseModel):
     application_url: str | None
     source_updated_at: datetime | None
     category: PlanningApplicationCategory
+    opportunity_score: int
+    opportunity_level: OpportunityLevel
+    opportunity_breakdown: OpportunityScoreBreakdown
 
 
 class PlanningApplicationListResponse(BaseModel):
