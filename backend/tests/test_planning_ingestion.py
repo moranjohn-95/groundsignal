@@ -28,6 +28,7 @@ def _transformed_application(
         "number_residential_units": 1,
         "floor_area": 120.5,
         "application_url": "https://example.test/application",
+        "category": "residential",
         "location": None,
         "source_updated_at": None,
     }
@@ -52,6 +53,7 @@ def test_new_application_is_inserted(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(inserted, PlanningApplication)
     assert inserted.source_object_id == 101
     assert inserted.planning_authority == "Carlow County Council"
+    assert inserted.category == "residential"
     session.commit.assert_called_once_with()
     session.rollback.assert_not_called()
 
@@ -65,6 +67,7 @@ def test_existing_application_is_updated_without_duplication(
         source_object_id=202,
         planning_authority="Old Authority",
         application_number="old-number",
+        category="energy",
     )
     original_created_at = datetime(2024, 1, 1, tzinfo=timezone.utc)
     original_updated_at = datetime(2024, 1, 2, tzinfo=timezone.utc)
@@ -72,6 +75,9 @@ def test_existing_application_is_updated_without_duplication(
     existing.updated_at = original_updated_at
     transformed = {
         **_transformed_application(202, "Updated Authority"),
+        "description": "Construction of a retail shop.",
+        "number_residential_units": 0,
+        "category": "commercial",
         "id": 999,
         "created_at": datetime(2030, 1, 1, tzinfo=timezone.utc),
         "updated_at": datetime(2030, 1, 1, tzinfo=timezone.utc),
@@ -94,6 +100,7 @@ def test_existing_application_is_updated_without_duplication(
     assert result == {"fetched": 1, "inserted": 0, "updated": 1}
     assert existing.planning_authority == "Updated Authority"
     assert existing.application_number == "24/202"
+    assert existing.category == "commercial"
     assert existing.id == 12
     assert existing.created_at is original_created_at
     assert existing.updated_at is original_updated_at
@@ -517,6 +524,7 @@ def test_sync_uses_max_watermark_and_aggregates_page_results(
         source_object_id=1102,
         planning_authority="Old Authority",
         application_number="old-number",
+        category="residential",
     )
     filtered_iterator = Mock(return_value=iter(pages))
     transform = Mock(
@@ -525,7 +533,12 @@ def test_sync_uses_max_watermark_and_aggregates_page_results(
                 **_transformed_application(1101),
                 "source_updated_at": watermark,
             },
-            _transformed_application(1102, "Updated Authority"),
+            {
+                **_transformed_application(1102, "Updated Authority"),
+                "description": "Development of a solar farm.",
+                "number_residential_units": 0,
+                "category": "energy",
+            },
             _transformed_application(1103),
         ]
     )
@@ -560,7 +573,12 @@ def test_sync_uses_max_watermark_and_aggregates_page_results(
     filtered_iterator.assert_called_once_with(watermark, 200)
     transform.assert_any_call(boundary_feature)
     assert existing.planning_authority == "Updated Authority"
+    assert existing.category == "energy"
     assert session.add.call_count == 2
+    assert all(
+        call.args[0].category is not None
+        for call in session.add.call_args_list
+    )
     assert session.commit.call_count == 2
     session.rollback.assert_not_called()
 

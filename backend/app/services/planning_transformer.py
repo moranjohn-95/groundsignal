@@ -4,6 +4,8 @@ from typing import Any
 
 from geoalchemy2.elements import WKTElement
 
+from .planning_classifier import classify_planning_application
+
 
 UNIX_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
@@ -136,7 +138,7 @@ def transform_planning_application(feature: dict) -> dict:
             "OBJECTID must be present and contain a valid integer."
         )
 
-    return {
+    transformed = {
         "source_object_id": source_object_id,
         "planning_authority": _clean_required_string(
             properties.get("PlanningAuthority"),
@@ -193,3 +195,10 @@ def transform_planning_application(feature: dict) -> dict:
             "ETL_DATE",
         ),
     }
+    transformed["category"] = classify_planning_application(
+        description=transformed["description"],
+        application_type=transformed["application_type"],
+        number_residential_units=transformed["number_residential_units"],
+        floor_area=transformed["floor_area"],
+    )
+    return transformed

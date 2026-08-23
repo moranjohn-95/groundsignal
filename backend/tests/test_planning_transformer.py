@@ -1,8 +1,10 @@
 from copy import deepcopy
 from datetime import date, datetime, timezone
+from unittest.mock import Mock
 
 import pytest
 
+from backend.app.services import planning_transformer
 from backend.app.services.planning_transformer import (
     PlanningApplicationTransformationError,
     transform_planning_application,
@@ -51,6 +53,55 @@ def test_complete_valid_feature_transforms_correctly() -> None:
     assert result["number_residential_units"] == 2
     assert result["floor_area"] == 145.5
     assert result["application_url"] == "https://example.test/planning/24-123"
+    assert result["category"] == "residential"
+
+
+def test_classifier_receives_exact_transformed_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    feature = deepcopy(VALID_FEATURE)
+    feature["properties"]["DevelopmentDescription"] = "  Retail shop.\r\n"
+    feature["properties"]["ApplicationType"] = "  Full Permission  "
+    feature["properties"]["NumResidentialUnits"] = 0
+    feature["properties"]["FloorArea"] = 275.5
+    classifier = Mock(return_value="commercial")
+    monkeypatch.setattr(
+        planning_transformer,
+        "classify_planning_application",
+        classifier,
+    )
+
+    result = planning_transformer.transform_planning_application(feature)
+
+    classifier.assert_called_once_with(
+        description="Retail shop.",
+        application_type="Full Permission",
+        number_residential_units=0,
+        floor_area=275.5,
+    )
+    assert result["category"] == "commercial"
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        ("Construction of a detached dwelling.", "residential"),
+        ("Construction of a retail shop.", "commercial"),
+        ("Development of a solar farm.", "energy"),
+        ("Retention of an agricultural storage shed.", "other"),
+    ],
+)
+def test_transformed_records_include_representative_categories(
+    description: str,
+    expected_category: str,
+) -> None:
+    feature = deepcopy(VALID_FEATURE)
+    feature["properties"]["DevelopmentDescription"] = description
+    feature["properties"]["NumResidentialUnits"] = 0
+
+    result = transform_planning_application(feature)
+
+    assert result["category"] == expected_category
 
 
 def test_epoch_millisecond_dates_are_converted() -> None:
