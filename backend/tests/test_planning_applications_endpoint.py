@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from backend.app import dependencies
+from backend.app.api import planning_applications
 from backend.app.dependencies import get_db
 from backend.app.main import app
 
@@ -193,6 +194,132 @@ def client() -> TestClient:
 
 def _item_ids(response_data: dict) -> list[int]:
     return [item["id"] for item in response_data["items"]]
+
+
+ALL_CATEGORY_COUNTS = {
+    "residential": 0,
+    "commercial": 0,
+    "industrial": 0,
+    "energy": 0,
+    "infrastructure": 0,
+    "mixed_use": 0,
+    "other": 0,
+}
+
+
+def _category_counts(**overrides: int) -> dict[str, int]:
+    return {**ALL_CATEGORY_COUNTS, **overrides}
+
+
+def test_category_summary_returns_grouped_counts_and_total(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications/categories/summary"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total": 6,
+        "categories": _category_counts(
+            residential=1,
+            commercial=1,
+            energy=1,
+            other=3,
+        ),
+    }
+
+
+def test_category_summary_does_not_run_classifier(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    classifier = Mock(side_effect=AssertionError("classifier must not run"))
+    monkeypatch.setattr(
+        planning_applications,
+        "classify_planning_application",
+        classifier,
+    )
+
+    response = client.get(
+        "/api/v1/planning-applications/categories/summary"
+    )
+
+    assert response.status_code == 200
+    classifier.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("parameter", "value", "total", "expected_counts"),
+    [
+        (
+            "planning_authority",
+            "Cork City Council",
+            4,
+            _category_counts(residential=1, commercial=1, other=2),
+        ),
+        (
+            "application_status",
+            "Pending",
+            1,
+            _category_counts(commercial=1),
+        ),
+        (
+            "decision",
+            "REFUSE",
+            1,
+            _category_counts(energy=1),
+        ),
+        (
+            "received_from",
+            "2024-02-01",
+            3,
+            _category_counts(energy=1, other=2),
+        ),
+        (
+            "received_to",
+            "2024-01-15",
+            3,
+            _category_counts(residential=1, commercial=1, other=1),
+        ),
+    ],
+)
+def test_category_summary_applies_individual_listing_filters(
+    client: TestClient,
+    parameter: str,
+    value: str,
+    total: int,
+    expected_counts: dict[str, int],
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications/categories/summary",
+        params={parameter: value},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total": total,
+        "categories": expected_counts,
+    }
+
+
+def test_category_summary_combines_listing_filters(client: TestClient) -> None:
+    response = client.get(
+        "/api/v1/planning-applications/categories/summary",
+        params={
+            "planning_authority": "Cork City Council",
+            "application_status": "Decided",
+            "decision": "GRANT",
+            "received_from": "2024-01-01",
+            "received_to": "2024-03-01",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total": 2,
+        "categories": _category_counts(residential=1, other=1),
+    }
 
 
 def test_detail_returns_application_by_internal_id(client: TestClient) -> None:

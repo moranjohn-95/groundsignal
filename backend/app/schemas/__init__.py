@@ -1,6 +1,7 @@
 from .planning_application import (
     NearbyPlanningApplicationListResponse,
     NearbyPlanningApplicationResponse,
+    PlanningApplicationCategorySummaryResponse,
     PlanningApplicationListResponse,
     PlanningApplicationResponse,
 )
@@ -8,6 +9,7 @@ from .planning_application import (
 __all__ = [
     "NearbyPlanningApplicationListResponse",
     "NearbyPlanningApplicationResponse",
+    "PlanningApplicationCategorySummaryResponse",
     "PlanningApplicationListResponse",
     "PlanningApplicationResponse",
 ]

@@ -35,6 +35,11 @@ class PlanningApplicationListResponse(BaseModel):
     total: int
 
 
+class PlanningApplicationCategorySummaryResponse(BaseModel):
+    total: int
+    categories: dict[PlanningApplicationCategory, int]
+
+
 class NearbyPlanningApplicationResponse(PlanningApplicationResponse):
     distance_km: float
 

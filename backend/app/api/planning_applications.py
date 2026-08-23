@@ -12,10 +12,12 @@ from ..models import PlanningApplication
 from ..schemas import (
     NearbyPlanningApplicationListResponse,
     NearbyPlanningApplicationResponse,
+    PlanningApplicationCategorySummaryResponse,
     PlanningApplicationListResponse,
     PlanningApplicationResponse,
 )
 from ..services.planning_classifier import (
+    PLANNING_APPLICATION_CATEGORIES,
     PlanningApplicationCategory,
     classify_planning_application,
 )
@@ -149,6 +151,50 @@ def list_nearby_planning_applications(
         limit=limit,
         offset=offset,
         total=total,
+    )
+
+
+@router.get(
+    "/categories/summary",
+    response_model=PlanningApplicationCategorySummaryResponse,
+)
+def summarize_planning_application_categories(
+    session: Annotated[Session, Depends(get_db)],
+    planning_authority: str | None = None,
+    application_status: str | None = None,
+    decision: str | None = None,
+    received_from: date | None = None,
+    received_to: date | None = None,
+) -> PlanningApplicationCategorySummaryResponse:
+    filters = _planning_application_filters(
+        planning_authority=planning_authority,
+        application_status=application_status,
+        decision=decision,
+        received_from=received_from,
+        received_to=received_to,
+    )
+    total = session.scalar(
+        select(func.count(PlanningApplication.id)).where(*filters)
+    ) or 0
+    grouped_counts = session.execute(
+        select(
+            PlanningApplication.category,
+            func.count(PlanningApplication.id),
+        )
+        .where(*filters)
+        .group_by(PlanningApplication.category)
+    ).all()
+
+    categories = {
+        category: 0 for category in PLANNING_APPLICATION_CATEGORIES
+    }
+    for category, count in grouped_counts:
+        if category in categories:
+            categories[category] = count
+
+    return PlanningApplicationCategorySummaryResponse(
+        total=total,
+        categories=categories,
     )
 
 
