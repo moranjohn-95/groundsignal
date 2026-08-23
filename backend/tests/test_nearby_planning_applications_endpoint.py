@@ -206,6 +206,12 @@ def test_nearby_uses_default_pagination(nearby_client):
             "Refused",
             "planning_applications.decision =",
         ),
+        (
+            "category",
+            "commercial",
+            "commercial",
+            "planning_applications.category =",
+        ),
     ],
 )
 def test_nearby_applies_individual_relevance_filters(
@@ -260,6 +266,7 @@ def test_nearby_combines_date_status_and_decision_filters(nearby_client):
             received_to="2025-01-31",
             application_status="Decided",
             decision="Granted",
+            category="commercial",
         ),
     )
 
@@ -270,12 +277,14 @@ def test_nearby_combines_date_status_and_decision_filters(nearby_client):
         "planning_applications.received_date <=",
         "planning_applications.application_status =",
         "planning_applications.decision =",
+        "planning_applications.category =",
     )
     expected_values = {
         date(2025, 1, 1),
         date(2025, 1, 31),
         "Decided",
         "Granted",
+        "commercial",
     }
     for compiled in (count_compiled, item_compiled):
         sql = str(compiled)
@@ -288,7 +297,10 @@ def test_nearby_combines_relevance_filters_with_spatial_radius(nearby_client):
 
     response = client.get(
         "/api/v1/planning-applications/nearby",
-        params=_valid_params(application_status="Decided"),
+        params=_valid_params(
+            application_status="Decided",
+            category="commercial",
+        ),
     )
 
     assert response.status_code == 200
@@ -297,6 +309,7 @@ def test_nearby_combines_relevance_filters_with_spatial_radius(nearby_client):
         sql = str(compiled)
         assert "ST_DWithin" in sql
         assert "planning_applications.application_status =" in sql
+        assert "planning_applications.category =" in sql
         assert " AND " in sql
 
 
@@ -310,7 +323,7 @@ def test_nearby_filtered_total_is_before_pagination(nearby_client):
     response = client.get(
         "/api/v1/planning-applications/nearby",
         params=_valid_params(
-            application_status="Decided",
+            category="commercial",
             limit=1,
             offset=3,
         ),
@@ -322,7 +335,7 @@ def test_nearby_filtered_total_is_before_pagination(nearby_client):
     count_compiled, item_compiled = _compiled_statements(session)
     count_sql = str(count_compiled).upper()
     item_sql = str(item_compiled).upper()
-    assert "PLANNING_APPLICATIONS.APPLICATION_STATUS =" in count_sql
+    assert "PLANNING_APPLICATIONS.CATEGORY =" in count_sql
     assert "LIMIT" not in count_sql
     assert "OFFSET" not in count_sql
     assert "LIMIT" in item_sql
@@ -344,6 +357,20 @@ def test_nearby_without_relevance_filters_keeps_radius_only(nearby_client):
     assert "planning_applications.received_date" not in count_sql
     assert "planning_applications.application_status" not in count_sql
     assert "planning_applications.decision" not in count_sql
+    assert "planning_applications.category" not in count_sql
+
+
+def test_nearby_rejects_invalid_category(nearby_client):
+    client, session = nearby_client
+
+    response = client.get(
+        "/api/v1/planning-applications/nearby",
+        params=_valid_params(category="agricultural"),
+    )
+
+    assert response.status_code == 422
+    session.scalar.assert_not_called()
+    session.execute.assert_not_called()
 
 
 def test_nearby_builds_postgis_geography_queries(nearby_client):

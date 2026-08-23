@@ -24,6 +24,7 @@ PLANNING_APPLICATION_ROWS = [
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2024-01-10",
+        "category": "residential",
     },
     {
         "id": 2,
@@ -37,6 +38,7 @@ PLANNING_APPLICATION_ROWS = [
         "application_status": "Pending",
         "decision": None,
         "received_date": "2024-01-15",
+        "category": "commercial",
     },
     {
         "id": 3,
@@ -50,6 +52,7 @@ PLANNING_APPLICATION_ROWS = [
         "application_status": "Decided",
         "decision": "REFUSE",
         "received_date": "2024-02-01",
+        "category": "energy",
     },
     {
         "id": 4,
@@ -63,6 +66,7 @@ PLANNING_APPLICATION_ROWS = [
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2024-02-01",
+        "category": "other",
     },
     {
         "id": 5,
@@ -76,6 +80,7 @@ PLANNING_APPLICATION_ROWS = [
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2024-03-01",
+        "category": "other",
     },
     {
         "id": 6,
@@ -89,6 +94,7 @@ PLANNING_APPLICATION_ROWS = [
         "application_status": "Decided",
         "decision": "GRANT",
         "received_date": "2023-12-31",
+        "category": "other",
     },
 ]
 
@@ -121,6 +127,7 @@ def client() -> TestClient:
                     number_residential_units INTEGER,
                     floor_area FLOAT,
                     application_url TEXT,
+                    category VARCHAR(32),
                     location TEXT,
                     source_updated_at DATETIME,
                     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -143,7 +150,8 @@ def client() -> TestClient:
                     floor_area,
                     application_status,
                     decision,
-                    received_date
+                    received_date,
+                    category
                 ) VALUES (
                     :id,
                     :source_object_id,
@@ -155,7 +163,8 @@ def client() -> TestClient:
                     :floor_area,
                     :application_status,
                     :decision,
-                    :received_date
+                    :received_date,
+                    :category
                 )
                 """
             ),
@@ -342,6 +351,76 @@ def test_individual_filters(
     data = response.json()
     assert _item_ids(data) == expected_ids
     assert data["total"] == len(expected_ids)
+
+
+@pytest.mark.parametrize(
+    ("category", "expected_ids"),
+    [
+        ("residential", [1]),
+        ("commercial", [2]),
+        ("industrial", []),
+        ("energy", [3]),
+        ("infrastructure", []),
+        ("mixed_use", []),
+        ("other", [5, 4, 6]),
+    ],
+)
+def test_listing_filters_by_persisted_category(
+    client: TestClient,
+    category: str,
+    expected_ids: list[int],
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={"category": category},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert _item_ids(data) == expected_ids
+    assert data["total"] == len(expected_ids)
+
+
+def test_category_filtered_total_is_before_pagination(client: TestClient) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={"category": "other", "limit": 1, "offset": 1},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 3
+    assert _item_ids(data) == [4]
+
+
+def test_category_combines_with_existing_listing_filters(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={
+            "category": "other",
+            "planning_authority": "Cork City Council",
+            "application_status": "Decided",
+            "decision": "GRANT",
+            "received_from": "2023-01-01",
+            "received_to": "2024-03-01",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert _item_ids(data) == [5, 6]
+    assert data["total"] == 2
+
+
+def test_listing_rejects_invalid_category(client: TestClient) -> None:
+    response = client.get(
+        "/api/v1/planning-applications",
+        params={"category": "agricultural"},
+    )
+
+    assert response.status_code == 422
 
 
 def test_combined_filters(client: TestClient) -> None:

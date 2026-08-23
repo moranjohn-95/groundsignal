@@ -15,7 +15,10 @@ from ..schemas import (
     PlanningApplicationListResponse,
     PlanningApplicationResponse,
 )
-from ..services.planning_classifier import classify_planning_application
+from ..services.planning_classifier import (
+    PlanningApplicationCategory,
+    classify_planning_application,
+)
 
 
 router = APIRouter(
@@ -68,6 +71,7 @@ def _planning_application_filters(
     decision: str | None = None,
     received_from: date | None = None,
     received_to: date | None = None,
+    category: PlanningApplicationCategory | None = None,
 ) -> list[ColumnElement[bool]]:
     filters = []
     if planning_authority is not None:
@@ -80,6 +84,8 @@ def _planning_application_filters(
         filters.append(PlanningApplication.received_date >= received_from)
     if received_to is not None:
         filters.append(PlanningApplication.received_date <= received_to)
+    if category is not None:
+        filters.append(PlanningApplication.category == category)
     return filters
 
 
@@ -95,6 +101,7 @@ def list_nearby_planning_applications(
     received_to: date | None = None,
     application_status: str | None = None,
     decision: str | None = None,
+    category: PlanningApplicationCategory | None = None,
 ) -> NearbyPlanningApplicationListResponse:
     search_point = cast(
         func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326),
@@ -114,6 +121,7 @@ def list_nearby_planning_applications(
         decision=decision,
         received_from=received_from,
         received_to=received_to,
+        category=category,
     )
 
     total = session.scalar(
@@ -173,6 +181,7 @@ def list_planning_applications(
     decision: str | None = None,
     received_from: date | None = None,
     received_to: date | None = None,
+    category: PlanningApplicationCategory | None = None,
 ) -> PlanningApplicationListResponse:
     filters = _planning_application_filters(
         planning_authority=planning_authority,
@@ -180,6 +189,7 @@ def list_planning_applications(
         decision=decision,
         received_from=received_from,
         received_to=received_to,
+        category=category,
     )
 
     total = session.scalar(
