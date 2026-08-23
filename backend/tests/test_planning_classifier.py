@@ -286,6 +286,194 @@ def test_context_refinement_preserves_legitimate_primary_uses(
 
 
 @pytest.mark.parametrize(
+    "description",
+    [
+        (
+            "to construct a new cow storage cubicle house and storage tank, "
+            "new above ground slurry store, ..."
+        ),
+        "Construction of a cattle cubicle house and associated farm works.",
+        "Permission for a poultry house and manure storage tank.",
+    ],
+)
+def test_agricultural_house_uses_are_not_residential(
+    description: str,
+) -> None:
+    assert classify_planning_application(description) == "other"
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construction of a house.",
+        "Construction of a dwelling house.",
+        "Construction of a detached house.",
+        "Construction of a house extension.",
+    ],
+)
+def test_agricultural_house_refinement_preserves_residential_uses(
+    description: str,
+) -> None:
+    assert classify_planning_application(description) == "residential"
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        pytest.param(
+            "Construction of a Pig Finishing Unit, two meal bins, two water "
+            "tanks, roof mounted solar panels and all associated site works",
+            "other",
+            id="pig-unit-with-solar-panels-41",
+        ),
+        pytest.param(
+            "the construction of a Pig Finishing Unit, Two Meal Bins, Two "
+            "Water Tanks, Roof Mounted Solar Panels and all associated works",
+            "other",
+            id="pig-unit-with-solar-panels-135",
+        ),
+        pytest.param(
+            "The removal of porch and gable end of existing farmhouse, "
+            "construction of a new two storey extension to the side and rear "
+            "of the existing farmhouse, a wastewater treatment system and "
+            "all associated site works",
+            "residential",
+            id="farmhouse-extension-273-314",
+        ),
+        pytest.param(
+            "Development of a sports ground including an all-weather "
+            "artificial turf pitch, floodlighting, fencing and an access road",
+            "other",
+            id="sports-ground-17",
+        ),
+        pytest.param(
+            "Construction of an all-weather playing pitch with artificial "
+            "turf, car parking, wastewater works and associated site works",
+            "other",
+            id="all-weather-pitch-72",
+        ),
+        pytest.param(
+            "construction of a detached storey and a half double garage and "
+            "tool shed with home office at first floor level",
+            "other",
+            id="ancillary-home-office-129",
+        ),
+        pytest.param(
+            "A new 2-storey quality operations building to the north-east "
+            "elevation of the existing MSD main production facility. The "
+            "proposed building will comprise ground floor and first floor "
+            "accommodation with a new link to the main entrance, including "
+            "associated plant, modifications to existing site utilities, a "
+            "delivery road to the rear and landscaping",
+            "industrial",
+            id="production-facility-191",
+        ),
+    ],
+)
+def test_persisted_backfill_quality_regressions(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category
+
+
+def test_home_office_is_residential_when_dwelling_context_supports_it() -> None:
+    result = classify_planning_application(
+        "Construction of a detached garage with a home office at first floor "
+        "level ancillary to the existing dwelling."
+    )
+
+    assert result == "residential"
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        ("Construction of a forest access road.", "infrastructure"),
+        (
+            "Change of use of an existing building to light industrial use.",
+            "industrial",
+        ),
+        ("Construction of a battery energy storage facility.", "energy"),
+        (
+            "Upgrade of wastewater treatment and sludge drying works.",
+            "infrastructure",
+        ),
+        ("Development of a solar farm and associated works.", "energy"),
+        ("Development of a wind farm and associated roads.", "energy"),
+        (
+            "Mixed-use development with ground-floor offices and apartments "
+            "on the upper floors.",
+            "mixed_use",
+        ),
+    ],
+)
+def test_backfill_refinements_preserve_primary_use_classifications(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        (
+            "a new Advance Technology Building. Permission is also sought "
+            "for signage, new timber post-and-rail site boundaries, car "
+            "parking, cycle shelter, landscaping, underground water storage "
+            "tank, ESB substation/switch room and all associated site works."
+        ),
+        (
+            "a new Advance Technology Building. Permission is also sought "
+            "for signage, new timber post-and-rail site boundaries, car "
+            "parking, cycle shelter, landscaping, underground water storage "
+            "tank, ESB substation, switch room, access road and all associated "
+            "site works."
+        ),
+    ],
+)
+def test_additional_substation_does_not_override_primary_building(
+    description: str,
+) -> None:
+    assert classify_planning_application(description) == "other"
+
+
+def test_advance_technology_building_alone_is_not_energy() -> None:
+    assert (
+        classify_planning_application("A new Advance Technology Building.")
+        == "other"
+    )
+
+
+def test_ancillary_energy_scoping_is_not_specific_to_technology_buildings(
+) -> None:
+    result = classify_planning_application(
+        "A new community building. Permission is also sought for an "
+        "electrical substation, access road and associated site works."
+    )
+
+    assert result == "other"
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construction of a standalone ESB substation and switch room.",
+        (
+            "Development of a new electrical substation. Permission is also "
+            "sought for an access road and landscaping."
+        ),
+        "Permission is also sought for a new electricity substation.",
+    ],
+)
+def test_ancillary_energy_scoping_preserves_primary_substations(
+    description: str,
+) -> None:
+    assert classify_planning_application(description) == "energy"
+
+
+@pytest.mark.parametrize(
     ("description", "expected_category"),
     [
         (

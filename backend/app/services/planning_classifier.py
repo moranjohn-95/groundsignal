@@ -39,6 +39,8 @@ _CATEGORY_KEYWORDS: dict[PlanningApplicationCategory, tuple[str, ...]] = {
         "residential units",
         "dwellinghouse",
         "dwellinghouses",
+        "farmhouse",
+        "farmhouses",
     ),
     "commercial": (
         "retail",
@@ -77,6 +79,8 @@ _CATEGORY_KEYWORDS: dict[PlanningApplicationCategory, tuple[str, ...]] = {
         "factories",
         "manufacturing",
         "industrial",
+        "production facility",
+        "production facilities",
     ),
     "energy": (
         "solar",
@@ -154,16 +158,40 @@ _PRIMARY_INFRASTRUCTURE_PHRASES = (
 )
 
 _PRIMARY_OTHER_PHRASES = (
+    "pig finishing unit",
+    "pig finishing units",
     "training pitch",
     "training pitches",
     "playing pitch",
     "playing pitches",
     "sports pitch",
     "sports pitches",
+    "sports ground",
+    "sports grounds",
+    "all weather pitch",
+    "all weather pitches",
+    "all weather playing pitch",
+    "all weather playing pitches",
+    "artificial turf pitch",
+    "artificial turf pitches",
+    "artificial turf playing pitch",
+    "artificial turf playing pitches",
     "sports facility",
     "sports facilities",
     "recreation facility",
     "recreation facilities",
+)
+
+_PRIMARY_BUILDING_OR_DEVELOPMENT_PHRASES = (
+    "building",
+    "buildings",
+    "development",
+    "developments",
+)
+
+_ADDITIONAL_PERMISSION_PHRASES = (
+    "permission is also sought for",
+    "permission also sought for",
 )
 
 _DEMOLITION_PHRASES = (
@@ -221,6 +249,13 @@ _VERBAL_HOUSE_PATTERN = re.compile(
     r"could|would|should)\s+house\b"
 )
 
+_AGRICULTURAL_HOUSE_PATTERN = re.compile(
+    r"\b(?:cow|cattle|calf|livestock|poultry|pig|hen|animal)\s+"
+    r"(?:(?:storage|cubicle)\s+){0,2}houses?\b"
+)
+
+_HOME_OFFICE_PATTERN = re.compile(r"\bhome\s+offices?\b")
+
 
 def _normalize_text(value: str | None) -> str:
     if not isinstance(value, str):
@@ -270,6 +305,28 @@ def _first_evidence_position(
     return min(positions) if positions else None
 
 
+def _first_ancillary_addition_boundary(
+    texts: tuple[str, ...],
+) -> tuple[int, int] | None:
+    positions = []
+    for text_index, text in enumerate(texts):
+        boundary_position = _first_phrase_position(
+            text,
+            _ADDITIONAL_PERMISSION_PHRASES,
+        )
+        if boundary_position is None:
+            continue
+
+        preceding_text = text[:boundary_position]
+        if _contains_any_phrase(
+            preceding_text,
+            _PRIMARY_BUILDING_OR_DEVELOPMENT_PHRASES,
+        ):
+            positions.append((text_index, boundary_position))
+
+    return min(positions) if positions else None
+
+
 def _extract_change_of_use_destination(text: str) -> str:
     for pattern in _CHANGE_OF_USE_PATTERNS:
         match = pattern.search(text)
@@ -300,14 +357,23 @@ def _extract_primary_proposal(text: str) -> str:
     return ""
 
 
+def _mask_non_residential_house_uses(text: str) -> str:
+    text = _VERBAL_HOUSE_PATTERN.sub("contain", text)
+    return _AGRICULTURAL_HOUSE_PATTERN.sub("agricultural building", text)
+
+
+def _mask_non_commercial_office_uses(text: str) -> str:
+    return _HOME_OFFICE_PATTERN.sub("domestic workspace", text)
+
+
 def _has_category_evidence(
     texts: tuple[str, ...],
     category: PlanningApplicationCategory,
 ) -> bool:
     if category == "residential":
-        texts = tuple(
-            _VERBAL_HOUSE_PATTERN.sub("contain", text) for text in texts
-        )
+        texts = tuple(_mask_non_residential_house_uses(text) for text in texts)
+    elif category == "commercial":
+        texts = tuple(_mask_non_commercial_office_uses(text) for text in texts)
     keywords = _CATEGORY_KEYWORDS[category]
     return any(_contains_any_phrase(text, keywords) for text in texts)
 
@@ -317,9 +383,9 @@ def _first_category_evidence_position(
     category: PlanningApplicationCategory,
 ) -> tuple[int, int] | None:
     if category == "residential":
-        texts = tuple(
-            _VERBAL_HOUSE_PATTERN.sub("contain", text) for text in texts
-        )
+        texts = tuple(_mask_non_residential_house_uses(text) for text in texts)
+    elif category == "commercial":
+        texts = tuple(_mask_non_commercial_office_uses(text) for text in texts)
     return _first_evidence_position(texts, _CATEGORY_KEYWORDS[category])
 
 
@@ -342,10 +408,7 @@ def _has_mixed_use_evidence(
         return True
 
     for text in texts:
-        has_commercial_use = _contains_any_phrase(
-            text,
-            _CATEGORY_KEYWORDS["commercial"],
-        )
+        has_commercial_use = _has_category_evidence((text,), "commercial")
         has_residential_use = has_residential_units or _has_category_evidence(
             (text,),
             "residential",
@@ -382,6 +445,19 @@ def _classify_primary_use(
         texts,
         _PRIMARY_OTHER_PHRASES,
     )
+    ancillary_addition_boundary = _first_ancillary_addition_boundary(texts)
+    if ancillary_addition_boundary is not None:
+        # A building/development stated before an explicit request for
+        # additional works is the primary proposal when it has no more specific
+        # category. Specialist evidence before this boundary can still win.
+        primary_other_position = min(
+            position
+            for position in (
+                primary_other_position,
+                ancillary_addition_boundary,
+            )
+            if position is not None
+        )
 
     primary_specialist_evidence = []
     for specialist_priority, (category, phrases) in enumerate(
