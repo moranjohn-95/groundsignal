@@ -30,8 +30,16 @@ type SearchState =
       response: OpportunityFeedResponse
     }
 
+interface BrowserCoordinates {
+  latitude: number
+  longitude: number
+}
+
 function OpportunitiesPage() {
   const resultsHeadingId = 'top-opportunities-heading'
+  const [currentCoordinates, setCurrentCoordinates] =
+    useState<BrowserCoordinates | null>(null)
+  const [locationQuery, setLocationQuery] = useState('')
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'initial',
   })
@@ -60,6 +68,16 @@ function OpportunitiesPage() {
   }
 
   async function handleSearch(filters: OpportunityFilterValues) {
+    if (filters.location === '' && currentCoordinates !== null) {
+      await loadOpportunities(
+        filters,
+        currentCoordinates.latitude,
+        currentCoordinates.longitude,
+        'your current location',
+      )
+      return
+    }
+
     setSearchState({ status: 'loading' })
 
     let location: GeocodedLocation
@@ -84,7 +102,8 @@ function OpportunitiesPage() {
     )
   }
 
-  function handleUseCurrentLocation(filters: OpportunityFilterOptions) {
+  function handleUseCurrentLocation() {
+    setCurrentCoordinates(null)
     setSearchState({ status: 'locating' })
 
     if (navigator.geolocation === undefined) {
@@ -95,17 +114,25 @@ function OpportunitiesPage() {
     try {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          void loadOpportunities(
-            filters,
-            position.coords.latitude,
-            position.coords.longitude,
-            'your current location',
-          )
+          setCurrentCoordinates({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })
+          setLocationQuery('')
+          setSearchState({ status: 'initial' })
         },
         () => setSearchState({ status: 'geolocation-error' }),
       )
     } catch {
       setSearchState({ status: 'geolocation-error' })
+    }
+  }
+
+  function handleLocationChange(location: string) {
+    setLocationQuery(location)
+    if (currentCoordinates !== null) {
+      setCurrentCoordinates(null)
+      setSearchState({ status: 'initial' })
     }
   }
 
@@ -122,8 +149,11 @@ function OpportunitiesPage() {
         </p>
 
         <OpportunityFilters
+          isCurrentLocationSelected={currentCoordinates !== null}
           isLoading={isLoading}
           isLocating={searchState.status === 'locating'}
+          location={locationQuery}
+          onLocationChange={handleLocationChange}
           onSearch={(filters) => void handleSearch(filters)}
           onUseCurrentLocation={handleUseCurrentLocation}
         />
@@ -136,8 +166,12 @@ function OpportunitiesPage() {
       >
         <h2 id={resultsHeadingId}>Top opportunities</h2>
 
-        {searchState.status === 'initial' && (
+        {searchState.status === 'initial' && currentCoordinates === null && (
           <p>Enter an Irish location to find nearby opportunities.</p>
+        )}
+
+        {searchState.status === 'initial' && currentCoordinates !== null && (
+          <p>Adjust the filters if needed, then find opportunities.</p>
         )}
 
         {searchState.status === 'loading' && (

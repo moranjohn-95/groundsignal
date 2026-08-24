@@ -88,7 +88,7 @@ async function submitSearch({
   await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
 }
 
-async function useCurrentLocation({
+async function submitCurrentLocationSearch({
   category,
   radius = '25',
   recentDays = '30',
@@ -111,6 +111,12 @@ async function useCurrentLocation({
       category,
     )
   }
+
+  await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
+}
+
+async function useCurrentLocation() {
+  const user = userEvent.setup()
 
   await user.click(
     screen.getByRole('button', { name: 'Use my current location' }),
@@ -187,21 +193,29 @@ describe('OpportunitiesPage', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('uses browser coordinates directly with all opportunity filters', async () => {
+  it('stores browser coordinates and searches with filters selected afterward', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(emptyFeed))
     render(<OpportunitiesPage />)
 
-    await useCurrentLocation({
-      category: 'industrial',
-      radius: '50',
-      recentDays: '60',
-    })
+    await useCurrentLocation()
 
     await act(async () => {
       const onSuccess = getCurrentPositionMock.mock.calls[0][0]
       onSuccess({
         coords: { latitude: 53.3498, longitude: -6.2603 },
       } as GeolocationPosition)
+    })
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Current location selected',
+    )
+    expect(screen.getByRole('textbox', { name: 'Location' })).not.toBeRequired()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await submitCurrentLocationSearch({
+      category: 'industrial',
+      radius: '50',
+      recentDays: '60',
     })
 
     await screen.findByText('No opportunities found for this search.')
@@ -240,12 +254,43 @@ describe('OpportunitiesPage', () => {
       } as GeolocationPosition)
     })
 
+    expect(fetchMock).not.toHaveBeenCalled()
+    await submitCurrentLocationSearch()
+
     await screen.findByText('No opportunities found for this search.')
     const opportunityUrl = new URL(
       fetchMock.mock.calls[0][0] as string,
       'http://localhost',
     )
     expect(opportunityUrl.searchParams.has('category')).toBe(false)
+  })
+
+  it('clears selected browser coordinates when a manual location is entered', async () => {
+    render(<OpportunitiesPage />)
+
+    await useCurrentLocation()
+    await act(async () => {
+      const onSuccess = getCurrentPositionMock.mock.calls[0][0]
+      onSuccess({
+        coords: { latitude: 52.2704, longitude: -9.7026 },
+      } as GeolocationPosition)
+    })
+
+    expect(screen.getByText('Current location selected.')).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(emptyFeed))
+    await submitSearch()
+
+    await screen.findByText('No opportunities found for this search.')
+    expect(screen.queryByText('Current location selected.')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Location' })).toBeRequired()
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/v1/locations/geocode?query=Tralee',
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('allows manual location search after browser location permission is denied', async () => {

@@ -1,4 +1,4 @@
-import type { FormEvent, MouseEvent } from 'react'
+import type { FormEvent } from 'react'
 
 import {
   planningApplicationCategories,
@@ -16,10 +16,13 @@ export interface OpportunityFilterValues extends OpportunityFilterOptions {
 }
 
 interface OpportunityFiltersProps {
+  isCurrentLocationSelected: boolean
   isLoading: boolean
   isLocating: boolean
+  location: string
+  onLocationChange: (location: string) => void
   onSearch: (filters: OpportunityFilterValues) => void
-  onUseCurrentLocation: (filters: OpportunityFilterOptions) => void
+  onUseCurrentLocation: () => void
 }
 
 function formatCategory(category: PlanningApplicationCategory) {
@@ -41,8 +44,11 @@ function readFilterOptions(data: FormData): OpportunityFilterOptions {
 }
 
 function OpportunityFilters({
+  isCurrentLocationSelected,
   isLoading,
   isLocating,
+  location,
+  onLocationChange,
   onSearch,
   onUseCurrentLocation,
 }: OpportunityFiltersProps) {
@@ -55,16 +61,9 @@ function OpportunityFilters({
     const data = new FormData(event.currentTarget)
 
     onSearch({
-      location: String(data.get('location')).trim(),
+      location: location.trim(),
       ...readFilterOptions(data),
     })
-  }
-
-  function handleUseCurrentLocation(event: MouseEvent<HTMLButtonElement>) {
-    const form = event.currentTarget.form
-    if (form !== null) {
-      onUseCurrentLocation(readFilterOptions(new FormData(form)))
-    }
   }
 
   return (
@@ -83,17 +82,22 @@ function OpportunityFilters({
             name="location"
             type="text"
             placeholder="e.g. Tralee, Co. Kerry"
-            required
+            required={!isCurrentLocationSelected}
+            value={location}
+            onChange={(event) => onLocationChange(event.currentTarget.value)}
           />
           <button
             type="button"
             disabled={isLoading}
-            onClick={handleUseCurrentLocation}
+            onClick={onUseCurrentLocation}
           >
             {isLocating
               ? 'Getting current location...'
               : 'Use my current location'}
           </button>
+          {isCurrentLocationSelected && (
+            <p role="status">Current location selected.</p>
+          )}
         </div>
 
         <div className="form-field">
