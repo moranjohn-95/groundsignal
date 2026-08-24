@@ -1,6 +1,11 @@
 import { useState } from 'react'
 
 import {
+  fetchGeocodedLocation,
+  LocationNotFoundError,
+  type GeocodedLocation,
+} from '../../api/locations'
+import {
   fetchOpportunities,
   type OpportunityFeedResponse,
 } from '../../api/opportunities'
@@ -11,8 +16,14 @@ import OpportunityList from './OpportunityList'
 type SearchState =
   | { status: 'initial' }
   | { status: 'loading' }
-  | { status: 'success'; response: OpportunityFeedResponse }
-  | { status: 'error' }
+  | { status: 'location-not-found' }
+  | { status: 'geocoding-error' }
+  | { status: 'opportunities-error'; location: GeocodedLocation }
+  | {
+      status: 'success'
+      location: GeocodedLocation
+      response: OpportunityFeedResponse
+    }
 
 function OpportunitiesPage() {
   const resultsHeadingId = 'top-opportunities-heading'
@@ -23,14 +34,32 @@ function OpportunitiesPage() {
   async function handleSearch(filters: OpportunityFilterValues) {
     setSearchState({ status: 'loading' })
 
+    let location: GeocodedLocation
+
+    try {
+      location = await fetchGeocodedLocation(filters.location)
+    } catch (error) {
+      setSearchState({
+        status:
+          error instanceof LocationNotFoundError
+            ? 'location-not-found'
+            : 'geocoding-error',
+      })
+      return
+    }
+
     try {
       const response = await fetchOpportunities({
-        ...filters,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        radiusKm: filters.radiusKm,
+        recentDays: filters.recentDays,
+        category: filters.category,
         limit: 20,
       })
-      setSearchState({ status: 'success', response })
+      setSearchState({ status: 'success', location, response })
     } catch {
-      setSearchState({ status: 'error' })
+      setSearchState({ status: 'opportunities-error', location })
     }
   }
 
@@ -57,17 +86,33 @@ function OpportunitiesPage() {
         <h2 id={resultsHeadingId}>Top opportunities</h2>
 
         {searchState.status === 'initial' && (
-          <p>Enter a latitude and longitude to find nearby opportunities.</p>
+          <p>Enter an Irish location to find nearby opportunities.</p>
         )}
 
         {searchState.status === 'loading' && (
-          <p role="status">Loading opportunities…</p>
+          <p role="status">Searching for opportunities...</p>
         )}
 
-        {searchState.status === 'error' && (
+        {searchState.status === 'location-not-found' && (
           <p role="alert">
-            We could not load opportunities. Please check the details and try
-            again.
+            We could not find that location. Check the spelling and try again.
+          </p>
+        )}
+
+        {searchState.status === 'geocoding-error' && (
+          <p role="alert">
+            Location search is unavailable right now. Please try again later.
+          </p>
+        )}
+
+        {(searchState.status === 'success' ||
+          searchState.status === 'opportunities-error') && (
+          <p>Opportunities near {searchState.location.display_name}</p>
+        )}
+
+        {searchState.status === 'opportunities-error' && (
+          <p role="alert">
+            We could not load opportunities. Please try again.
           </p>
         )}
 

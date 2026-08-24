@@ -6,8 +6,7 @@ import {
 } from '../../api/opportunities'
 
 export interface OpportunityFilterValues {
-  latitude: number
-  longitude: number
+  location: string
   radiusKm: number
   recentDays: number
   category?: PlanningApplicationCategory
@@ -31,8 +30,7 @@ function OpportunityFilters({ isLoading, onSearch }: OpportunityFiltersProps) {
     const category = data.get('category')
 
     onSearch({
-      latitude: Number(data.get('latitude')),
-      longitude: Number(data.get('longitude')),
+      location: String(data.get('location')).trim(),
       radiusKm: Number(data.get('radiusKm')),
       recentDays: Number(data.get('recentDays')),
       category:
@@ -52,27 +50,12 @@ function OpportunityFilters({ isLoading, onSearch }: OpportunityFiltersProps) {
         <legend>Search criteria</legend>
 
         <div className="form-field">
-          <label htmlFor="opportunity-latitude">Latitude</label>
+          <label htmlFor="opportunity-location">Location</label>
           <input
-            id="opportunity-latitude"
-            name="latitude"
-            type="number"
-            min="-90"
-            max="90"
-            step="any"
-            required
-          />
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="opportunity-longitude">Longitude</label>
-          <input
-            id="opportunity-longitude"
-            name="longitude"
-            type="number"
-            min="-180"
-            max="180"
-            step="any"
+            id="opportunity-location"
+            name="location"
+            type="text"
+            placeholder="e.g. Tralee, Co. Kerry"
             required
           />
         </div>

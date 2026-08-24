@@ -1,9 +1,17 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { GeocodedLocation } from '../../api/locations'
 import type { OpportunityFeedResponse } from '../../api/opportunities'
 import OpportunitiesPage from './OpportunitiesPage'
+
+const traleeLocation: GeocodedLocation = {
+  query: 'Tralee',
+  display_name: 'Tralee, Co. Kerry, Ireland',
+  latitude: 52.2704,
+  longitude: -9.7026,
+}
 
 const opportunityFeed: OpportunityFeedResponse = {
   items: [
@@ -42,10 +50,7 @@ const emptyFeed: OpportunityFeedResponse = {
   returned_count: 0,
 }
 
-function jsonResponse(
-  body: OpportunityFeedResponse,
-  status = 200,
-): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
@@ -54,21 +59,19 @@ function jsonResponse(
 }
 
 async function submitSearch({
+  location = 'Tralee',
   category,
   radius = '25',
   recentDays = '30',
 }: {
+  location?: string
   category?: string
   radius?: string
   recentDays?: string
 } = {}) {
   const user = userEvent.setup()
 
-  await user.type(screen.getByRole('spinbutton', { name: 'Latitude' }), '52.2704')
-  await user.type(
-    screen.getByRole('spinbutton', { name: 'Longitude' }),
-    '-9.7026',
-  )
+  await user.type(screen.getByRole('textbox', { name: 'Location' }), location)
   await user.selectOptions(screen.getByRole('combobox', { name: 'Radius' }), radius)
   await user.selectOptions(
     screen.getByRole('combobox', { name: 'Recent period' }),
@@ -97,7 +100,7 @@ describe('OpportunitiesPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders the accessible form and waits for a submission before requesting', () => {
+  it('renders a required location field instead of coordinate inputs', () => {
     render(<OpportunitiesPage />)
 
     expect(
@@ -109,96 +112,110 @@ describe('OpportunitiesPage', () => {
     expect(
       screen.getByRole('form', { name: 'Opportunity filters' }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('spinbutton', { name: 'Latitude' }),
-    ).toBeRequired()
-    expect(
-      screen.getByRole('spinbutton', { name: 'Longitude' }),
-    ).toBeRequired()
+
+    const locationInput = screen.getByRole('textbox', { name: 'Location' })
+    expect(locationInput).toBeRequired()
+    expect(locationInput).toHaveAttribute('placeholder', 'e.g. Tralee, Co. Kerry')
+    expect(screen.queryByLabelText('Latitude')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Longitude')).not.toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Radius' })).toHaveValue('25')
     expect(screen.getByRole('combobox', { name: 'Recent period' })).toHaveValue(
       '30',
     )
     expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue('')
     expect(
-      screen.getByRole('button', { name: 'Find opportunities' }),
+      screen.getByText(/enter an Irish location to find nearby opportunities/i),
     ).toBeInTheDocument()
-    expect(
-      screen.getByText(/enter a latitude and longitude/i),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('list')).not.toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('requests the endpoint with every submitted query parameter', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(emptyFeed))
+  it('geocodes an encoded location before requesting opportunities with all filters', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(emptyFeed))
     render(<OpportunitiesPage />)
 
     await submitSearch({
+      location: 'Dún Laoghaire & Rathdown',
       category: 'commercial',
       radius: '50',
       recentDays: '60',
     })
 
     await screen.findByText('No opportunities found for this search.')
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/v1/locations/geocode?query=D%C3%BAn+Laoghaire+%26+Rathdown',
+    )
 
-    const requestUrl = new URL(
-      fetchMock.mock.calls[0][0] as string,
+    const opportunityUrl = new URL(
+      fetchMock.mock.calls[1][0] as string,
       'http://localhost',
     )
-    expect(requestUrl.pathname).toBe('/api/v1/opportunities')
-    expect(requestUrl.searchParams.get('latitude')).toBe('52.2704')
-    expect(requestUrl.searchParams.get('longitude')).toBe('-9.7026')
-    expect(requestUrl.searchParams.get('radius_km')).toBe('50')
-    expect(requestUrl.searchParams.get('recent_days')).toBe('60')
-    expect(requestUrl.searchParams.get('category')).toBe('commercial')
-    expect(requestUrl.searchParams.get('limit')).toBe('20')
+    expect(opportunityUrl.pathname).toBe('/api/v1/opportunities')
+    expect(opportunityUrl.searchParams.get('latitude')).toBe('52.2704')
+    expect(opportunityUrl.searchParams.get('longitude')).toBe('-9.7026')
+    expect(opportunityUrl.searchParams.get('radius_km')).toBe('50')
+    expect(opportunityUrl.searchParams.get('recent_days')).toBe('60')
+    expect(opportunityUrl.searchParams.get('category')).toBe('commercial')
+    expect(opportunityUrl.searchParams.get('limit')).toBe('20')
   })
 
   it('omits category when All categories is selected', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(emptyFeed))
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(emptyFeed))
     render(<OpportunitiesPage />)
 
     await submitSearch()
 
     await screen.findByText('No opportunities found for this search.')
-    const requestUrl = new URL(
-      fetchMock.mock.calls[0][0] as string,
+    const opportunityUrl = new URL(
+      fetchMock.mock.calls[1][0] as string,
       'http://localhost',
     )
-    expect(requestUrl.searchParams.has('category')).toBe(false)
+    expect(opportunityUrl.searchParams.has('category')).toBe(false)
   })
 
-  it('announces loading while the request is in progress', async () => {
-    let resolveRequest: (response: Response) => void = () => undefined
-    fetchMock.mockReturnValue(
-      new Promise<Response>((resolve) => {
-        resolveRequest = resolve
-      }),
-    )
+  it('announces loading while geocoding and prevents another submission', async () => {
+    let resolveGeocoding: (response: Response) => void = () => undefined
+    fetchMock
+      .mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolveGeocoding = resolve
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse(emptyFeed))
     render(<OpportunitiesPage />)
 
     await submitSearch()
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading opportunities')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Searching for opportunities',
+    )
     expect(
       screen.getByRole('button', { name: 'Find opportunities' }),
     ).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
 
-    resolveRequest(jsonResponse(emptyFeed))
+    await act(async () => {
+      resolveGeocoding(jsonResponse(traleeLocation))
+    })
     await screen.findByText('No opportunities found for this search.')
   })
 
-  it('renders successful API results and their score details', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(opportunityFeed))
+  it('renders successful results and the resolved display location', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(opportunityFeed))
     render(<OpportunitiesPage />)
 
     await submitSearch()
 
-    const results = await screen.findByRole('list', {
-      name: 'Top opportunities',
-    })
+    expect(
+      await screen.findByText('Opportunities near Tralee, Co. Kerry, Ireland'),
+    ).toBeInTheDocument()
+    const results = screen.getByRole('list', { name: 'Top opportunities' })
     const opportunity = within(results).getByRole('article', {
       name: /industrial manufacturing facility/i,
     })
@@ -223,8 +240,10 @@ describe('OpportunitiesPage', () => {
     ).toHaveAttribute('href', 'https://example.test/planning/26-1042')
   })
 
-  it('announces a successful empty result', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(emptyFeed))
+  it('announces an empty result and retains the resolved display location', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(emptyFeed))
     render(<OpportunitiesPage />)
 
     await submitSearch()
@@ -232,14 +251,47 @@ describe('OpportunitiesPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'No opportunities found for this search.',
     )
+    expect(
+      screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('announces when a location is not found without requesting opportunities', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ detail: 'Location not found.' }, 404),
+    )
+    render(<OpportunitiesPage />)
+
+    await submitSearch({ location: 'Not a real Irish location' })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We could not find that location',
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 
   it.each([
-    ['API failure', () => Promise.resolve(jsonResponse(emptyFeed, 500))],
+    ['service failure', () => Promise.resolve(jsonResponse({}, 503))],
     ['network failure', () => Promise.reject(new Error('Network unavailable'))],
-  ])('announces an %s', async (_name, request) => {
-    fetchMock.mockImplementation(request)
+  ])('announces a geocoding %s without exposing raw details', async (_name, request) => {
+    fetchMock.mockImplementationOnce(request)
+    render(<OpportunitiesPage />)
+
+    await submitSearch()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Location search is unavailable right now',
+    )
+    expect(screen.queryByText('Network unavailable')).not.toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('announces an opportunity API failure separately', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse({}, 500))
     render(<OpportunitiesPage />)
 
     await submitSearch()
@@ -247,6 +299,19 @@ describe('OpportunitiesPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'We could not load opportunities',
     )
+    expect(
+      screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
+    ).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('does not request anything when the required location is empty', async () => {
+    render(<OpportunitiesPage />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
+
+    await waitFor(() => expect(fetchMock).not.toHaveBeenCalled())
   })
 })
