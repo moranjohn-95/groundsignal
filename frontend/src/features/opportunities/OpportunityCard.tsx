@@ -5,6 +5,9 @@ interface OpportunityCardProps {
 }
 
 const MAX_HEADING_LENGTH = 96
+const KERRY_PLANNING_AUTHORITY = 'Kerry County Council'
+const KERRY_EPLANNING_APPLICATION_BASE_URL =
+  'https://www.eplanning.ie/KerryCC/AppFileRefDetails'
 
 function formatLabel(value: string) {
   const label = value.replaceAll('_', ' ')
@@ -48,12 +51,25 @@ function displayHeading(description: string | null, applicationNumber: string) {
   return `${description.slice(0, endIndex).trimEnd()}…`
 }
 
+function officialApplicationUrl(opportunity: Opportunity) {
+  if (
+    opportunity.planning_authority === KERRY_PLANNING_AUTHORITY &&
+    opportunity.application_number.trim() !== ''
+  ) {
+    const reference = encodeURIComponent(opportunity.application_number)
+    return `${KERRY_EPLANNING_APPLICATION_BASE_URL}/${reference}/0`
+  }
+
+  return opportunity.application_url
+}
+
 function OpportunityCard({ opportunity }: OpportunityCardProps) {
   const headingId = `opportunity-${opportunity.id}-heading`
   const description = normalizeDescription(opportunity.description)
   const heading = displayHeading(description, opportunity.application_number)
   const opportunityLevel = formatLabel(opportunity.opportunity_level)
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
+  const applicationUrl = officialApplicationUrl(opportunity)
 
   return (
     <article
@@ -153,13 +169,15 @@ function OpportunityCard({ opportunity }: OpportunityCardProps) {
         </details>
       </div>
 
-      {opportunity.application_url !== null && (
+      {applicationUrl !== null && (
         <footer className="opportunity-card__footer">
           <a
             className="opportunity-card__action"
-            href={opportunity.application_url}
+            href={applicationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            View opportunity
+            View official application
           </a>
         </footer>
       )}

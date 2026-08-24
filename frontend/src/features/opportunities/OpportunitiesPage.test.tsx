@@ -432,9 +432,18 @@ describe('OpportunitiesPage', () => {
     ).toBeInTheDocument()
     expect(within(opportunity).getByText('18 August 2026')).toBeInTheDocument()
     expect(within(opportunity).getByText('Score breakdown')).toBeInTheDocument()
-    expect(
-      within(opportunity).getByRole('link', { name: 'View opportunity' }),
-    ).toHaveAttribute('href', 'https://example.test/planning/26-1042')
+    const officialApplicationLink = within(opportunity).getByRole('link', {
+      name: 'View official application',
+    })
+    expect(officialApplicationLink).toHaveAttribute(
+      'href',
+      'https://www.eplanning.ie/KerryCC/AppFileRefDetails/26%2F1042/0',
+    )
+    expect(officialApplicationLink).toHaveAttribute('target', '_blank')
+    expect(officialApplicationLink).toHaveAttribute(
+      'rel',
+      'noopener noreferrer',
+    )
   })
 
   it('announces an empty result and retains the resolved display location', async () => {
