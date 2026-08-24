@@ -178,6 +178,10 @@ describe('App', () => {
     expect(
       await screen.findByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort by' }),
+      'nearest',
+    )
     const detail = await openOpportunity(user)
 
     expect(window.location.pathname).toBe('/opportunities/20')
@@ -193,6 +197,9 @@ describe('App', () => {
     )
     expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
       'industrial',
+    )
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue(
+      'nearest',
     )
     expect(
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),

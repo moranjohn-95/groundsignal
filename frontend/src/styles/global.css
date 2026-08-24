@@ -304,6 +304,47 @@ summary:focus-visible {
   font-size: 1.125rem;
 }
 
+.opportunity-results__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.opportunity-results__sort {
+  display: grid;
+  width: 100%;
+  gap: 0.4375rem;
+}
+
+.opportunity-results__sort label {
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.opportunity-results__sort select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.25;
+}
+
+.opportunity-results__sort select:hover {
+  border-color: var(--color-primary);
+}
+
+.opportunity-results__sort select:focus-visible {
+  border-color: var(--color-accent-active);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
 .opportunity-results > [role="alert"] {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
@@ -812,6 +853,10 @@ summary:focus-visible {
   .opportunity-card__action {
     width: auto;
     min-width: 9.5rem;
+  }
+
+  .opportunity-results__sort {
+    width: 14rem;
   }
 
   .opportunity-detail__header,

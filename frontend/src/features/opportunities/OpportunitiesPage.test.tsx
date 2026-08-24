@@ -86,6 +86,45 @@ const emptyFeed: OpportunityFeedResponse = {
   returned_count: 0,
 }
 
+const sortingFeed: OpportunityFeedResponse = {
+  items: [
+    {
+      ...opportunityFeed.items[0],
+      id: 23,
+      application_number: 'SORT-23',
+      opportunity_score: 25,
+      distance_km: 3,
+      received_date: null,
+    },
+    {
+      ...opportunityFeed.items[0],
+      id: 21,
+      application_number: 'SORT-21',
+      opportunity_score: 55,
+      distance_km: 9,
+      received_date: '2026-08-23',
+    },
+    {
+      ...opportunityFeed.items[0],
+      id: 20,
+      application_number: 'SORT-20',
+      opportunity_score: 96,
+      distance_km: 4.25,
+      received_date: '2026-08-18',
+    },
+    {
+      ...opportunityFeed.items[0],
+      id: 22,
+      application_number: 'SORT-22',
+      opportunity_score: 70,
+      distance_km: 1,
+      received_date: '2026-08-10',
+    },
+  ],
+  limit: 20,
+  returned_count: 4,
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
@@ -157,6 +196,13 @@ async function useCurrentLocation() {
   await user.click(
     screen.getByRole('button', { name: 'Use my current location' }),
   )
+}
+
+function resultOpportunityPaths() {
+  const results = screen.getByRole('list', { name: 'Top opportunities' })
+  return within(results)
+    .getAllByRole('link', { name: 'View opportunity' })
+    .map((link) => link.getAttribute('href'))
 }
 
 describe('OpportunitiesPage', () => {
@@ -473,6 +519,44 @@ describe('OpportunitiesPage', () => {
     })
     expect(viewOpportunityLink).toHaveAttribute('href', '/opportunities/20')
     expect(viewOpportunityLink).not.toHaveAttribute('target')
+  })
+
+  it('sorts returned results locally without repeating location or network requests', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(sortingFeed))
+    render(<OpportunitiesPage />)
+
+    await submitSearch()
+
+    const sortControl = await screen.findByRole('combobox', { name: 'Sort by' })
+    expect(sortControl).toHaveValue('best')
+    expect(resultOpportunityPaths()).toEqual([
+      '/opportunities/20',
+      '/opportunities/22',
+      '/opportunities/21',
+      '/opportunities/23',
+    ])
+
+    const user = userEvent.setup()
+    await user.selectOptions(sortControl, 'nearest')
+    expect(resultOpportunityPaths()).toEqual([
+      '/opportunities/22',
+      '/opportunities/23',
+      '/opportunities/20',
+      '/opportunities/21',
+    ])
+
+    await user.selectOptions(sortControl, 'newest')
+    expect(resultOpportunityPaths()).toEqual([
+      '/opportunities/21',
+      '/opportunities/20',
+      '/opportunities/22',
+      '/opportunities/23',
+    ])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(getCurrentPositionMock).not.toHaveBeenCalled()
+    expect(sortingFeed.items.map(({ id }) => id)).toEqual([23, 21, 20, 22])
   })
 
   it('announces an empty result and retains the resolved display location', async () => {

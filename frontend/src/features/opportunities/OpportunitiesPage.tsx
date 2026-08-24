@@ -40,11 +40,83 @@ interface OpportunitiesPageProps {
   onViewOpportunity?: (opportunity: Opportunity) => void
 }
 
+type OpportunitySort = 'best' | 'nearest' | 'newest'
+
+function compareOptionalNumbers(
+  firstValue: unknown,
+  secondValue: unknown,
+  direction: 'ascending' | 'descending',
+) {
+  const first =
+    typeof firstValue === 'number' && Number.isFinite(firstValue)
+      ? firstValue
+      : null
+  const second =
+    typeof secondValue === 'number' && Number.isFinite(secondValue)
+      ? secondValue
+      : null
+
+  if (first === null) {
+    return second === null ? 0 : 1
+  }
+  if (second === null) {
+    return -1
+  }
+
+  return direction === 'ascending' ? first - second : second - first
+}
+
+function receivedTimestamp(receivedDate: unknown) {
+  if (typeof receivedDate !== 'string') {
+    return null
+  }
+
+  const timestamp = Date.parse(receivedDate)
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function sortedOpportunities(
+  opportunities: Opportunity[],
+  sortBy: OpportunitySort,
+) {
+  return opportunities
+    .map((opportunity, originalIndex) => ({ opportunity, originalIndex }))
+    .sort((first, second) => {
+      let comparison: number
+
+      if (sortBy === 'nearest') {
+        comparison = compareOptionalNumbers(
+          first.opportunity.distance_km,
+          second.opportunity.distance_km,
+          'ascending',
+        )
+      } else if (sortBy === 'newest') {
+        comparison = compareOptionalNumbers(
+          receivedTimestamp(first.opportunity.received_date),
+          receivedTimestamp(second.opportunity.received_date),
+          'descending',
+        )
+      } else {
+        comparison = compareOptionalNumbers(
+          first.opportunity.opportunity_score,
+          second.opportunity.opportunity_score,
+          'descending',
+        )
+      }
+
+      return comparison === 0
+        ? first.originalIndex - second.originalIndex
+        : comparison
+    })
+    .map(({ opportunity }) => opportunity)
+}
+
 function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
   const resultsHeadingId = 'top-opportunities-heading'
   const [currentCoordinates, setCurrentCoordinates] =
     useState<BrowserCoordinates | null>(null)
   const [locationQuery, setLocationQuery] = useState('')
+  const [sortBy, setSortBy] = useState<OpportunitySort>('best')
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'initial',
   })
@@ -143,6 +215,10 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
   const isLoading =
     searchState.status === 'locating' || searchState.status === 'loading'
+  const displayedOpportunities =
+    searchState.status === 'success'
+      ? sortedOpportunities(searchState.response.items, sortBy)
+      : []
 
   return (
     <>
@@ -230,11 +306,27 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
         {searchState.status === 'success' &&
           searchState.response.items.length > 0 && (
             <>
+              <div className="opportunity-results__toolbar">
+                <div className="opportunity-results__sort">
+                  <label htmlFor="opportunity-sort">Sort by</label>
+                  <select
+                    id="opportunity-sort"
+                    value={sortBy}
+                    onChange={(event) =>
+                      setSortBy(event.currentTarget.value as OpportunitySort)
+                    }
+                  >
+                    <option value="best">Best opportunity</option>
+                    <option value="nearest">Nearest</option>
+                    <option value="newest">Newest</option>
+                  </select>
+                </div>
+              </div>
               <p role="status">
                 {searchState.response.returned_count} opportunities returned.
               </p>
               <OpportunityList
-                opportunities={searchState.response.items}
+                opportunities={displayedOpportunities}
                 labelledBy={resultsHeadingId}
                 onViewOpportunity={onViewOpportunity}
               />
