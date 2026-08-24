@@ -4,6 +4,7 @@ import pytest
 
 from backend.app.services.opportunity_scorer import (
     CATEGORY_FIT_SCORES,
+    SCORE_COMPONENT_MAXIMUMS,
     OpportunityScoreBreakdown,
     opportunity_level_for_score,
     score_planning_application_opportunity,
@@ -579,6 +580,72 @@ def test_reasons_only_report_detected_evidence() -> None:
     assert not any("EV charging" in reason for reason in result.reasons)
     assert not any("floor area" in reason.casefold() for reason in result.reasons)
     assert not any("received" in reason.casefold() for reason in result.reasons)
+
+
+def test_score_components_use_the_same_awarded_points_and_triggered_evidence() -> None:
+    result = _score(
+        description=(
+            "Construction of a new commercial building including 12 EV "
+            "charging points and associated site works."
+        ),
+        floor_area=6000.0,
+        received_date=date(2025, 1, 10),
+        category="commercial",
+    )
+
+    assert result.opportunity_score == 100
+    assert result.score_breakdown == OpportunityScoreBreakdown(30, 30, 20, 10, 10)
+    components = {component.name: component for component in result.score_components}
+    assert tuple(components) == tuple(SCORE_COMPONENT_MAXIMUMS)
+    assert {
+        name: (component.points_awarded, component.maximum_points)
+        for name, component in components.items()
+    } == {
+        "project_scope": (30, 30),
+        "electrical_relevance": (30, 30),
+        "project_scale": (20, 20),
+        "lead_timing": (10, 10),
+        "category_fit": (10, 10),
+    }
+    assert components["project_scope"].explanation == (
+        "New commercial development indicators were identified."
+    )
+    assert components["electrical_relevance"].explanation == (
+        'The planning description includes "ev charging", a strong electrical '
+        "indicator."
+    )
+    assert components["project_scale"].explanation == (
+        "A floor area of 6,000 square metres was identified, indicating a very large "
+        "development."
+    )
+    assert components["lead_timing"].explanation == (
+        "The application was received 5 days ago, within the last 14 days."
+    )
+    assert components["category_fit"].explanation == (
+        "The application is classified as Commercial, which receives 10 "
+        "points for category fit."
+    )
+
+
+def test_zero_point_components_explain_missing_or_unmatched_evidence() -> None:
+    result = _score(category="other")
+
+    assert result.opportunity_score == 3
+    assert result.score_breakdown == OpportunityScoreBreakdown(0, 0, 0, 0, 3)
+    components = {component.name: component for component in result.score_components}
+    assert components["project_scope"].explanation == (
+        "No qualifying project scope was identified."
+    )
+    assert components["electrical_relevance"].explanation == (
+        "No qualifying electrical work indicators were identified."
+    )
+    assert components["project_scale"].explanation == (
+        "No valid residential unit count or floor area was available."
+    )
+    assert components["lead_timing"].explanation == (
+        "No received date was available, so no lead timing points were awarded."
+    )
+    assert all(component.explanation for component in result.score_components)
 
 
 def test_invalid_category_is_rejected() -> None:

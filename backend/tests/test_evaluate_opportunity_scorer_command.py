@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 
 from backend.app.commands import evaluate_opportunity_scorer as command
 from backend.app.services.opportunity_scorer import (
+    SCORE_COMPONENT_MAXIMUMS,
     OpportunityScoreBreakdown,
+    OpportunityScoreComponent,
     OpportunityScoreResult,
     opportunity_level_for_score,
 )
@@ -53,6 +55,15 @@ def _score_result(score: int) -> OpportunityScoreResult:
         opportunity_score=score,
         opportunity_level=opportunity_level_for_score(score),
         score_breakdown=OpportunityScoreBreakdown(*components),
+        score_components=tuple(
+            OpportunityScoreComponent(
+                name=name,
+                points_awarded=points,
+                maximum_points=SCORE_COMPONENT_MAXIMUMS[name],
+                explanation="Test scoring evidence.",
+            )
+            for name, points in zip(SCORE_COMPONENT_MAXIMUMS, components)
+        ),
         reasons=("Test evidence",),
     )
 

@@ -38,6 +38,42 @@ const opportunityFeed: OpportunityFeedResponse = {
         lead_timing: 10,
         category_fit: 10,
       },
+      opportunity_score_components: [
+        {
+          name: 'project_scope',
+          points_awarded: 30,
+          maximum_points: 30,
+          explanation: 'New industrial development indicators were identified.',
+        },
+        {
+          name: 'electrical_relevance',
+          points_awarded: 30,
+          maximum_points: 30,
+          explanation:
+            'The planning description includes "electrical infrastructure", a strong electrical indicator.',
+        },
+        {
+          name: 'project_scale',
+          points_awarded: 16,
+          maximum_points: 20,
+          explanation:
+            'A floor area of 2,500 square metres was identified, indicating a large development.',
+        },
+        {
+          name: 'lead_timing',
+          points_awarded: 10,
+          maximum_points: 10,
+          explanation:
+            'The application was received 6 days ago, within the last 14 days.',
+        },
+        {
+          name: 'category_fit',
+          points_awarded: 10,
+          maximum_points: 10,
+          explanation:
+            'The application is classified as Industrial, which receives 10 points for category fit.',
+        },
+      ],
     },
   ],
   limit: 20,

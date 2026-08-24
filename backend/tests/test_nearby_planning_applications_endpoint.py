@@ -179,6 +179,9 @@ def test_nearby_returns_paginated_items_with_distance(nearby_client):
     assert payload["items"][0]["opportunity_breakdown"] == asdict(
         expected.score_breakdown
     )
+    assert payload["items"][0]["opportunity_score_components"] == [
+        asdict(component) for component in expected.score_components
+    ]
     assert "location" not in payload["items"][0]
     assert "created_at" not in payload["items"][0]
     assert "updated_at" not in payload["items"][0]

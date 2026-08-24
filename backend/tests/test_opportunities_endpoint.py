@@ -10,7 +10,9 @@ from backend.app.api import opportunities
 from backend.app.dependencies import get_db
 from backend.app.main import app
 from backend.app.services.opportunity_scorer import (
+    SCORE_COMPONENT_MAXIMUMS,
     OpportunityScoreBreakdown,
+    OpportunityScoreComponent,
     OpportunityScoreResult,
     opportunity_level_for_score,
 )
@@ -65,6 +67,15 @@ def _score_result(score: int) -> OpportunityScoreResult:
         opportunity_score=score,
         opportunity_level=opportunity_level_for_score(score),
         score_breakdown=OpportunityScoreBreakdown(*components),
+        score_components=tuple(
+            OpportunityScoreComponent(
+                name=name,
+                points_awarded=points,
+                maximum_points=SCORE_COMPONENT_MAXIMUMS[name],
+                explanation="Test scoring evidence.",
+            )
+            for name, points in zip(SCORE_COMPONENT_MAXIMUMS, components)
+        ),
         reasons=("Test evidence",),
     )
 
@@ -424,10 +435,35 @@ def test_strong_older_electrical_project_ranks_above_newer_minor_signage(
         "lead_timing": 10,
         "category_fit": 10,
     }
+    components = {
+        component["name"]: component
+        for component in payload["items"][0]["opportunity_score_components"]
+    }
+    assert components["project_scope"] == {
+        "name": "project_scope",
+        "points_awarded": 30,
+        "maximum_points": 30,
+        "explanation": "New industrial development indicators were identified.",
+    }
+    assert components["electrical_relevance"] == {
+        "name": "electrical_relevance",
+        "points_awarded": 30,
+        "maximum_points": 30,
+        "explanation": (
+            'The planning description includes "electrical infrastructure", '
+            "a strong electrical indicator."
+        ),
+    }
     assert payload["items"][1]["opportunity_breakdown"]["project_scope"] == 5
     assert payload["items"][1]["opportunity_breakdown"][
         "electrical_relevance"
     ] == 0
+    assert payload["items"][1]["opportunity_score_components"][1] == {
+        "name": "electrical_relevance",
+        "points_awarded": 0,
+        "maximum_points": 30,
+        "explanation": "No qualifying electrical work indicators were identified.",
+    }
 
 
 def test_response_exposes_only_feed_fields(opportunity_client) -> None:
@@ -453,6 +489,7 @@ def test_response_exposes_only_feed_fields(opportunity_client) -> None:
         "opportunity_score",
         "opportunity_level",
         "opportunity_breakdown",
+        "opportunity_score_components",
     }
 
 

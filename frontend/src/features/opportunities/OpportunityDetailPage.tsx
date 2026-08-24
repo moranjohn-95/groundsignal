@@ -203,26 +203,17 @@ function OpportunityDetailPage({
           <section aria-labelledby="score-breakdown-heading">
             <h3 id="score-breakdown-heading">Score breakdown</h3>
             <dl className="opportunity-detail__breakdown">
-              <div>
-                <dt>Project scope</dt>
-                <dd>{opportunity.opportunity_breakdown.project_scope}</dd>
-              </div>
-              <div>
-                <dt>Electrical relevance</dt>
-                <dd>{opportunity.opportunity_breakdown.electrical_relevance}</dd>
-              </div>
-              <div>
-                <dt>Project scale</dt>
-                <dd>{opportunity.opportunity_breakdown.project_scale}</dd>
-              </div>
-              <div>
-                <dt>Lead timing</dt>
-                <dd>{opportunity.opportunity_breakdown.lead_timing}</dd>
-              </div>
-              <div>
-                <dt>Category fit</dt>
-                <dd>{opportunity.opportunity_breakdown.category_fit}</dd>
-              </div>
+              {opportunity.opportunity_score_components.map((component) => (
+                <div key={component.name}>
+                  <dt>{formatOpportunityLabel(component.name)}</dt>
+                  <dd>
+                    <strong className="opportunity-detail__component-score">
+                      {component.points_awarded} / {component.maximum_points}
+                    </strong>
+                    <p>{component.explanation}</p>
+                  </dd>
+                </div>
+              ))}
             </dl>
           </section>
         </div>

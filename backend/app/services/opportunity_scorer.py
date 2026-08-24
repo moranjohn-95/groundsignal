@@ -16,6 +16,22 @@ OpportunityLevel = Literal[
     "very_low",
 ]
 
+OpportunityScoreComponentName = Literal[
+    "project_scope",
+    "electrical_relevance",
+    "project_scale",
+    "lead_timing",
+    "category_fit",
+]
+
+SCORE_COMPONENT_MAXIMUMS: dict[OpportunityScoreComponentName, int] = {
+    "project_scope": 30,
+    "electrical_relevance": 30,
+    "project_scale": 20,
+    "lead_timing": 10,
+    "category_fit": 10,
+}
+
 
 CATEGORY_FIT_SCORES: dict[PlanningApplicationCategory, int] = {
     "industrial": 10,
@@ -48,10 +64,19 @@ class OpportunityScoreBreakdown:
 
 
 @dataclass(frozen=True)
+class OpportunityScoreComponent:
+    name: OpportunityScoreComponentName
+    points_awarded: int
+    maximum_points: int
+    explanation: str
+
+
+@dataclass(frozen=True)
 class OpportunityScoreResult:
     opportunity_score: int
     opportunity_level: OpportunityLevel
     score_breakdown: OpportunityScoreBreakdown
+    score_components: tuple[OpportunityScoreComponent, ...]
     reasons: tuple[str, ...]
 
 
@@ -221,6 +246,13 @@ def _contains_any_phrase(text: str, phrases: tuple[str, ...]) -> bool:
     return any(_contains_phrase(text, phrase) for phrase in phrases)
 
 
+def _first_matching_phrase(text: str, phrases: tuple[str, ...]) -> str | None:
+    return next(
+        (phrase for phrase in phrases if _contains_phrase(text, phrase)),
+        None,
+    )
+
+
 def _primary_scope_text(
     description: str | None,
     application_type: str | None,
@@ -254,17 +286,25 @@ def _major_scope_reason(category: PlanningApplicationCategory) -> str:
 def _score_project_scope(
     primary_text: str,
     category: PlanningApplicationCategory,
-) -> tuple[int, str | None]:
+) -> tuple[int, str | None, str]:
     if not primary_text:
-        return 0, None
+        return 0, None, "No qualifying project scope was identified."
 
     if _MINOR_SCOPE_PATTERN.search(primary_text) or _ERECT_SIGNAGE_PATTERN.search(
         primary_text
     ):
-        return 5, "Minor signage, boundary or lighting works"
+        return (
+            5,
+            "Minor signage, boundary or lighting works",
+            "The application is for minor signage, boundary, or lighting works.",
+        )
 
     if primary_text.startswith("retention ") or primary_text == "retention":
-        return 5, "Retention application"
+        return (
+            5,
+            "Retention application",
+            "The application is primarily for retention of existing works.",
+        )
 
     meaningful_positions = [
         primary_text.find(phrase)
@@ -289,8 +329,16 @@ def _score_project_scope(
             primary_text,
             ("conversion", "convert", "fit out", "fitout"),
         ):
-            return 20, "Conversion or change of use"
-        return 20, "Meaningful extension or refurbishment"
+            return (
+                20,
+                "Conversion or change of use",
+                "A conversion, fit-out, or change of use was identified.",
+            )
+        return (
+            20,
+            "Meaningful extension or refurbishment",
+            "A meaningful extension or refurbishment was identified.",
+        )
 
     small_positions = [
         primary_text.find(phrase)
@@ -301,40 +349,98 @@ def _score_project_scope(
     if first_small is not None and (
         major_match is None or first_small < major_match.start()
     ):
-        return 10, "Smaller alterations or upgrades"
+        return (
+            10,
+            "Smaller alterations or upgrades",
+            "Smaller alterations, upgrades, or replacement works were identified.",
+        )
 
     if has_major_phrase or major_match is not None:
-        return 30, _major_scope_reason(category)
+        reason = _major_scope_reason(category)
+        return 30, reason, f"{reason} indicators were identified."
 
     if first_meaningful is not None:
-        return 20, "Meaningful extension, refurbishment or conversion"
+        return (
+            20,
+            "Meaningful extension, refurbishment or conversion",
+            "An extension, refurbishment, or conversion was identified.",
+        )
     if first_small is not None:
-        return 10, "Smaller alterations or upgrades"
-    return 0, None
+        return (
+            10,
+            "Smaller alterations or upgrades",
+            "Smaller alterations, upgrades, or replacement works were identified.",
+        )
+    return 0, None, "No qualifying project scope was identified."
 
 
-def _score_units(units: int) -> tuple[int, str]:
+def _score_units(units: int) -> tuple[int, str, str]:
     if units >= 50:
-        return 20, "Large residential unit count"
+        return (
+            20,
+            "Large residential unit count",
+            f"{units} residential units were identified, indicating a large development.",
+        )
     if units >= 20:
-        return 16, "Significant residential unit count"
+        return (
+            16,
+            "Significant residential unit count",
+            f"{units} residential units were identified, indicating a significant development.",
+        )
     if units >= 10:
-        return 12, "Multi-unit residential development"
+        return (
+            12,
+            "Multi-unit residential development",
+            f"{units} residential units were identified in this multi-unit development.",
+        )
     if units >= 2:
-        return 8, "Multiple residential units"
-    return 4, "Single residential unit"
+        return (
+            8,
+            "Multiple residential units",
+            f"{units} residential units were identified.",
+        )
+    return 4, "Single residential unit", "A single residential unit was identified."
 
 
-def _score_floor_area(floor_area: float) -> tuple[int, str]:
+def _format_floor_area(floor_area: float) -> str:
+    return (
+        f"{floor_area:,.0f}"
+        if floor_area.is_integer()
+        else f"{floor_area:,.1f}"
+    )
+
+
+def _score_floor_area(floor_area: float) -> tuple[int, str, str]:
+    displayed_area = _format_floor_area(floor_area)
     if floor_area >= 5000:
-        return 20, "Very large floor area"
+        return (
+            20,
+            "Very large floor area",
+            f"A floor area of {displayed_area} square metres was identified, indicating a very large development.",
+        )
     if floor_area >= 2000:
-        return 16, "Large floor area"
+        return (
+            16,
+            "Large floor area",
+            f"A floor area of {displayed_area} square metres was identified, indicating a large development.",
+        )
     if floor_area >= 500:
-        return 12, "Substantial floor area"
+        return (
+            12,
+            "Substantial floor area",
+            f"A floor area of {displayed_area} square metres was identified, indicating a substantial development.",
+        )
     if floor_area >= 100:
-        return 8, "Moderate floor area"
-    return 4, "Small recorded floor area"
+        return (
+            8,
+            "Moderate floor area",
+            f"A floor area of {displayed_area} square metres was identified, indicating a moderate development.",
+        )
+    return (
+        4,
+        "Small recorded floor area",
+        f"A floor area of {displayed_area} square metres was identified.",
+    )
 
 
 def _valid_units(value: int | None) -> int | None:
@@ -368,7 +474,7 @@ def _score_project_scale(
     text: str,
     number_residential_units: int | None,
     floor_area: float | None,
-) -> tuple[int, str | None]:
+) -> tuple[int, str | None, str]:
     units = _valid_units(number_residential_units)
     area = _valid_floor_area(floor_area)
     if units is None:
@@ -381,7 +487,15 @@ def _score_project_scale(
         evidence.append(_score_units(units))
     if area is not None:
         evidence.append(_score_floor_area(area))
-    return max(evidence, key=lambda item: item[0]) if evidence else (0, None)
+    return (
+        max(evidence, key=lambda item: item[0])
+        if evidence
+        else (
+            0,
+            None,
+            "No valid residential unit count or floor area was available.",
+        )
+    )
 
 
 def _score_electrical_relevance(
@@ -390,56 +504,143 @@ def _score_electrical_relevance(
     project_scope: int,
     project_scale: int,
     has_large_residential_unit_count: bool,
-) -> tuple[int, str | None]:
+) -> tuple[int, str | None, str]:
     if _MINOR_LIGHTING_PATTERN.search(text):
-        return 5, "Minor lighting replacement"
-    if _contains_any_phrase(text, _EV_CHARGING_PHRASES):
-        return 30, "EV charging infrastructure identified"
-    if _contains_any_phrase(text, _BATTERY_ENERGY_PHRASES):
-        return 30, "Battery energy storage identified"
-    if _contains_any_phrase(text, _SUBSTATION_PHRASES):
-        return 30, "Electrical substation identified"
-    if _contains_any_phrase(text, _EXPLICIT_ELECTRICAL_PHRASES):
-        return 30, "Explicit electrical works identified"
-    if _contains_any_phrase(text, _RENEWABLE_INSTALLATION_PHRASES):
-        return 25, "Renewable electrical installation identified"
-    if _contains_any_phrase(text, _SIGNIFICANT_LIGHTING_PHRASES):
-        return 20, "Significant lighting installation identified"
+        return (
+            5,
+            "Minor lighting replacement",
+            "The application includes replacement of one external light fitting.",
+        )
+    if (matched_phrase := _first_matching_phrase(text, _EV_CHARGING_PHRASES)):
+        return (
+            30,
+            "EV charging infrastructure identified",
+            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
+        )
+    if (matched_phrase := _first_matching_phrase(text, _BATTERY_ENERGY_PHRASES)):
+        return (
+            30,
+            "Battery energy storage identified",
+            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
+        )
+    if (matched_phrase := _first_matching_phrase(text, _SUBSTATION_PHRASES)):
+        return (
+            30,
+            "Electrical substation identified",
+            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
+        )
+    if (
+        matched_phrase := _first_matching_phrase(text, _EXPLICIT_ELECTRICAL_PHRASES)
+    ):
+        return (
+            30,
+            "Explicit electrical works identified",
+            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
+        )
+    if (
+        matched_phrase := _first_matching_phrase(
+            text,
+            _RENEWABLE_INSTALLATION_PHRASES,
+        )
+    ):
+        return (
+            25,
+            "Renewable electrical installation identified",
+            f'The planning description includes "{matched_phrase}", indicating a renewable electrical installation.',
+        )
+    if (
+        matched_phrase := _first_matching_phrase(text, _SIGNIFICANT_LIGHTING_PHRASES)
+    ):
+        return (
+            20,
+            "Significant lighting installation identified",
+            f'The planning description includes "{matched_phrase}", indicating significant lighting work.',
+        )
     if (
         project_scope >= 20
         and category != "residential"
-        and _contains_any_phrase(text, _PLANT_OR_EQUIPMENT_PHRASES)
+        and (
+            matched_phrase := _first_matching_phrase(
+                text,
+                _PLANT_OR_EQUIPMENT_PHRASES,
+            )
+        )
     ):
-        return 15, "Plant or electrical equipment identified"
+        return (
+            15,
+            "Plant or electrical equipment identified",
+            f'The planning description includes "{matched_phrase}" in a substantial non-residential project.',
+        )
     if project_scope >= 20 and category in ("commercial", "industrial"):
-        return 12, "Electrical work implied by substantial business development"
+        return (
+            12,
+            "Electrical work implied by substantial business development",
+            "Electrical work is implied by the substantial commercial or industrial development scope.",
+        )
     if category in ("residential", "mixed_use") and (
         (project_scope == 30 and project_scale >= 12)
         or (project_scope >= 10 and has_large_residential_unit_count)
     ):
-        return 15, "Electrical work implied by large residential development"
-    return 0, None
+        return (
+            15,
+            "Electrical work implied by large residential development",
+            "Electrical work is implied by the scale and scope of the residential development.",
+        )
+    return (
+        0,
+        None,
+        "No qualifying electrical work indicators were identified.",
+    )
 
 
 def _score_lead_timing(
     received_date: date | None,
     current_date: date,
-) -> tuple[int, str | None]:
+) -> tuple[int, str | None, str]:
     if received_date is None:
-        return 0, None
+        return (
+            0,
+            None,
+            "No received date was available, so no lead timing points were awarded.",
+        )
 
     age_days = (current_date - received_date).days
     if age_days < 0:
-        return 0, None
+        return (
+            0,
+            None,
+            "The received date is in the future, so no lead timing points were awarded.",
+        )
+    age_description = "today" if age_days == 0 else f"{age_days} days ago"
     if age_days <= 14:
-        return 10, "Application received within the last 14 days"
+        return (
+            10,
+            "Application received within the last 14 days",
+            f"The application was received {age_description}, within the last 14 days.",
+        )
     if age_days <= 30:
-        return 8, "Application received within the last 30 days"
+        return (
+            8,
+            "Application received within the last 30 days",
+            f"The application was received {age_description}, within the last 30 days.",
+        )
     if age_days <= 60:
-        return 5, "Application received within the last 60 days"
+        return (
+            5,
+            "Application received within the last 60 days",
+            f"The application was received {age_description}, within the last 60 days.",
+        )
     if age_days <= 90:
-        return 2, "Application received within the last 90 days"
-    return 0, None
+        return (
+            2,
+            "Application received within the last 90 days",
+            f"The application was received {age_description}, within the last 90 days.",
+        )
+    return (
+        0,
+        None,
+        f"The application was received {age_description}, so no lead timing points were awarded.",
+    )
 
 
 def opportunity_level_for_score(score: int) -> OpportunityLevel:
@@ -481,8 +682,11 @@ def score_planning_application_opportunity(
         if text
     )
 
-    project_scope, scope_reason = _score_project_scope(primary_text, category)
-    project_scale, scale_reason = _score_project_scale(
+    project_scope, scope_reason, scope_explanation = _score_project_scope(
+        primary_text,
+        category,
+    )
+    project_scale, scale_reason, scale_explanation = _score_project_scale(
         full_text,
         number_residential_units,
         floor_area,
@@ -490,19 +694,28 @@ def score_planning_application_opportunity(
     residential_units = _valid_units(number_residential_units)
     if residential_units is None:
         residential_units = _textual_units(full_text)
-    electrical_relevance, electrical_reason = _score_electrical_relevance(
+    (
+        electrical_relevance,
+        electrical_reason,
+        electrical_explanation,
+    ) = _score_electrical_relevance(
         full_text,
         category,
         project_scope,
         project_scale,
         residential_units is not None and residential_units >= 10,
     )
-    lead_timing, timing_reason = _score_lead_timing(
+    lead_timing, timing_reason, timing_explanation = _score_lead_timing(
         received_date,
         current_date,
     )
     category_fit = CATEGORY_FIT_SCORES[category]
-    category_reason = f"{category.replace('_', ' ').title()} category fit"
+    category_label = category.replace("_", " ").title()
+    category_reason = f"{category_label} category fit"
+    category_explanation = (
+        f"The application is classified as {category_label}, which receives "
+        f"{category_fit} points for category fit."
+    )
 
     score_breakdown = OpportunityScoreBreakdown(
         project_scope=project_scope,
@@ -522,10 +735,43 @@ def score_planning_application_opportunity(
         )
         if reason is not None
     )
+    score_components = (
+        OpportunityScoreComponent(
+            name="project_scope",
+            points_awarded=score_breakdown.project_scope,
+            maximum_points=SCORE_COMPONENT_MAXIMUMS["project_scope"],
+            explanation=scope_explanation,
+        ),
+        OpportunityScoreComponent(
+            name="electrical_relevance",
+            points_awarded=score_breakdown.electrical_relevance,
+            maximum_points=SCORE_COMPONENT_MAXIMUMS["electrical_relevance"],
+            explanation=electrical_explanation,
+        ),
+        OpportunityScoreComponent(
+            name="project_scale",
+            points_awarded=score_breakdown.project_scale,
+            maximum_points=SCORE_COMPONENT_MAXIMUMS["project_scale"],
+            explanation=scale_explanation,
+        ),
+        OpportunityScoreComponent(
+            name="lead_timing",
+            points_awarded=score_breakdown.lead_timing,
+            maximum_points=SCORE_COMPONENT_MAXIMUMS["lead_timing"],
+            explanation=timing_explanation,
+        ),
+        OpportunityScoreComponent(
+            name="category_fit",
+            points_awarded=score_breakdown.category_fit,
+            maximum_points=SCORE_COMPONENT_MAXIMUMS["category_fit"],
+            explanation=category_explanation,
+        ),
+    )
 
     return OpportunityScoreResult(
         opportunity_score=score_breakdown.total,
         opportunity_level=opportunity_level_for_score(score_breakdown.total),
         score_breakdown=score_breakdown,
+        score_components=score_components,
         reasons=reasons,
     )

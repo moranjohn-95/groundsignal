@@ -26,6 +26,15 @@ export interface OpportunityBreakdown {
   category_fit: number
 }
 
+export type OpportunityScoreComponentName = keyof OpportunityBreakdown
+
+export interface OpportunityScoreComponent {
+  name: OpportunityScoreComponentName
+  points_awarded: number
+  maximum_points: number
+  explanation: string
+}
+
 export interface Opportunity {
   id: number
   application_number: string
@@ -42,6 +51,7 @@ export interface Opportunity {
   opportunity_score: number
   opportunity_level: OpportunityLevel
   opportunity_breakdown: OpportunityBreakdown
+  opportunity_score_components: OpportunityScoreComponent[]
 }
 
 export interface OpportunityFeedResponse {

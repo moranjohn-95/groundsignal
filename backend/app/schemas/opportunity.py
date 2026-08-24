@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from ..services.opportunity_scorer import (
     OpportunityLevel,
     OpportunityScoreBreakdown,
+    OpportunityScoreComponent,
 )
 from ..services.planning_classifier import PlanningApplicationCategory
 
@@ -25,6 +26,7 @@ class OpportunityResponse(BaseModel):
     opportunity_score: int
     opportunity_level: OpportunityLevel
     opportunity_breakdown: OpportunityScoreBreakdown
+    opportunity_score_components: tuple[OpportunityScoreComponent, ...]
 
 
 class OpportunityFeedResponse(BaseModel):

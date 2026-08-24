@@ -80,6 +80,7 @@ def _planning_application_response(
         opportunity_score=opportunity.opportunity_score,
         opportunity_level=opportunity.opportunity_level,
         opportunity_breakdown=opportunity.score_breakdown,
+        opportunity_score_components=opportunity.score_components,
     )
 
 

@@ -21,15 +21,51 @@ const opportunity: Opportunity = {
   application_url: 'https://example.test/generic-planning-search',
   category: 'industrial',
   distance_km: 18.664272461619998,
-  opportunity_score: 82,
-  opportunity_level: 'high',
+  opportunity_score: 96,
+  opportunity_level: 'very_high',
   opportunity_breakdown: {
-    project_scope: 25,
-    electrical_relevance: 27,
-    project_scale: 15,
-    lead_timing: 8,
-    category_fit: 7,
+    project_scope: 30,
+    electrical_relevance: 30,
+    project_scale: 16,
+    lead_timing: 10,
+    category_fit: 10,
   },
+  opportunity_score_components: [
+    {
+      name: 'project_scope',
+      points_awarded: 30,
+      maximum_points: 30,
+      explanation: 'New industrial development indicators were identified.',
+    },
+    {
+      name: 'electrical_relevance',
+      points_awarded: 30,
+      maximum_points: 30,
+      explanation:
+        'The planning description includes "electrical infrastructure", a strong electrical indicator.',
+    },
+    {
+      name: 'project_scale',
+      points_awarded: 16,
+      maximum_points: 20,
+      explanation:
+        'A floor area of 2,500 square metres was identified, indicating a large development.',
+    },
+    {
+      name: 'lead_timing',
+      points_awarded: 10,
+      maximum_points: 10,
+      explanation:
+        'The application was received 6 days ago, within the last 14 days.',
+    },
+    {
+      name: 'category_fit',
+      points_awarded: 10,
+      maximum_points: 10,
+      explanation:
+        'The application is classified as Industrial, which receives 10 points for category fit.',
+    },
+  ],
 }
 
 describe('OpportunityCard', () => {
@@ -47,8 +83,8 @@ describe('OpportunityCard', () => {
     const heading = within(card).getByRole('heading', { level: 3 })
     expect(heading.textContent).toMatch(/…$/)
     expect(heading).not.toHaveTextContent(longDescription)
-    expect(within(card).getByText('High opportunity')).toBeInTheDocument()
-    expect(within(card).getByText('82')).toBeInTheDocument()
+    expect(within(card).getByText('Very high opportunity')).toBeInTheDocument()
+    expect(within(card).getByText('96')).toBeInTheDocument()
     expect(within(card).getByText('Industrial')).toBeInTheDocument()
     expect(within(card).getByText('18.7 km')).toBeInTheDocument()
     expect(within(card).getByText('18 August 2026')).toBeInTheDocument()

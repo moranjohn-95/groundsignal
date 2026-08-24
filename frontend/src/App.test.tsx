@@ -24,15 +24,51 @@ const opportunity = {
   application_url: 'https://example.test/planning/26-1042',
   category: 'industrial',
   distance_km: 4.25,
-  opportunity_score: 82,
-  opportunity_level: 'high',
+  opportunity_score: 80,
+  opportunity_level: 'very_high',
   opportunity_breakdown: {
-    project_scope: 25,
-    electrical_relevance: 27,
-    project_scale: 15,
-    lead_timing: 8,
-    category_fit: 7,
+    project_scope: 30,
+    electrical_relevance: 30,
+    project_scale: 0,
+    lead_timing: 10,
+    category_fit: 10,
   },
+  opportunity_score_components: [
+    {
+      name: 'project_scope',
+      points_awarded: 30,
+      maximum_points: 30,
+      explanation: 'New industrial development indicators were identified.',
+    },
+    {
+      name: 'electrical_relevance',
+      points_awarded: 30,
+      maximum_points: 30,
+      explanation:
+        'The planning description includes "electrical works", a strong electrical indicator.',
+    },
+    {
+      name: 'project_scale',
+      points_awarded: 0,
+      maximum_points: 20,
+      explanation:
+        'No valid residential unit count or floor area was available.',
+    },
+    {
+      name: 'lead_timing',
+      points_awarded: 10,
+      maximum_points: 10,
+      explanation:
+        'The application was received 6 days ago, within the last 14 days.',
+    },
+    {
+      name: 'category_fit',
+      points_awarded: 10,
+      maximum_points: 10,
+      explanation:
+        'The application is classified as Industrial, which receives 10 points for category fit.',
+    },
+  ],
 }
 
 const opportunityFeed = {

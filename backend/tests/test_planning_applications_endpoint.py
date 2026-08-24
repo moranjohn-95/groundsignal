@@ -14,7 +14,9 @@ from backend.app.dependencies import get_db
 from backend.app.main import app
 from backend.app.models import PlanningApplication
 from backend.app.services.opportunity_scorer import (
+    SCORE_COMPONENT_MAXIMUMS,
     OpportunityScoreBreakdown,
+    OpportunityScoreComponent,
     OpportunityScoreResult,
     score_planning_application_opportunity,
 )
@@ -232,6 +234,9 @@ def _expected_opportunity(row: dict) -> dict:
         "opportunity_score": result.opportunity_score,
         "opportunity_level": result.opportunity_level,
         "opportunity_breakdown": asdict(result.score_breakdown),
+        "opportunity_score_components": [
+            asdict(component) for component in result.score_components
+        ],
     }
 
 
@@ -396,6 +401,7 @@ def test_detail_returns_application_by_internal_id(client: TestClient) -> None:
             "opportunity_score",
             "opportunity_level",
             "opportunity_breakdown",
+            "opportunity_score_components",
         )
     } == _expected_opportunity(PLANNING_APPLICATION_ROWS[0])
 
@@ -426,6 +432,7 @@ def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
         "opportunity_score",
         "opportunity_level",
         "opportunity_breakdown",
+        "opportunity_score_components",
     }
 
 
@@ -478,6 +485,18 @@ def test_shared_response_mapper_passes_exact_fields_to_scorer(
         opportunity_score=65,
         opportunity_level="high",
         score_breakdown=OpportunityScoreBreakdown(30, 12, 8, 5, 10),
+        score_components=tuple(
+            OpportunityScoreComponent(
+                name=name,
+                points_awarded=points,
+                maximum_points=SCORE_COMPONENT_MAXIMUMS[name],
+                explanation="Test scoring evidence.",
+            )
+            for name, points in zip(
+                SCORE_COMPONENT_MAXIMUMS,
+                (30, 12, 8, 5, 10),
+            )
+        ),
         reasons=("Test evidence",),
     )
     classifier = Mock(return_value="commercial")
@@ -506,6 +525,7 @@ def test_shared_response_mapper_passes_exact_fields_to_scorer(
     assert response.opportunity_score == 65
     assert response.opportunity_level == "high"
     assert response.opportunity_breakdown == score_result.score_breakdown
+    assert response.opportunity_score_components == score_result.score_components
 
 
 def test_detail_unknown_id_returns_404(client: TestClient) -> None:
