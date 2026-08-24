@@ -42,6 +42,8 @@ type SearchState =
       request: OpportunitySearchRequest
     }
 
+type RefreshState = 'idle' | 'refreshing' | 'error'
+
 interface BrowserCoordinates {
   latitude: number
   longitude: number
@@ -57,6 +59,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
     useState<BrowserCoordinates | null>(null)
   const [locationQuery, setLocationQuery] = useState('')
   const [sortBy, setSortBy] = useState<OpportunitySort>('best')
+  const [refreshState, setRefreshState] = useState<RefreshState>('idle')
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'initial',
   })
@@ -65,8 +68,14 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
     request: OpportunitySearchRequest,
     page: number,
     sort: OpportunitySort,
+    preserveResults = false,
   ) {
-    setSearchState({ status: 'loading' })
+    if (preserveResults) {
+      setRefreshState('refreshing')
+    } else {
+      setRefreshState('idle')
+      setSearchState({ status: 'loading' })
+    }
 
     try {
       const response = await fetchOpportunities({
@@ -85,15 +94,22 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
         response,
         request,
       })
+      setRefreshState('idle')
     } catch {
-      setSearchState({
-        status: 'opportunities-error',
-        resultLocation: request.resultLocation,
-      })
+      if (preserveResults) {
+        setRefreshState('error')
+      } else {
+        setSearchState({
+          status: 'opportunities-error',
+          resultLocation: request.resultLocation,
+        })
+      }
     }
   }
 
   async function handleSearch(filters: OpportunityFilterValues) {
+    setRefreshState('idle')
+
     if (filters.location === '' && currentCoordinates !== null) {
       await loadOpportunities(
         {
@@ -138,6 +154,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
   function handleUseCurrentLocation() {
     setCurrentCoordinates(null)
+    setRefreshState('idle')
     setSearchState({ status: 'locating' })
 
     if (navigator.geolocation === undefined) {
@@ -164,25 +181,28 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
   function handleLocationChange(location: string) {
     setLocationQuery(location)
+    setRefreshState('idle')
     if (currentCoordinates !== null) {
       setCurrentCoordinates(null)
       setSearchState({ status: 'initial' })
     }
   }
 
-  const isLoading =
+  const isInitialLoading =
     searchState.status === 'locating' || searchState.status === 'loading'
+  const isRefreshing = refreshState === 'refreshing'
+  const isRequestActive = isInitialLoading || isRefreshing
 
   function handleSortChange(sort: OpportunitySort) {
     setSortBy(sort)
-    if (searchState.status === 'success') {
-      void loadOpportunities(searchState.request, 1, sort)
+    if (searchState.status === 'success' && !isRefreshing) {
+      void loadOpportunities(searchState.request, 1, sort, true)
     }
   }
 
   function handlePageChange(page: number) {
-    if (searchState.status === 'success') {
-      void loadOpportunities(searchState.request, page, sortBy)
+    if (searchState.status === 'success' && !isRefreshing) {
+      void loadOpportunities(searchState.request, page, sortBy, true)
     }
   }
 
@@ -202,7 +222,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
         <OpportunityFilters
           isCurrentLocationSelected={currentCoordinates !== null}
-          isLoading={isLoading}
+          isLoading={isRequestActive}
           isLocating={searchState.status === 'locating'}
           location={locationQuery}
           onLocationChange={handleLocationChange}
@@ -214,9 +234,10 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
       <section
         className="opportunity-results"
         aria-labelledby={resultsHeadingId}
-        aria-busy={isLoading}
       >
-        <h2 id={resultsHeadingId}>Top opportunities</h2>
+        <h2 id={resultsHeadingId} tabIndex={-1}>
+          Top opportunities
+        </h2>
 
         {searchState.status === 'initial' && currentCoordinates === null && (
           <p>Enter an Irish location to find nearby opportunities.</p>
@@ -278,6 +299,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                   <select
                     id="opportunity-sort"
                     value={sortBy}
+                    disabled={isRefreshing}
                     onChange={(event) =>
                       handleSortChange(
                         event.currentTarget.value as OpportunitySort,
@@ -291,10 +313,28 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                 </div>
               </div>
               <p role="status">
-                Showing {searchState.response.items.length} of{' '}
-                {searchState.response.total} opportunities.
+                {isRefreshing ? (
+                  'Refreshing opportunities...'
+                ) : (
+                  <>
+                    Showing {searchState.response.items.length} of{' '}
+                    {searchState.response.total} opportunities.
+                    <span className="visually-hidden">
+                      {' '}
+                      Page {searchState.response.page} of{' '}
+                      {searchState.response.total_pages}.
+                    </span>
+                  </>
+                )}
               </p>
+              {refreshState === 'error' && (
+                <p role="alert">
+                  We could not refresh opportunities. Your current results are
+                  still available.
+                </p>
+              )}
               <OpportunityList
+                isBusy={isRefreshing}
                 opportunities={searchState.response.items}
                 labelledBy={resultsHeadingId}
                 onViewOpportunity={onViewOpportunity}
@@ -306,14 +346,16 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                 <button
                   className="button button--secondary"
                   type="button"
-                  disabled={searchState.response.page <= 1}
+                  disabled={
+                    isRefreshing || searchState.response.page <= 1
+                  }
                   onClick={() =>
                     handlePageChange(searchState.response.page - 1)
                   }
                 >
                   Previous
                 </button>
-                <p aria-live="polite">
+                <p>
                   Page {searchState.response.page} of{' '}
                   {searchState.response.total_pages}
                 </p>
@@ -321,6 +363,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                   className="button button--secondary"
                   type="button"
                   disabled={
+                    isRefreshing ||
                     searchState.response.page >=
                     searchState.response.total_pages
                   }

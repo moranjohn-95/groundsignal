@@ -85,6 +85,7 @@ function OpportunityFilters({
                 type="text"
                 placeholder="e.g. Tralee, Co. Kerry"
                 required={!isCurrentLocationSelected}
+                disabled={isLoading}
                 value={location}
                 onChange={(event) =>
                   onLocationChange(event.currentTarget.value)
@@ -110,7 +111,12 @@ function OpportunityFilters({
 
           <div className="form-field">
             <label htmlFor="opportunity-radius">Radius</label>
-            <select id="opportunity-radius" name="radiusKm" defaultValue="25">
+            <select
+              id="opportunity-radius"
+              name="radiusKm"
+              defaultValue="25"
+              disabled={isLoading}
+            >
               <option value="10">10 km</option>
               <option value="25">25 km</option>
               <option value="50">50 km</option>
@@ -123,6 +129,7 @@ function OpportunityFilters({
               id="opportunity-recent-period"
               name="recentDays"
               defaultValue="30"
+              disabled={isLoading}
             >
               <option value="7">7 days</option>
               <option value="30">30 days</option>
@@ -137,6 +144,7 @@ function OpportunityFilters({
               id="opportunity-category"
               name="category"
               defaultValue=""
+              disabled={isLoading}
             >
               <option value="">All categories</option>
               {planningApplicationCategories.map((category) => (

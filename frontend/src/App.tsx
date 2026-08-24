@@ -61,6 +61,7 @@ function routeFromLocation(
 
 function App() {
   const opportunitiesScrollPosition = useRef<number | null>(null)
+  const opportunityFocusTarget = useRef<number | null>(null)
   const [route, setRoute] = useState(() =>
     routeFromLocation(window.location.pathname, window.history.state),
   )
@@ -81,6 +82,20 @@ function App() {
     ) {
       window.scrollTo(0, opportunitiesScrollPosition.current)
     }
+
+    if (
+      route.page === 'opportunities' &&
+      opportunityFocusTarget.current !== null
+    ) {
+      const opportunityAction = document.getElementById(
+        `opportunity-${opportunityFocusTarget.current}-action`,
+      )
+      const fallbackHeading = document.getElementById(
+        'top-opportunities-heading',
+      )
+      const focusTarget = opportunityAction ?? fallbackHeading
+      focusTarget?.focus({ preventScroll: true })
+    }
   }, [route.page])
 
   function showOpportunities() {
@@ -90,6 +105,7 @@ function App() {
 
   function showOpportunity(opportunity: Opportunity) {
     opportunitiesScrollPosition.current = window.scrollY
+    opportunityFocusTarget.current = opportunity.id
     const historyState: OpportunityHistoryState = {
       distanceKm: opportunity.distance_km,
       preservesOpportunities: true,

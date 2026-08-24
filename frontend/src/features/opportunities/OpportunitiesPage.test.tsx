@@ -668,6 +668,102 @@ describe('OpportunitiesPage', () => {
     ).toEqual(['20', '20', '20'])
   })
 
+  it('keeps current results visible and disables controls during page and sort refreshes', async () => {
+    let resolvePageRequest: (response: Response) => void = () => undefined
+    let resolveSortRequest: (response: Response) => void = () => undefined
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvePageRequest = resolve
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveSortRequest = resolve
+          }),
+      )
+    render(<OpportunitiesPage />)
+
+    await submitSearch()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Next' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Refreshing opportunities',
+    )
+    expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
+    expect(screen.getByRole('list', { name: 'Top opportunities' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'Find opportunities' }),
+    ).toBeDisabled()
+
+    await act(async () => resolvePageRequest(jsonResponse(secondPageFeed)))
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
+    expect(resultOpportunityPaths()).toEqual(['/opportunities/42'])
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort by' }),
+      'nearest',
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Refreshing opportunities',
+    )
+    expect(resultOpportunityPaths()).toEqual(['/opportunities/42'])
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+
+    await act(async () => resolveSortRequest(jsonResponse(firstPageFeed)))
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
+    expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeEnabled()
+    expect(screen.getByRole('list', { name: 'Top opportunities' })).toHaveAttribute(
+      'aria-busy',
+      'false',
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(getCurrentPositionMock).not.toHaveBeenCalled()
+    const paths = fetchMock.mock.calls.map(
+      ([request]) => new URL(request as string, 'http://localhost').pathname,
+    )
+    expect(paths.filter((path) => path === '/api/v1/locations/geocode')).toEqual([
+      '/api/v1/locations/geocode',
+    ])
+  })
+
+  it('retains current results when a page refresh fails', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+      .mockResolvedValueOnce(jsonResponse({}, 503))
+    render(<OpportunitiesPage />)
+
+    await submitSearch()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Next' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'could not refresh opportunities',
+    )
+    expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
+    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(getCurrentPositionMock).not.toHaveBeenCalled()
+  })
+
   it('reuses stored browser coordinates for page and sort requests', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(firstPageFeed))

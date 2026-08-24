@@ -164,6 +164,7 @@ function OpportunityCard({
         <a
           className="opportunity-card__action"
           href={`/opportunities/${opportunity.id}`}
+          id={`opportunity-${opportunity.id}-action`}
           onClick={handleViewOpportunity}
         >
           View opportunity

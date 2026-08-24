@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 
 import {
   fetchOpportunity,
@@ -29,6 +29,7 @@ function OpportunityDetailPage({
   distanceKm,
   onBack,
 }: OpportunityDetailPageProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null)
   const [detailState, setDetailState] = useState<DetailState>({
     status: 'loading',
   })
@@ -56,6 +57,10 @@ function OpportunityDetailPage({
     }
   }, [opportunityId])
 
+  useEffect(() => {
+    headingRef.current?.focus()
+  }, [detailState.status])
+
   function handleBack(event: MouseEvent<HTMLAnchorElement>) {
     if (
       onBack === undefined ||
@@ -82,7 +87,9 @@ function OpportunityDetailPage({
     return (
       <section className="opportunity-detail-state" aria-labelledby="detail-heading">
         {backLink}
-        <h2 id="detail-heading">Opportunity details</h2>
+        <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
+          Opportunity details
+        </h2>
         <p role="status">Loading opportunity...</p>
       </section>
     )
@@ -92,7 +99,9 @@ function OpportunityDetailPage({
     return (
       <section className="opportunity-detail-state" aria-labelledby="detail-heading">
         {backLink}
-        <h2 id="detail-heading">Opportunity not found</h2>
+        <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
+          Opportunity not found
+        </h2>
         <p role="alert">
           This opportunity could not be found. It may no longer be available.
         </p>
@@ -104,7 +113,9 @@ function OpportunityDetailPage({
     return (
       <section className="opportunity-detail-state" aria-labelledby="detail-heading">
         {backLink}
-        <h2 id="detail-heading">Opportunity unavailable</h2>
+        <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
+          Opportunity unavailable
+        </h2>
         <p role="alert">
           We could not load this opportunity. Please try again later.
         </p>
@@ -140,7 +151,9 @@ function OpportunityDetailPage({
           </div>
 
           <p className="opportunity-detail__eyebrow">Planning application</p>
-          <h2 id="detail-heading">Opportunity {opportunity.application_number}</h2>
+          <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
+            Opportunity {opportunity.application_number}
+          </h2>
 
           <ul className="opportunity-detail__summary" aria-label="Opportunity summary">
             <li>

@@ -35,6 +35,18 @@
   box-sizing: border-box;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html {
   min-width: 320px;
   background: var(--color-background);
@@ -202,8 +214,8 @@ p {
   opacity: 1;
 }
 
-.opportunity-filters input:hover,
-.opportunity-filters select:hover {
+.opportunity-filters input:hover:not(:disabled),
+.opportunity-filters select:hover:not(:disabled) {
   border-color: var(--color-primary);
 }
 
@@ -212,6 +224,16 @@ p {
   border-color: var(--color-accent-active);
   outline: none;
   box-shadow: var(--shadow-focus);
+}
+
+.opportunity-filters input:disabled,
+.opportunity-filters select:disabled,
+.opportunity-results__sort select:disabled {
+  border-color: var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .button {
@@ -335,7 +357,7 @@ summary:focus-visible {
   line-height: 1.25;
 }
 
-.opportunity-results__sort select:hover {
+.opportunity-results__sort select:hover:not(:disabled) {
   border-color: var(--color-primary);
 }
 
@@ -372,7 +394,7 @@ summary:focus-visible {
 
 .opportunity-pagination {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
   margin-top: 1.5rem;
@@ -384,6 +406,13 @@ summary:focus-visible {
   font-size: 0.9375rem;
   font-weight: 650;
   text-align: center;
+}
+
+.opportunity-pagination .button {
+  width: auto;
+  min-width: 0;
+  padding-inline: 0.75rem;
+  white-space: nowrap;
 }
 
 .opportunity-pagination .button:first-child {
@@ -474,7 +503,7 @@ summary:focus-visible {
 
 .opportunity-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   gap: 0.75rem;
   margin: 0;
   padding: 0;
@@ -501,7 +530,8 @@ summary:focus-visible {
   color: var(--color-text);
   font-size: 0.875rem;
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .opportunity-metadata {
@@ -551,8 +581,12 @@ summary:focus-visible {
   cursor: pointer;
 }
 
+.opportunity-card__disclosures summary:focus-visible {
+  outline-offset: -0.1875rem;
+}
+
 .opportunity-description p {
-  max-width: none;
+  max-width: 65ch;
   padding: 0 1.25rem 1rem;
   color: var(--color-text-muted);
   font-size: 0.875rem;
@@ -590,7 +624,7 @@ summary:focus-visible {
 .opportunity-card__action {
   display: inline-flex;
   width: 100%;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.5625rem 0.875rem;
@@ -618,7 +652,10 @@ summary:focus-visible {
 .opportunity-detail__back,
 .opportunity-detail-state > a {
   display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
   margin-bottom: 1.25rem;
+  padding-inline: 0.25rem;
   color: var(--color-primary);
   font-size: 0.875rem;
   font-weight: 700;
@@ -744,7 +781,7 @@ summary:focus-visible {
 }
 
 .opportunity-detail__description {
-  max-width: none;
+  max-width: 65ch;
   color: var(--color-text);
   overflow-wrap: anywhere;
 }

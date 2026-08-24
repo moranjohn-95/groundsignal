@@ -201,6 +201,14 @@ describe('App', () => {
 
     expect(window.location.pathname).toBe('/opportunities/20')
     expect(within(detail).getByText('4.3 km')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(
+        within(detail).getByRole('heading', {
+          level: 2,
+          name: 'Opportunity 26/1042',
+        }),
+      ).toHaveFocus(),
+    )
     expect(fetchMock).toHaveBeenCalledTimes(5)
     await user.click(screen.getByRole('link', { name: 'Back to opportunities' }))
 
@@ -221,9 +229,14 @@ describe('App', () => {
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
     const results = screen.getByRole('list', { name: 'Top opportunities' })
-    expect(
-      within(results).getByRole('link', { name: 'View opportunity' }),
-    ).toHaveAttribute('href', '/opportunities/20')
+    const restoredOpportunityAction = within(results).getByRole('link', {
+      name: 'View opportunity',
+    })
+    expect(restoredOpportunityAction).toHaveAttribute(
+      'href',
+      '/opportunities/20',
+    )
+    await waitFor(() => expect(restoredOpportunityAction).toHaveFocus())
     expect(fetchMock).toHaveBeenCalledTimes(5)
     expect(scrollToMock).toHaveBeenCalledWith(0, 640)
 
@@ -247,7 +260,15 @@ describe('App', () => {
     render(<App />)
 
     const user = await submitManualSearch()
-    await openOpportunity(user)
+    const detail = await openOpportunity(user)
+    await waitFor(() =>
+      expect(
+        within(detail).getByRole('heading', {
+          level: 2,
+          name: 'Opportunity 26/1042',
+        }),
+      ).toHaveFocus(),
+    )
 
     act(() => window.history.back())
 
@@ -256,7 +277,11 @@ describe('App', () => {
     expect(
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
-    expect(screen.getByRole('list', { name: 'Top opportunities' })).toBeInTheDocument()
+    const results = screen.getByRole('list', { name: 'Top opportunities' })
+    const restoredOpportunityAction = within(results).getByRole('link', {
+      name: 'View opportunity',
+    })
+    expect(restoredOpportunityAction).toHaveFocus()
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
@@ -327,12 +352,12 @@ describe('App', () => {
     window.history.replaceState(null, '', '/opportunities/20')
     render(<App />)
 
-    expect(
-      await screen.findByRole('heading', {
-        level: 2,
-        name: 'Opportunity 26/1042',
-      }),
-    ).toBeInTheDocument()
+    const detailHeading = await screen.findByRole('heading', {
+      level: 2,
+      name: 'Opportunity 26/1042',
+    })
+    expect(detailHeading).toBeInTheDocument()
+    await waitFor(() => expect(detailHeading).toHaveFocus())
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(
       screen.queryByRole('heading', { level: 2, name: 'Opportunities near you' }),
