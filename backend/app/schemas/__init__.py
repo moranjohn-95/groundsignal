@@ -1,3 +1,4 @@
+from .location import LocationGeocodeResponse
 from .planning_application import (
     NearbyPlanningApplicationListResponse,
     NearbyPlanningApplicationResponse,
@@ -8,6 +9,7 @@ from .planning_application import (
 from .opportunity import OpportunityFeedResponse, OpportunityResponse
 
 __all__ = [
+    "LocationGeocodeResponse",
     "NearbyPlanningApplicationListResponse",
     "NearbyPlanningApplicationResponse",
     "OpportunityFeedResponse",
