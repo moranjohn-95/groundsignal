@@ -1,20 +1,25 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, MouseEvent } from 'react'
 
 import {
   planningApplicationCategories,
   type PlanningApplicationCategory,
 } from '../../api/opportunities'
 
-export interface OpportunityFilterValues {
-  location: string
+export interface OpportunityFilterOptions {
   radiusKm: number
   recentDays: number
   category?: PlanningApplicationCategory
 }
 
+export interface OpportunityFilterValues extends OpportunityFilterOptions {
+  location: string
+}
+
 interface OpportunityFiltersProps {
   isLoading: boolean
+  isLocating: boolean
   onSearch: (filters: OpportunityFilterValues) => void
+  onUseCurrentLocation: (filters: OpportunityFilterOptions) => void
 }
 
 function formatCategory(category: PlanningApplicationCategory) {
@@ -22,22 +27,44 @@ function formatCategory(category: PlanningApplicationCategory) {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-function OpportunityFilters({ isLoading, onSearch }: OpportunityFiltersProps) {
+function readFilterOptions(data: FormData): OpportunityFilterOptions {
+  const category = data.get('category')
+
+  return {
+    radiusKm: Number(data.get('radiusKm')),
+    recentDays: Number(data.get('recentDays')),
+    category:
+      typeof category === 'string' && category !== ''
+        ? (category as PlanningApplicationCategory)
+        : undefined,
+  }
+}
+
+function OpportunityFilters({
+  isLoading,
+  isLocating,
+  onSearch,
+  onUseCurrentLocation,
+}: OpportunityFiltersProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isLoading) {
+      return
+    }
 
     const data = new FormData(event.currentTarget)
-    const category = data.get('category')
 
     onSearch({
       location: String(data.get('location')).trim(),
-      radiusKm: Number(data.get('radiusKm')),
-      recentDays: Number(data.get('recentDays')),
-      category:
-        typeof category === 'string' && category !== ''
-          ? (category as PlanningApplicationCategory)
-          : undefined,
+      ...readFilterOptions(data),
     })
+  }
+
+  function handleUseCurrentLocation(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form
+    if (form !== null) {
+      onUseCurrentLocation(readFilterOptions(new FormData(form)))
+    }
   }
 
   return (
@@ -58,6 +85,15 @@ function OpportunityFilters({ isLoading, onSearch }: OpportunityFiltersProps) {
             placeholder="e.g. Tralee, Co. Kerry"
             required
           />
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={handleUseCurrentLocation}
+          >
+            {isLocating
+              ? 'Getting current location...'
+              : 'Use my current location'}
+          </button>
         </div>
 
         <div className="form-field">

@@ -10,18 +10,23 @@ import {
   type OpportunityFeedResponse,
 } from '../../api/opportunities'
 import OpportunityFilters from './OpportunityFilters'
-import type { OpportunityFilterValues } from './OpportunityFilters'
+import type {
+  OpportunityFilterOptions,
+  OpportunityFilterValues,
+} from './OpportunityFilters'
 import OpportunityList from './OpportunityList'
 
 type SearchState =
   | { status: 'initial' }
+  | { status: 'locating' }
   | { status: 'loading' }
   | { status: 'location-not-found' }
+  | { status: 'geolocation-error' }
   | { status: 'geocoding-error' }
-  | { status: 'opportunities-error'; location: GeocodedLocation }
+  | { status: 'opportunities-error'; resultLocation: string }
   | {
       status: 'success'
-      location: GeocodedLocation
+      resultLocation: string
       response: OpportunityFeedResponse
     }
 
@@ -30,6 +35,29 @@ function OpportunitiesPage() {
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'initial',
   })
+
+  async function loadOpportunities(
+    filters: OpportunityFilterOptions,
+    latitude: number,
+    longitude: number,
+    resultLocation: string,
+  ) {
+    setSearchState({ status: 'loading' })
+
+    try {
+      const response = await fetchOpportunities({
+        latitude,
+        longitude,
+        radiusKm: filters.radiusKm,
+        recentDays: filters.recentDays,
+        category: filters.category,
+        limit: 20,
+      })
+      setSearchState({ status: 'success', resultLocation, response })
+    } catch {
+      setSearchState({ status: 'opportunities-error', resultLocation })
+    }
+  }
 
   async function handleSearch(filters: OpportunityFilterValues) {
     setSearchState({ status: 'loading' })
@@ -48,20 +76,41 @@ function OpportunitiesPage() {
       return
     }
 
+    await loadOpportunities(
+      filters,
+      location.latitude,
+      location.longitude,
+      location.display_name,
+    )
+  }
+
+  function handleUseCurrentLocation(filters: OpportunityFilterOptions) {
+    setSearchState({ status: 'locating' })
+
+    if (navigator.geolocation === undefined) {
+      setSearchState({ status: 'geolocation-error' })
+      return
+    }
+
     try {
-      const response = await fetchOpportunities({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        radiusKm: filters.radiusKm,
-        recentDays: filters.recentDays,
-        category: filters.category,
-        limit: 20,
-      })
-      setSearchState({ status: 'success', location, response })
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          void loadOpportunities(
+            filters,
+            position.coords.latitude,
+            position.coords.longitude,
+            'your current location',
+          )
+        },
+        () => setSearchState({ status: 'geolocation-error' }),
+      )
     } catch {
-      setSearchState({ status: 'opportunities-error', location })
+      setSearchState({ status: 'geolocation-error' })
     }
   }
+
+  const isLoading =
+    searchState.status === 'locating' || searchState.status === 'loading'
 
   return (
     <>
@@ -73,15 +122,17 @@ function OpportunitiesPage() {
         </p>
 
         <OpportunityFilters
-          isLoading={searchState.status === 'loading'}
+          isLoading={isLoading}
+          isLocating={searchState.status === 'locating'}
           onSearch={(filters) => void handleSearch(filters)}
+          onUseCurrentLocation={handleUseCurrentLocation}
         />
       </section>
 
       <section
         className="opportunity-results"
         aria-labelledby={resultsHeadingId}
-        aria-busy={searchState.status === 'loading'}
+        aria-busy={isLoading}
       >
         <h2 id={resultsHeadingId}>Top opportunities</h2>
 
@@ -91,6 +142,10 @@ function OpportunitiesPage() {
 
         {searchState.status === 'loading' && (
           <p role="status">Searching for opportunities...</p>
+        )}
+
+        {searchState.status === 'locating' && (
+          <p role="status">Getting your current location...</p>
         )}
 
         {searchState.status === 'location-not-found' && (
@@ -105,9 +160,16 @@ function OpportunitiesPage() {
           </p>
         )}
 
+        {searchState.status === 'geolocation-error' && (
+          <p role="alert">
+            We could not access your current location. Enter a location instead
+            or try again.
+          </p>
+        )}
+
         {(searchState.status === 'success' ||
           searchState.status === 'opportunities-error') && (
-          <p>Opportunities near {searchState.location.display_name}</p>
+          <h3>Opportunities near {searchState.resultLocation}</h3>
         )}
 
         {searchState.status === 'opportunities-error' && (
