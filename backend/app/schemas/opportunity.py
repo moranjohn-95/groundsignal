@@ -31,5 +31,7 @@ class OpportunityResponse(BaseModel):
 
 class OpportunityFeedResponse(BaseModel):
     items: list[OpportunityResponse]
-    limit: int
-    returned_count: int
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

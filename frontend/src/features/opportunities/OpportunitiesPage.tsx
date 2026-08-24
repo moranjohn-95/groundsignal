@@ -9,6 +9,7 @@ import {
   fetchOpportunities,
   type Opportunity,
   type OpportunityFeedResponse,
+  type OpportunitySort,
 } from '../../api/opportunities'
 import OpportunityFilters from './OpportunityFilters'
 import type {
@@ -16,6 +17,15 @@ import type {
   OpportunityFilterValues,
 } from './OpportunityFilters'
 import OpportunityList from './OpportunityList'
+
+const OPPORTUNITY_PAGE_SIZE = 20
+
+interface OpportunitySearchRequest {
+  filters: OpportunityFilterOptions
+  latitude: number
+  longitude: number
+  resultLocation: string
+}
 
 type SearchState =
   | { status: 'initial' }
@@ -29,6 +39,7 @@ type SearchState =
       status: 'success'
       resultLocation: string
       response: OpportunityFeedResponse
+      request: OpportunitySearchRequest
     }
 
 interface BrowserCoordinates {
@@ -38,77 +49,6 @@ interface BrowserCoordinates {
 
 interface OpportunitiesPageProps {
   onViewOpportunity?: (opportunity: Opportunity) => void
-}
-
-type OpportunitySort = 'best' | 'nearest' | 'newest'
-
-function compareOptionalNumbers(
-  firstValue: unknown,
-  secondValue: unknown,
-  direction: 'ascending' | 'descending',
-) {
-  const first =
-    typeof firstValue === 'number' && Number.isFinite(firstValue)
-      ? firstValue
-      : null
-  const second =
-    typeof secondValue === 'number' && Number.isFinite(secondValue)
-      ? secondValue
-      : null
-
-  if (first === null) {
-    return second === null ? 0 : 1
-  }
-  if (second === null) {
-    return -1
-  }
-
-  return direction === 'ascending' ? first - second : second - first
-}
-
-function receivedTimestamp(receivedDate: unknown) {
-  if (typeof receivedDate !== 'string') {
-    return null
-  }
-
-  const timestamp = Date.parse(receivedDate)
-  return Number.isFinite(timestamp) ? timestamp : null
-}
-
-function sortedOpportunities(
-  opportunities: Opportunity[],
-  sortBy: OpportunitySort,
-) {
-  return opportunities
-    .map((opportunity, originalIndex) => ({ opportunity, originalIndex }))
-    .sort((first, second) => {
-      let comparison: number
-
-      if (sortBy === 'nearest') {
-        comparison = compareOptionalNumbers(
-          first.opportunity.distance_km,
-          second.opportunity.distance_km,
-          'ascending',
-        )
-      } else if (sortBy === 'newest') {
-        comparison = compareOptionalNumbers(
-          receivedTimestamp(first.opportunity.received_date),
-          receivedTimestamp(second.opportunity.received_date),
-          'descending',
-        )
-      } else {
-        comparison = compareOptionalNumbers(
-          first.opportunity.opportunity_score,
-          second.opportunity.opportunity_score,
-          'descending',
-        )
-      }
-
-      return comparison === 0
-        ? first.originalIndex - second.originalIndex
-        : comparison
-    })
-    .map(({ opportunity }) => opportunity)
 }
 
 function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
@@ -122,35 +62,48 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
   })
 
   async function loadOpportunities(
-    filters: OpportunityFilterOptions,
-    latitude: number,
-    longitude: number,
-    resultLocation: string,
+    request: OpportunitySearchRequest,
+    page: number,
+    sort: OpportunitySort,
   ) {
     setSearchState({ status: 'loading' })
 
     try {
       const response = await fetchOpportunities({
-        latitude,
-        longitude,
-        radiusKm: filters.radiusKm,
-        recentDays: filters.recentDays,
-        category: filters.category,
-        limit: 20,
+        latitude: request.latitude,
+        longitude: request.longitude,
+        radiusKm: request.filters.radiusKm,
+        recentDays: request.filters.recentDays,
+        category: request.filters.category,
+        page,
+        pageSize: OPPORTUNITY_PAGE_SIZE,
+        sort,
       })
-      setSearchState({ status: 'success', resultLocation, response })
+      setSearchState({
+        status: 'success',
+        resultLocation: request.resultLocation,
+        response,
+        request,
+      })
     } catch {
-      setSearchState({ status: 'opportunities-error', resultLocation })
+      setSearchState({
+        status: 'opportunities-error',
+        resultLocation: request.resultLocation,
+      })
     }
   }
 
   async function handleSearch(filters: OpportunityFilterValues) {
     if (filters.location === '' && currentCoordinates !== null) {
       await loadOpportunities(
-        filters,
-        currentCoordinates.latitude,
-        currentCoordinates.longitude,
-        'your current location',
+        {
+          filters,
+          latitude: currentCoordinates.latitude,
+          longitude: currentCoordinates.longitude,
+          resultLocation: 'your current location',
+        },
+        1,
+        sortBy,
       )
       return
     }
@@ -172,10 +125,14 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
     }
 
     await loadOpportunities(
-      filters,
-      location.latitude,
-      location.longitude,
-      location.display_name,
+      {
+        filters,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        resultLocation: location.display_name,
+      },
+      1,
+      sortBy,
     )
   }
 
@@ -215,10 +172,19 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
   const isLoading =
     searchState.status === 'locating' || searchState.status === 'loading'
-  const displayedOpportunities =
-    searchState.status === 'success'
-      ? sortedOpportunities(searchState.response.items, sortBy)
-      : []
+
+  function handleSortChange(sort: OpportunitySort) {
+    setSortBy(sort)
+    if (searchState.status === 'success') {
+      void loadOpportunities(searchState.request, 1, sort)
+    }
+  }
+
+  function handlePageChange(page: number) {
+    if (searchState.status === 'success') {
+      void loadOpportunities(searchState.request, page, sortBy)
+    }
+  }
 
   return (
     <>
@@ -313,7 +279,9 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                     id="opportunity-sort"
                     value={sortBy}
                     onChange={(event) =>
-                      setSortBy(event.currentTarget.value as OpportunitySort)
+                      handleSortChange(
+                        event.currentTarget.value as OpportunitySort,
+                      )
                     }
                   >
                     <option value="best">Best opportunity</option>
@@ -323,13 +291,46 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                 </div>
               </div>
               <p role="status">
-                {searchState.response.returned_count} opportunities returned.
+                Showing {searchState.response.items.length} of{' '}
+                {searchState.response.total} opportunities.
               </p>
               <OpportunityList
-                opportunities={displayedOpportunities}
+                opportunities={searchState.response.items}
                 labelledBy={resultsHeadingId}
                 onViewOpportunity={onViewOpportunity}
               />
+              <nav
+                className="opportunity-pagination"
+                aria-label="Opportunity result pages"
+              >
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  disabled={searchState.response.page <= 1}
+                  onClick={() =>
+                    handlePageChange(searchState.response.page - 1)
+                  }
+                >
+                  Previous
+                </button>
+                <p aria-live="polite">
+                  Page {searchState.response.page} of{' '}
+                  {searchState.response.total_pages}
+                </p>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  disabled={
+                    searchState.response.page >=
+                    searchState.response.total_pages
+                  }
+                  onClick={() =>
+                    handlePageChange(searchState.response.page + 1)
+                  }
+                >
+                  Next
+                </button>
+              </nav>
             </>
           )}
       </section>

@@ -89,6 +89,11 @@ def _compiled_candidate_statement(session: Mock):
     return statement.compile(dialect=postgresql.dialect())
 
 
+def _compiled_count_statement(session: Mock):
+    statement = session.scalar.call_args.args[0]
+    return statement.compile(dialect=postgresql.dialect())
+
+
 @pytest.fixture
 def opportunity_client(monkeypatch: pytest.MonkeyPatch):
     session = Mock(spec=Session)
@@ -129,10 +134,13 @@ def test_default_feed_contract_and_empty_result(opportunity_client) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "items": [],
-        "limit": 20,
-        "returned_count": 0,
+        "page": 1,
+        "page_size": 20,
+        "total": 0,
+        "total_pages": 0,
     }
     session.execute.assert_called_once()
+    session.scalar.assert_not_called()
 
 
 def test_candidate_query_uses_postgis_radius_and_recent_cutoff(
@@ -156,23 +164,74 @@ def test_candidate_query_uses_postgis_radius_and_recent_cutoff(
     assert 25000.0 in compiled.params.values()
 
 
-def test_candidate_query_is_bounded_and_newest_first(opportunity_client) -> None:
+def test_best_query_scores_the_complete_filtered_set_before_paging(
+    opportunity_client,
+) -> None:
     client, session = opportunity_client
 
     response = client.get(
         "/api/v1/opportunities",
-        params=_valid_params(limit=100),
+        params=_valid_params(page=2, page_size=100),
     )
 
     assert response.status_code == 200
     compiled = _compiled_candidate_statement(session)
     sql = str(compiled)
-    assert "ORDER BY planning_applications.received_date DESC, " in sql
+    assert "ORDER BY" not in sql
+    assert "LIMIT" not in sql
+    assert "OFFSET" not in sql
+    session.scalar.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("sort", "primary_order"),
+    [
+        ("nearest", "distance_km ASC"),
+        ("newest", "planning_applications.received_date DESC"),
+    ],
+)
+def test_database_sorted_modes_are_globally_ordered_and_paginated(
+    opportunity_client,
+    sort: str,
+    primary_order: str,
+) -> None:
+    client, session = opportunity_client
+    session.scalar.return_value = 45
+
+    response = client.get(
+        "/api/v1/opportunities",
+        params=_valid_params(sort=sort, page=2, page_size=20),
+    )
+
+    assert response.status_code == 200
+    compiled = _compiled_candidate_statement(session)
+    sql = str(compiled)
+    assert primary_order in sql
+    assert "planning_applications.received_date DESC" in sql
     assert "planning_applications.id DESC" in sql
+    assert sql.index(primary_order) < sql.index("planning_applications.id DESC")
+    if sort == "nearest":
+        assert sql.index(primary_order) < sql.index(
+            "planning_applications.received_date DESC"
+        )
+        assert sql.index("planning_applications.received_date DESC") < sql.index(
+            "planning_applications.id DESC"
+        )
     assert "LIMIT" in sql
-    assert opportunities.OPPORTUNITY_CANDIDATE_POOL_LIMIT == 500
-    assert 500 in compiled.params.values()
-    assert 100 not in compiled.params.values()
+    assert "OFFSET" in sql
+    assert 20 in compiled.params.values()
+    assert response.json() == {
+        "items": [],
+        "page": 2,
+        "page_size": 20,
+        "total": 45,
+        "total_pages": 3,
+    }
+
+    count_sql = str(_compiled_count_statement(session))
+    assert "count(" in count_sql.lower()
+    assert "ST_DWithin" in count_sql
+    assert "ORDER BY" not in count_sql
 
 
 def test_optional_category_filter_is_applied_in_sql(opportunity_client) -> None:
@@ -330,7 +389,7 @@ def test_only_loaded_candidates_are_scored_with_exact_inputs_and_date(
     assert len(scorer.call_args_list) == len(rows)
 
 
-def test_score_ranking_and_limit_are_applied_after_all_candidates_scored(
+def test_best_sort_and_page_are_applied_after_all_candidates_are_scored(
     opportunity_client,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -358,12 +417,16 @@ def test_score_ranking_and_limit_are_applied_after_all_candidates_scored(
 
     response = client.get(
         "/api/v1/opportunities",
-        params=_valid_params(limit=2),
+        params=_valid_params(page=2, page_size=2),
     )
 
     assert response.status_code == 200
-    assert [item["id"] for item in response.json()["items"]] == [2, 4]
-    assert response.json()["returned_count"] == 2
+    payload = response.json()
+    assert [item["id"] for item in payload["items"]] == [3, 1]
+    assert payload["page"] == 2
+    assert payload["page_size"] == 2
+    assert payload["total"] == 4
+    assert payload["total_pages"] == 2
     assert scorer.call_count == 4
 
 
@@ -388,6 +451,29 @@ def test_equal_scores_use_received_date_then_id_descending(
 
     assert response.status_code == 200
     assert [item["id"] for item in response.json()["items"]] == [3, 2, 1]
+
+
+def test_explicit_page_and_page_size_return_correct_metadata(
+    opportunity_client,
+) -> None:
+    client, session = opportunity_client
+    _set_candidate_rows(
+        session,
+        [_candidate_row(identifier) for identifier in range(1, 26)],
+    )
+
+    response = client.get(
+        "/api/v1/opportunities",
+        params=_valid_params(page=2, page_size=10),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["id"] for item in payload["items"]] == list(range(15, 5, -1))
+    assert payload["page"] == 2
+    assert payload["page_size"] == 10
+    assert payload["total"] == 25
+    assert payload["total_pages"] == 3
 
 
 def test_strong_older_electrical_project_ranks_above_newer_minor_signage(
@@ -507,9 +593,14 @@ def test_response_exposes_only_feed_fields(opportunity_client) -> None:
         {"recent_days": -1},
         {"recent_days": 366},
         {"recent_days": "not-an-integer"},
-        {"limit": 0},
-        {"limit": -1},
-        {"limit": 101},
+        {"page": 0},
+        {"page": -1},
+        {"page": "not-an-integer"},
+        {"page_size": 0},
+        {"page_size": -1},
+        {"page_size": 101},
+        {"page_size": "not-an-integer"},
+        {"sort": "furthest"},
         {"category": "agricultural"},
     ],
 )
@@ -545,6 +636,7 @@ def test_endpoint_is_read_only(opportunity_client) -> None:
 
     assert response.status_code == 200
     session.execute.assert_called_once()
+    session.scalar.assert_not_called()
     session.add.assert_not_called()
     session.delete.assert_not_called()
     session.flush.assert_not_called()

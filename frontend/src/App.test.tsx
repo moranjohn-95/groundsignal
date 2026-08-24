@@ -73,8 +73,10 @@ const opportunity = {
 
 const opportunityFeed = {
   items: [opportunity],
-  limit: 20,
-  returned_count: 1,
+  page: 1,
+  page_size: 20,
+  total: 21,
+  total_pages: 2,
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -93,11 +95,22 @@ function opportunityDetailResponse() {
 }
 
 function mockManualSearchRequests() {
-  const fetchMock = vi
-    .fn()
-    .mockResolvedValueOnce(jsonResponse(traleeLocation))
-    .mockResolvedValueOnce(jsonResponse(opportunityFeed))
-    .mockResolvedValueOnce(opportunityDetailResponse())
+  const fetchMock = vi.fn().mockImplementation((request: string) => {
+    const url = new URL(request, 'http://localhost')
+    if (url.pathname === '/api/v1/locations/geocode') {
+      return Promise.resolve(jsonResponse(traleeLocation))
+    }
+    if (url.pathname === '/api/v1/opportunities') {
+      const page = Number(url.searchParams.get('page'))
+      return Promise.resolve(
+        jsonResponse({
+          ...opportunityFeed,
+          page,
+        }),
+      )
+    }
+    return Promise.resolve(opportunityDetailResponse())
+  })
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
@@ -182,11 +195,13 @@ describe('App', () => {
       screen.getByRole('combobox', { name: 'Sort by' }),
       'nearest',
     )
+    await user.click(await screen.findByRole('button', { name: 'Next' }))
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
     const detail = await openOpportunity(user)
 
     expect(window.location.pathname).toBe('/opportunities/20')
     expect(within(detail).getByText('4.3 km')).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock).toHaveBeenCalledTimes(5)
     await user.click(screen.getByRole('link', { name: 'Back to opportunities' }))
 
     await waitFor(() => expect(window.location.pathname).toBe('/'))
@@ -201,6 +216,7 @@ describe('App', () => {
     expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue(
       'nearest',
     )
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument()
     expect(
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
@@ -208,8 +224,22 @@ describe('App', () => {
     expect(
       within(results).getByRole('link', { name: 'View opportunity' }),
     ).toHaveAttribute('href', '/opportunities/20')
-    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock).toHaveBeenCalledTimes(5)
     expect(scrollToMock).toHaveBeenCalledWith(0, 640)
+
+    const opportunityRequests = fetchMock.mock.calls
+      .map(([request]) => new URL(request as string, 'http://localhost'))
+      .filter(({ pathname }) => pathname === '/api/v1/opportunities')
+    expect(
+      opportunityRequests.map((url) => [
+        url.searchParams.get('sort'),
+        url.searchParams.get('page'),
+      ]),
+    ).toEqual([
+      ['best', '1'],
+      ['nearest', '1'],
+      ['nearest', '2'],
+    ])
   })
 
   it('restores the same search state when the browser Back action is used', async () => {

@@ -56,9 +56,13 @@ export interface Opportunity {
 
 export interface OpportunityFeedResponse {
   items: Opportunity[]
-  limit: number
-  returned_count: number
+  page: number
+  page_size: number
+  total: number
+  total_pages: number
 }
+
+export type OpportunitySort = 'best' | 'nearest' | 'newest'
 
 export type OpportunityDetail = Omit<Opportunity, 'distance_km'> & {
   distance_km?: number
@@ -70,7 +74,9 @@ export interface OpportunityQuery {
   radiusKm: number
   recentDays: number
   category?: PlanningApplicationCategory
-  limit: number
+  page: number
+  pageSize: number
+  sort: OpportunitySort
 }
 
 export class OpportunityNotFoundError extends Error {
@@ -106,7 +112,9 @@ export async function fetchOpportunities(
     longitude: String(query.longitude),
     radius_km: String(query.radiusKm),
     recent_days: String(query.recentDays),
-    limit: String(query.limit),
+    page: String(query.page),
+    page_size: String(query.pageSize),
+    sort: query.sort,
   })
 
   if (query.category !== undefined) {

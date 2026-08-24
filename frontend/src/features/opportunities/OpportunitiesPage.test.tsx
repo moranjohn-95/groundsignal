@@ -76,34 +76,22 @@ const opportunityFeed: OpportunityFeedResponse = {
       ],
     },
   ],
-  limit: 20,
-  returned_count: 1,
+  page: 1,
+  page_size: 20,
+  total: 1,
+  total_pages: 1,
 }
 
 const emptyFeed: OpportunityFeedResponse = {
   items: [],
-  limit: 20,
-  returned_count: 0,
+  page: 1,
+  page_size: 20,
+  total: 0,
+  total_pages: 0,
 }
 
 const sortingFeed: OpportunityFeedResponse = {
   items: [
-    {
-      ...opportunityFeed.items[0],
-      id: 23,
-      application_number: 'SORT-23',
-      opportunity_score: 25,
-      distance_km: 3,
-      received_date: null,
-    },
-    {
-      ...opportunityFeed.items[0],
-      id: 21,
-      application_number: 'SORT-21',
-      opportunity_score: 55,
-      distance_km: 9,
-      received_date: '2026-08-23',
-    },
     {
       ...opportunityFeed.items[0],
       id: 20,
@@ -120,9 +108,67 @@ const sortingFeed: OpportunityFeedResponse = {
       distance_km: 1,
       received_date: '2026-08-10',
     },
+    {
+      ...opportunityFeed.items[0],
+      id: 21,
+      application_number: 'SORT-21',
+      opportunity_score: 55,
+      distance_km: 9,
+      received_date: '2026-08-23',
+    },
+    {
+      ...opportunityFeed.items[0],
+      id: 23,
+      application_number: 'SORT-23',
+      opportunity_score: 25,
+      distance_km: 3,
+      received_date: null,
+    },
   ],
-  limit: 20,
-  returned_count: 4,
+  page: 1,
+  page_size: 20,
+  total: 4,
+  total_pages: 1,
+}
+
+const nearestFeed: OpportunityFeedResponse = {
+  ...sortingFeed,
+  items: [
+    sortingFeed.items[1],
+    sortingFeed.items[3],
+    sortingFeed.items[0],
+    sortingFeed.items[2],
+  ],
+}
+
+const newestFeed: OpportunityFeedResponse = {
+  ...sortingFeed,
+  items: [
+    sortingFeed.items[2],
+    sortingFeed.items[0],
+    sortingFeed.items[1],
+    sortingFeed.items[3],
+  ],
+}
+
+const firstPageFeed: OpportunityFeedResponse = {
+  ...opportunityFeed,
+  total: 21,
+  total_pages: 2,
+}
+
+const secondPageFeed: OpportunityFeedResponse = {
+  ...opportunityFeed,
+  items: [
+    {
+      ...opportunityFeed.items[0],
+      id: 42,
+      application_number: 'PAGE-42',
+    },
+  ],
+  page: 2,
+  total: 21,
+  total_pages: 2,
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -314,7 +360,9 @@ describe('OpportunitiesPage', () => {
     expect(opportunityUrl.searchParams.get('radius_km')).toBe('50')
     expect(opportunityUrl.searchParams.get('recent_days')).toBe('60')
     expect(opportunityUrl.searchParams.get('category')).toBe('industrial')
-    expect(opportunityUrl.searchParams.get('limit')).toBe('20')
+    expect(opportunityUrl.searchParams.get('page')).toBe('1')
+    expect(opportunityUrl.searchParams.get('page_size')).toBe('20')
+    expect(opportunityUrl.searchParams.get('sort')).toBe('best')
     expect(
       screen.getByRole('heading', {
         level: 3,
@@ -437,7 +485,9 @@ describe('OpportunitiesPage', () => {
     expect(opportunityUrl.searchParams.get('radius_km')).toBe('50')
     expect(opportunityUrl.searchParams.get('recent_days')).toBe('60')
     expect(opportunityUrl.searchParams.get('category')).toBe('commercial')
-    expect(opportunityUrl.searchParams.get('limit')).toBe('20')
+    expect(opportunityUrl.searchParams.get('page')).toBe('1')
+    expect(opportunityUrl.searchParams.get('page_size')).toBe('20')
+    expect(opportunityUrl.searchParams.get('sort')).toBe('best')
   })
 
   it('omits category when All categories is selected', async () => {
@@ -521,10 +571,12 @@ describe('OpportunitiesPage', () => {
     expect(viewOpportunityLink).not.toHaveAttribute('target')
   })
 
-  it('sorts returned results locally without repeating location or network requests', async () => {
+  it('requests globally sorted results without repeating geocoding or geolocation', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(traleeLocation))
       .mockResolvedValueOnce(jsonResponse(sortingFeed))
+      .mockResolvedValueOnce(jsonResponse(nearestFeed))
+      .mockResolvedValueOnce(jsonResponse(newestFeed))
     render(<OpportunitiesPage />)
 
     await submitSearch()
@@ -540,23 +592,173 @@ describe('OpportunitiesPage', () => {
 
     const user = userEvent.setup()
     await user.selectOptions(sortControl, 'nearest')
-    expect(resultOpportunityPaths()).toEqual([
-      '/opportunities/22',
-      '/opportunities/23',
-      '/opportunities/20',
-      '/opportunities/21',
-    ])
+    await waitFor(() =>
+      expect(resultOpportunityPaths()).toEqual([
+        '/opportunities/22',
+        '/opportunities/23',
+        '/opportunities/20',
+        '/opportunities/21',
+      ]),
+    )
 
-    await user.selectOptions(sortControl, 'newest')
-    expect(resultOpportunityPaths()).toEqual([
-      '/opportunities/21',
-      '/opportunities/20',
-      '/opportunities/22',
-      '/opportunities/23',
-    ])
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort by' }),
+      'newest',
+    )
+    await waitFor(() =>
+      expect(resultOpportunityPaths()).toEqual([
+        '/opportunities/21',
+        '/opportunities/20',
+        '/opportunities/22',
+        '/opportunities/23',
+      ]),
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(4)
     expect(getCurrentPositionMock).not.toHaveBeenCalled()
-    expect(sortingFeed.items.map(({ id }) => id)).toEqual([23, 21, 20, 22])
+
+    const requestUrls = fetchMock.mock.calls.map(([request]) =>
+      new URL(request as string, 'http://localhost'),
+    )
+    expect(
+      requestUrls.filter(
+        ({ pathname }) => pathname === '/api/v1/locations/geocode',
+      ),
+    ).toHaveLength(1)
+    expect(requestUrls.slice(1).map((url) => url.searchParams.get('sort'))).toEqual(
+      ['best', 'nearest', 'newest'],
+    )
+    expect(requestUrls.slice(1).map((url) => url.searchParams.get('page'))).toEqual(
+      ['1', '1', '1'],
+    )
+  })
+
+  it('renders pagination boundaries and requests Previous and Next pages', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+      .mockResolvedValueOnce(jsonResponse(secondPageFeed))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+    render(<OpportunitiesPage />)
+
+    await submitSearch()
+
+    const user = userEvent.setup()
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Previous' }))
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(getCurrentPositionMock).not.toHaveBeenCalled()
+
+    const opportunityRequests = fetchMock.mock.calls
+      .map(([request]) => new URL(request as string, 'http://localhost'))
+      .filter(({ pathname }) => pathname === '/api/v1/opportunities')
+    expect(
+      opportunityRequests.map((url) => url.searchParams.get('page')),
+    ).toEqual(['1', '2', '1'])
+    expect(
+      opportunityRequests.map((url) => url.searchParams.get('page_size')),
+    ).toEqual(['20', '20', '20'])
+  })
+
+  it('reuses stored browser coordinates for page and sort requests', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+      .mockResolvedValueOnce(jsonResponse(secondPageFeed))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+    render(<OpportunitiesPage />)
+
+    await useCurrentLocation()
+    await act(async () => {
+      const onSuccess = getCurrentPositionMock.mock.calls[0][0]
+      onSuccess({
+        coords: { latitude: 53.3498, longitude: -6.2603 },
+      } as GeolocationPosition)
+    })
+    await submitCurrentLocationSearch()
+
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Next' }))
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort by' }),
+      'nearest',
+    )
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
+
+    expect(getCurrentPositionMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const opportunityRequests = fetchMock.mock.calls.map(
+      ([request]) => new URL(request as string, 'http://localhost'),
+    )
+    expect(
+      opportunityRequests.every(
+        ({ pathname }) => pathname === '/api/v1/opportunities',
+      ),
+    ).toBe(true)
+    expect(
+      opportunityRequests.map((url) => [
+        url.searchParams.get('page'),
+        url.searchParams.get('sort'),
+      ]),
+    ).toEqual([
+      ['1', 'best'],
+      ['2', 'best'],
+      ['1', 'nearest'],
+    ])
+  })
+
+  it('resets page one for sort and new-search changes', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+      .mockResolvedValueOnce(jsonResponse(secondPageFeed))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(firstPageFeed))
+    render(<OpportunitiesPage />)
+
+    await submitSearch()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Next' }))
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Sort by' }),
+      'nearest',
+    )
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Radius' }), '50')
+    await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
+    expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
+
+    const requestUrls = fetchMock.mock.calls.map(([request]) =>
+      new URL(request as string, 'http://localhost'),
+    )
+    const geocodingRequests = requestUrls.filter(
+      ({ pathname }) => pathname === '/api/v1/locations/geocode',
+    )
+    const opportunityRequests = requestUrls.filter(
+      ({ pathname }) => pathname === '/api/v1/opportunities',
+    )
+    expect(geocodingRequests).toHaveLength(2)
+    expect(opportunityRequests.map((url) => url.searchParams.get('page'))).toEqual([
+      '1',
+      '2',
+      '1',
+      '1',
+    ])
+    expect(opportunityRequests[2].searchParams.get('sort')).toBe('nearest')
+    expect(opportunityRequests[3].searchParams.get('radius_km')).toBe('50')
+    expect(getCurrentPositionMock).not.toHaveBeenCalled()
   })
 
   it('announces an empty result and retains the resolved display location', async () => {

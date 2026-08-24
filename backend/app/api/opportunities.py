@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from typing import Annotated, cast as type_cast
+from typing import Annotated, Literal, cast as type_cast
 
 from fastapi import APIRouter, Depends, Query
 from geoalchemy2 import Geography
@@ -15,10 +15,6 @@ from ..services.opportunity_scorer import score_planning_application_opportunity
 from ..services.planning_classifier import PlanningApplicationCategory
 
 
-# Five times the maximum response size gives V1 ranking headroom while bounding
-# database transfer, description memory, and per-request Python scoring work.
-OPPORTUNITY_CANDIDATE_POOL_LIMIT = 500
-
 # Exact upstream terminal statuses observed in planning data. Deliberately avoid
 # fuzzy "closed" matching because decided/finalised applications can be useful.
 EXCLUDED_OPPORTUNITY_APPLICATION_STATUSES = (
@@ -32,6 +28,8 @@ router = APIRouter(
     prefix="/api/v1/opportunities",
     tags=["opportunities"],
 )
+
+OpportunitySort = Literal["best", "nearest", "newest"]
 
 
 @dataclass(frozen=True)
@@ -56,14 +54,14 @@ def _current_utc_date() -> date:
     return datetime.now(timezone.utc).date()
 
 
-def _candidate_statement(
+def _candidate_filters(
     *,
     latitude: float,
     longitude: float,
     radius_km: float,
     received_cutoff: date,
     category: PlanningApplicationCategory | None,
-) -> Select:
+):
     search_point = cast(
         func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326),
         Geography(geometry_type="POINT", srid=4326),
@@ -90,30 +88,81 @@ def _candidate_statement(
     if category is not None:
         filters.append(PlanningApplication.category == category)
 
-    return (
-        select(
-            PlanningApplication.id,
-            PlanningApplication.application_number,
-            PlanningApplication.planning_authority,
-            PlanningApplication.description,
-            PlanningApplication.address,
-            PlanningApplication.application_type,
-            PlanningApplication.application_status,
-            PlanningApplication.decision,
-            PlanningApplication.received_date,
-            PlanningApplication.application_url,
-            PlanningApplication.category,
-            PlanningApplication.number_residential_units,
-            PlanningApplication.floor_area,
-            distance_km,
-        )
-        .where(*filters)
-        .order_by(
+    return filters, distance_km
+
+
+def _candidate_statement(
+    *,
+    latitude: float,
+    longitude: float,
+    radius_km: float,
+    received_cutoff: date,
+    category: PlanningApplicationCategory | None,
+    sort: OpportunitySort,
+    page: int,
+    page_size: int,
+) -> Select:
+    filters, distance_km = _candidate_filters(
+        latitude=latitude,
+        longitude=longitude,
+        radius_km=radius_km,
+        received_cutoff=received_cutoff,
+        category=category,
+    )
+
+    statement = select(
+        PlanningApplication.id,
+        PlanningApplication.application_number,
+        PlanningApplication.planning_authority,
+        PlanningApplication.description,
+        PlanningApplication.address,
+        PlanningApplication.application_type,
+        PlanningApplication.application_status,
+        PlanningApplication.decision,
+        PlanningApplication.received_date,
+        PlanningApplication.application_url,
+        PlanningApplication.category,
+        PlanningApplication.number_residential_units,
+        PlanningApplication.floor_area,
+        distance_km,
+    ).where(*filters)
+
+    if sort == "nearest":
+        statement = statement.order_by(
+            distance_km.asc(),
             PlanningApplication.received_date.desc(),
             PlanningApplication.id.desc(),
         )
-        .limit(OPPORTUNITY_CANDIDATE_POOL_LIMIT)
+    elif sort == "newest":
+        statement = statement.order_by(
+            PlanningApplication.received_date.desc(),
+            PlanningApplication.id.desc(),
+        )
+    else:
+        # Best-opportunity order depends on the shared Python scorer, so every
+        # filtered candidate must be scored before the requested page is sliced.
+        return statement
+
+    return statement.offset((page - 1) * page_size).limit(page_size)
+
+
+def _candidate_count_statement(
+    *,
+    latitude: float,
+    longitude: float,
+    radius_km: float,
+    received_cutoff: date,
+    category: PlanningApplicationCategory | None,
+) -> Select:
+    filters, _ = _candidate_filters(
+        latitude=latitude,
+        longitude=longitude,
+        radius_km=radius_km,
+        received_cutoff=received_cutoff,
+        category=category,
     )
+
+    return select(func.count()).select_from(PlanningApplication).where(*filters)
 
 
 def _load_candidates(
@@ -179,7 +228,14 @@ def _score_candidates(
             )
         )
 
-    scored_candidates.sort(
+    return scored_candidates
+
+
+def _rank_best_candidates(
+    candidates: list[OpportunityResponse],
+) -> list[OpportunityResponse]:
+    return sorted(
+        candidates,
         key=lambda opportunity: (
             -opportunity.opportunity_score,
             -(
@@ -188,9 +244,8 @@ def _score_candidates(
                 else date.min.toordinal()
             ),
             -opportunity.id,
-        )
+        ),
     )
-    return scored_candidates
 
 
 @router.get("", response_model=OpportunityFeedResponse)
@@ -200,10 +255,12 @@ def list_opportunities(
     longitude: Annotated[float, Query(ge=-180, le=180)],
     radius_km: Annotated[float, Query(gt=0, le=50)] = 25,
     recent_days: Annotated[int, Query(ge=1, le=365)] = 30,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    sort: OpportunitySort = "best",
     category: PlanningApplicationCategory | None = None,
 ) -> OpportunityFeedResponse:
-    """Rank the newest bounded candidate pool, not every spatial match."""
+    """Return one globally sorted page of matching opportunities."""
     current_date = _current_utc_date()
     received_cutoff = current_date - timedelta(days=recent_days)
     statement = _candidate_statement(
@@ -212,15 +269,36 @@ def list_opportunities(
         radius_km=radius_km,
         received_cutoff=received_cutoff,
         category=category,
+        sort=sort,
+        page=page,
+        page_size=page_size,
     )
     candidates = _load_candidates(session, statement)
-    ranked_candidates = _score_candidates(
+    scored_candidates = _score_candidates(
         candidates,
         current_date=current_date,
     )
-    items = ranked_candidates[:limit]
+
+    if sort == "best":
+        ranked_candidates = _rank_best_candidates(scored_candidates)
+        total = len(ranked_candidates)
+        page_start = (page - 1) * page_size
+        items = ranked_candidates[page_start : page_start + page_size]
+    else:
+        count_statement = _candidate_count_statement(
+            latitude=latitude,
+            longitude=longitude,
+            radius_km=radius_km,
+            received_cutoff=received_cutoff,
+            category=category,
+        )
+        total = session.scalar(count_statement) or 0
+        items = scored_candidates
+
     return OpportunityFeedResponse(
         items=items,
-        limit=limit,
-        returned_count=len(items),
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_pages=(total + page_size - 1) // page_size,
     )
