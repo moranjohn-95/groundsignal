@@ -1,36 +1,19 @@
+import type { MouseEvent } from 'react'
+
 import type { Opportunity } from '../../api/opportunities'
+import {
+  formatOpportunityDate,
+  formatOpportunityDistance,
+  formatOpportunityLabel,
+  normalizeOpportunityDescription,
+} from './opportunityPresentation'
 
 interface OpportunityCardProps {
   opportunity: Opportunity
+  onViewOpportunity?: (opportunity: Opportunity) => void
 }
 
 const MAX_HEADING_LENGTH = 96
-const KERRY_PLANNING_AUTHORITY = 'Kerry County Council'
-const KERRY_EPLANNING_APPLICATION_BASE_URL =
-  'https://www.eplanning.ie/KerryCC/AppFileRefDetails'
-
-function formatLabel(value: string) {
-  const label = value.replaceAll('_', ' ')
-  return label.charAt(0).toUpperCase() + label.slice(1)
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-IE', {
-    dateStyle: 'long',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T00:00:00Z`))
-}
-
-function formatDistance(distanceKm: number) {
-  return `${new Intl.NumberFormat('en-IE', {
-    maximumFractionDigits: 1,
-  }).format(distanceKm)} km`
-}
-
-function normalizeDescription(description: string | null) {
-  const normalizedDescription = description?.replaceAll(/\s+/g, ' ').trim()
-  return normalizedDescription === '' ? null : (normalizedDescription ?? null)
-}
 
 function displayHeading(description: string | null, applicationNumber: string) {
   if (description === null) {
@@ -51,25 +34,33 @@ function displayHeading(description: string | null, applicationNumber: string) {
   return `${description.slice(0, endIndex).trimEnd()}…`
 }
 
-function officialApplicationUrl(opportunity: Opportunity) {
-  if (
-    opportunity.planning_authority === KERRY_PLANNING_AUTHORITY &&
-    opportunity.application_number.trim() !== ''
-  ) {
-    const reference = encodeURIComponent(opportunity.application_number)
-    return `${KERRY_EPLANNING_APPLICATION_BASE_URL}/${reference}/0`
-  }
-
-  return opportunity.application_url
-}
-
-function OpportunityCard({ opportunity }: OpportunityCardProps) {
+function OpportunityCard({
+  opportunity,
+  onViewOpportunity,
+}: OpportunityCardProps) {
   const headingId = `opportunity-${opportunity.id}-heading`
-  const description = normalizeDescription(opportunity.description)
+  const description = normalizeOpportunityDescription(opportunity.description)
   const heading = displayHeading(description, opportunity.application_number)
-  const opportunityLevel = formatLabel(opportunity.opportunity_level)
+  const opportunityLevel = formatOpportunityLabel(
+    opportunity.opportunity_level,
+  )
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
-  const applicationUrl = officialApplicationUrl(opportunity)
+
+  function handleViewOpportunity(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      onViewOpportunity === undefined ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return
+    }
+
+    event.preventDefault()
+    onViewOpportunity(opportunity)
+  }
 
   return (
     <article
@@ -92,11 +83,11 @@ function OpportunityCard({ opportunity }: OpportunityCardProps) {
         <ul className="opportunity-summary" aria-label="Opportunity summary">
           <li>
             <span>Category</span>
-            <strong>{formatLabel(opportunity.category)}</strong>
+            <strong>{formatOpportunityLabel(opportunity.category)}</strong>
           </li>
           <li>
             <span>Distance</span>
-            <strong>{formatDistance(opportunity.distance_km)}</strong>
+            <strong>{formatOpportunityDistance(opportunity.distance_km)}</strong>
           </li>
           <li>
             <span>Received</span>
@@ -105,7 +96,7 @@ function OpportunityCard({ opportunity }: OpportunityCardProps) {
                 'Not provided'
               ) : (
                 <time dateTime={opportunity.received_date}>
-                  {formatDate(opportunity.received_date)}
+                  {formatOpportunityDate(opportunity.received_date)}
                 </time>
               )}
             </strong>
@@ -169,18 +160,15 @@ function OpportunityCard({ opportunity }: OpportunityCardProps) {
         </details>
       </div>
 
-      {applicationUrl !== null && (
-        <footer className="opportunity-card__footer">
-          <a
-            className="opportunity-card__action"
-            href={applicationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View official application
-          </a>
-        </footer>
-      )}
+      <footer className="opportunity-card__footer">
+        <a
+          className="opportunity-card__action"
+          href={`/opportunities/${opportunity.id}`}
+          onClick={handleViewOpportunity}
+        >
+          View opportunity
+        </a>
+      </footer>
     </article>
   )
 }

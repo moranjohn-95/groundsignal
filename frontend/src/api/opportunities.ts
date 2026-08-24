@@ -50,6 +50,10 @@ export interface OpportunityFeedResponse {
   returned_count: number
 }
 
+export type OpportunityDetail = Omit<Opportunity, 'distance_km'> & {
+  distance_km?: number
+}
+
 export interface OpportunityQuery {
   latitude: number
   longitude: number
@@ -57,6 +61,31 @@ export interface OpportunityQuery {
   recentDays: number
   category?: PlanningApplicationCategory
   limit: number
+}
+
+export class OpportunityNotFoundError extends Error {
+  constructor() {
+    super('Opportunity not found.')
+    this.name = 'OpportunityNotFoundError'
+  }
+}
+
+export async function fetchOpportunity(
+  opportunityId: number,
+): Promise<OpportunityDetail> {
+  const response = await fetch(
+    `/api/v1/planning-applications/${opportunityId}`,
+  )
+
+  if (response.status === 404) {
+    throw new OpportunityNotFoundError()
+  }
+
+  if (!response.ok) {
+    throw new Error(`Opportunity request failed with status ${response.status}.`)
+  }
+
+  return (await response.json()) as OpportunityDetail
 }
 
 export async function fetchOpportunities(

@@ -7,6 +7,7 @@ import {
 } from '../../api/locations'
 import {
   fetchOpportunities,
+  type Opportunity,
   type OpportunityFeedResponse,
 } from '../../api/opportunities'
 import OpportunityFilters from './OpportunityFilters'
@@ -35,7 +36,11 @@ interface BrowserCoordinates {
   longitude: number
 }
 
-function OpportunitiesPage() {
+interface OpportunitiesPageProps {
+  onViewOpportunity?: (opportunity: Opportunity) => void
+}
+
+function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
   const resultsHeadingId = 'top-opportunities-heading'
   const [currentCoordinates, setCurrentCoordinates] =
     useState<BrowserCoordinates | null>(null)
@@ -231,6 +236,7 @@ function OpportunitiesPage() {
               <OpportunityList
                 opportunities={searchState.response.items}
                 labelledBy={resultsHeadingId}
+                onViewOpportunity={onViewOpportunity}
               />
             </>
           )}

@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { Opportunity } from '../../api/opportunities'
 import OpportunityCard from './OpportunityCard'
@@ -34,7 +34,13 @@ const opportunity: Opportunity = {
 
 describe('OpportunityCard', () => {
   it('renders a compact heading, human metadata, and accessible disclosures', async () => {
-    render(<OpportunityCard opportunity={opportunity} />)
+    const onViewOpportunity = vi.fn()
+    render(
+      <OpportunityCard
+        opportunity={opportunity}
+        onViewOpportunity={onViewOpportunity}
+      />,
+    )
     const user = userEvent.setup()
 
     const card = screen.getByRole('article')
@@ -60,18 +66,16 @@ describe('OpportunityCard', () => {
     await user.click(breakdownSummary)
     expect(breakdownDetails).toHaveAttribute('open')
     expect(within(card).getByText('Electrical relevance')).toBeInTheDocument()
-    const officialApplicationLink = within(card).getByRole('link', {
-      name: 'View official application',
+    const viewOpportunityLink = within(card).getByRole('link', {
+      name: 'View opportunity',
     })
-    expect(officialApplicationLink).toHaveAttribute(
-      'href',
-      'https://www.eplanning.ie/KerryCC/AppFileRefDetails/0012345/0',
-    )
-    expect(officialApplicationLink).toHaveAttribute('target', '_blank')
-    expect(officialApplicationLink).toHaveAttribute(
-      'rel',
-      'noopener noreferrer',
-    )
+    expect(viewOpportunityLink).toHaveAttribute('href', '/opportunities/20')
+    expect(viewOpportunityLink).not.toHaveAttribute('target')
+    expect(viewOpportunityLink).not.toHaveAttribute('rel')
+
+    await user.click(viewOpportunityLink)
+    expect(onViewOpportunity).toHaveBeenCalledOnce()
+    expect(onViewOpportunity).toHaveBeenCalledWith(opportunity)
   })
 
   it('uses the application reference when no description is available', () => {
@@ -93,28 +97,7 @@ describe('OpportunityCard', () => {
       within(card).queryByText('Planning description'),
     ).not.toBeInTheDocument()
     expect(
-      within(card).queryByRole('link', { name: 'View official application' }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('preserves the source application URL for unsupported authorities', () => {
-    const sourceApplicationUrl =
-      'https://planning.example.test/applications/reference/0012345'
-    render(
-      <OpportunityCard
-        opportunity={{
-          ...opportunity,
-          planning_authority: 'Dublin City Council',
-          application_url: sourceApplicationUrl,
-        }}
-      />,
-    )
-
-    const fallbackLink = screen.getByRole('link', {
-      name: 'View official application',
-    })
-    expect(fallbackLink).toHaveAttribute('href', sourceApplicationUrl)
-    expect(fallbackLink).toHaveAttribute('target', '_blank')
-    expect(fallbackLink).toHaveAttribute('rel', 'noopener noreferrer')
+      within(card).getByRole('link', { name: 'View opportunity' }),
+    ).toHaveAttribute('href', '/opportunities/20')
   })
 })
