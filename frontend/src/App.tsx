@@ -4,15 +4,21 @@ function App() {
   return (
     <>
       <header className="site-header">
-        <h1>GroundSignal</h1>
+        <div className="app-container site-header__inner">
+          <h1 className="site-brand">GroundSignal</h1>
+        </div>
       </header>
 
       <main className="site-main">
-        <OpportunitiesPage />
+        <div className="app-container">
+          <OpportunitiesPage />
+        </div>
       </main>
 
       <footer className="site-footer">
-        <p>GroundSignal planning intelligence.</p>
+        <div className="app-container site-footer__inner">
+          <p>GroundSignal planning intelligence.</p>
+        </div>
       </footer>
     </>
   )

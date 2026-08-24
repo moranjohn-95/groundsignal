@@ -141,12 +141,17 @@ function OpportunitiesPage() {
 
   return (
     <>
-      <section aria-labelledby="opportunities-heading">
-        <h2 id="opportunities-heading">Opportunities near you</h2>
-        <p>
-          GroundSignal ranks recent planning applications by their potential
-          relevance to electrical contractors.
-        </p>
+      <section
+        className="opportunities-search"
+        aria-labelledby="opportunities-heading"
+      >
+        <div className="opportunities-intro">
+          <h2 id="opportunities-heading">Opportunities near you</h2>
+          <p>
+            GroundSignal ranks recent planning applications by their potential
+            relevance to electrical contractors.
+          </p>
+        </div>
 
         <OpportunityFilters
           isCurrentLocationSelected={currentCoordinates !== null}
