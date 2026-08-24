@@ -418,9 +418,9 @@ describe('OpportunitiesPage', () => {
     })
 
     expect(within(opportunity).getByText('96')).toBeInTheDocument()
-    expect(within(opportunity).getByText('Very high')).toBeInTheDocument()
+    expect(within(opportunity).getByText('Very high opportunity')).toBeInTheDocument()
     expect(within(opportunity).getByText('Industrial')).toBeInTheDocument()
-    expect(within(opportunity).getByText('4.25 km')).toBeInTheDocument()
+    expect(within(opportunity).getByText('4.3 km')).toBeInTheDocument()
     expect(
       within(opportunity).getByText('Kerry County Council'),
     ).toBeInTheDocument()
