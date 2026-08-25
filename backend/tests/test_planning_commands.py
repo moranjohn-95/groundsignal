@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from io import StringIO
 from unittest.mock import Mock
 
@@ -76,6 +76,40 @@ def test_import_command_passes_custom_page_size_and_max_pages() -> None:
         max_pages=4,
     )
     session.close.assert_called_once_with()
+
+
+def test_import_command_passes_since_date() -> None:
+    session = Mock(spec=Session)
+    ingestion_service = Mock(return_value=IMPORT_RESULT)
+
+    exit_code = planning_import.main(
+        ["--since", "2026-01-01"],
+        session_factory=Mock(return_value=session),
+        ingestion_service=ingestion_service,
+        stdout=StringIO(),
+        stderr=StringIO(),
+    )
+
+    assert exit_code == 0
+    ingestion_service.assert_called_once_with(
+        session,
+        page_size=500,
+        max_pages=None,
+        since=date(2026, 1, 1),
+    )
+    session.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("value", ["2026-1-01", "2026-02-30", "not-a-date"])
+def test_import_command_rejects_invalid_since_dates(
+    value: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        planning_import.build_parser().parse_args(["--since", value])
+
+    assert exc_info.value.code == 2
+    assert "YYYY-MM-DD format" in capsys.readouterr().err
 
 
 def test_import_runner_closes_session_and_preserves_failure() -> None:

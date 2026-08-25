@@ -1,5 +1,7 @@
 import argparse
 from collections.abc import Callable, Sequence
+from datetime import date
+import re
 import sys
 from typing import TextIO
 
@@ -15,11 +17,31 @@ SessionFactory = Callable[[], Session]
 ImportService = Callable[..., ImportResult]
 
 
+def _since_argument(value: str) -> date:
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        raise argparse.ArgumentTypeError(
+            "since must be a date in YYYY-MM-DD format"
+        )
+
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "since must be a valid date in YYYY-MM-DD format"
+        ) from exc
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Import all national planning applications into GroundSignal."
+        description="Import national planning applications into GroundSignal."
     )
     add_paging_arguments(parser)
+    parser.add_argument(
+        "--since",
+        type=_since_argument,
+        default=None,
+        help="only import applications received on or after YYYY-MM-DD",
+    )
     return parser
 
 
@@ -27,6 +49,7 @@ def run_import(
     *,
     page_size: int,
     max_pages: int | None,
+    since: date | None = None,
     session_factory: SessionFactory | None = None,
     ingestion_service: ImportService | None = None,
     output: TextIO | None = None,
@@ -40,11 +63,13 @@ def run_import(
     )
     session = session_factory()
     try:
-        result = ingestion_service(
-            session,
-            page_size=page_size,
-            max_pages=max_pages,
-        )
+        import_options = {
+            "page_size": page_size,
+            "max_pages": max_pages,
+        }
+        if since is not None:
+            import_options["since"] = since
+        result = ingestion_service(session, **import_options)
     finally:
         session.close()
 
@@ -75,6 +100,7 @@ def main(
         run_import(
             page_size=args.page_size,
             max_pages=args.max_pages,
+            since=args.since,
             session_factory=session_factory,
             ingestion_service=ingestion_service,
             output=stdout,

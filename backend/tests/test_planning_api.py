@@ -9,6 +9,7 @@ from backend.app.services.planning_api import (
     PlanningAPIResponseError,
     fetch_planning_applications,
     iter_planning_application_pages,
+    iter_planning_application_pages_received_since,
     iter_planning_application_pages_since,
 )
 
@@ -374,5 +375,39 @@ def test_since_pagination_preserves_page_size_validation() -> None:
     with patch("backend.app.services.planning_api.httpx.get") as mock_get:
         with pytest.raises(ValueError, match="between 1 and 2000"):
             list(iter_planning_application_pages_since(since, page_size=0))
+
+    mock_get.assert_not_called()
+
+
+@patch("backend.app.services.planning_api.httpx.get")
+def test_received_since_query_uses_server_side_date_filter_and_ordering(
+    mock_get: Mock,
+) -> None:
+    short_page = [{"id": 1}]
+    mock_get.return_value = _response_with_features(short_page)
+
+    pages = list(
+        iter_planning_application_pages_received_since(
+            date(2026, 1, 1),
+            page_size=2,
+        )
+    )
+
+    assert pages == [short_page]
+    params = mock_get.call_args.kwargs["params"]
+    assert params["where"] == "ReceivedDate >= DATE '2026-01-01'"
+    assert params["orderByFields"] == "ReceivedDate ASC, OBJECTID ASC"
+    assert params["resultOffset"] == 0
+    assert params["resultRecordCount"] == 2
+
+
+@pytest.mark.parametrize(
+    "since",
+    [None, "2026-01-01", datetime(2026, 1, 1), 1767225600],
+)
+def test_received_since_rejects_non_date_values(since: object) -> None:
+    with patch("backend.app.services.planning_api.httpx.get") as mock_get:
+        with pytest.raises(ValueError, match="since must be a date"):
+            list(iter_planning_application_pages_received_since(since))
 
     mock_get.assert_not_called()

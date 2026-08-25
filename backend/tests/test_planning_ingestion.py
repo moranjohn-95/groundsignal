@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from unittest.mock import Mock
 
 import pytest
@@ -502,6 +502,35 @@ def test_invalid_max_pages_is_rejected(
         )
 
     page_iterator.assert_not_called()
+    session.commit.assert_not_called()
+    session.rollback.assert_not_called()
+
+
+def test_initial_import_since_uses_received_date_page_iterator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    since = date(2026, 1, 1)
+    filtered_iterator = Mock(return_value=iter([]))
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages_received_since",
+        filtered_iterator,
+    )
+    session = Mock(spec=Session)
+
+    result = planning_ingestion.ingest_all_planning_applications(
+        session,
+        page_size=200,
+        since=since,
+    )
+
+    assert result == {
+        "pages_processed": 0,
+        "fetched": 0,
+        "inserted": 0,
+        "updated": 0,
+    }
+    filtered_iterator.assert_called_once_with(since, 200)
     session.commit.assert_not_called()
     session.rollback.assert_not_called()
 

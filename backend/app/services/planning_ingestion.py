@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -8,6 +8,7 @@ from ..models import PlanningApplication
 from .planning_api import (
     fetch_planning_applications,
     iter_planning_application_pages,
+    iter_planning_application_pages_received_since,
     iter_planning_application_pages_since,
 )
 from .planning_transformer import transform_planning_application
@@ -126,9 +127,13 @@ def ingest_all_planning_applications(
     session: Session,
     page_size: int = 500,
     max_pages: int | None = None,
+    since: date | None = None,
 ) -> dict[str, int]:
     _validate_max_pages(max_pages)
-    pages = iter_planning_application_pages(page_size)
+    if since is None:
+        pages = iter_planning_application_pages(page_size)
+    else:
+        pages = iter_planning_application_pages_received_since(since, page_size)
     return _ingest_planning_application_pages(session, pages, max_pages)
 
 

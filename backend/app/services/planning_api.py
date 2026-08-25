@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import time
 from typing import Any
 
@@ -144,4 +144,20 @@ def iter_planning_application_pages_since(
         page_size,
         where=where,
         order_by_fields="ETL_DATE ASC, OBJECTID ASC",
+    )
+
+
+def iter_planning_application_pages_received_since(
+    since: date,
+    page_size: int = 500,
+) -> Iterator[list[Any]]:
+    if isinstance(since, datetime) or not isinstance(since, date):
+        raise ValueError("since must be a date")
+
+    where = f"ReceivedDate >= DATE '{since.isoformat()}'"
+
+    yield from _iter_planning_application_pages(
+        page_size,
+        where=where,
+        order_by_fields="ReceivedDate ASC, OBJECTID ASC",
     )
