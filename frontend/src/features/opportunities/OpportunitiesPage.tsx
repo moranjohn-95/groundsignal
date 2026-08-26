@@ -215,7 +215,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
         <div className="opportunities-intro">
           <h2 id="opportunities-heading">Opportunities near you</h2>
           <p>
-            GroundSignal ranks recent planning applications by their potential
+            SiteForecaster ranks recent planning applications by their potential
             relevance to electrical contractors.
           </p>
         </div>

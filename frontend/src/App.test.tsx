@@ -166,7 +166,7 @@ describe('App', () => {
     render(<App />)
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'GroundSignal' }),
+      screen.getByRole('heading', { level: 1, name: 'SiteForecaster' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('banner')).toBeInTheDocument()
     expect(screen.getByRole('main')).toBeInTheDocument()
