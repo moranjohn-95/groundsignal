@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from ..schemas import LocationGeocodeResponse
 from ..services.geocoding import (
@@ -9,6 +9,7 @@ from ..services.geocoding import (
     GeocodingUpstreamError,
     geocode_location,
 )
+from ..services.rate_limiting import get_client_ip, geocoding_rate_limiter
 
 
 router = APIRouter(
@@ -19,6 +20,7 @@ router = APIRouter(
 
 @router.get("/geocode", response_model=LocationGeocodeResponse)
 def geocode(
+    request: Request,
     query: Annotated[str, Query(min_length=1, max_length=200)],
 ) -> LocationGeocodeResponse:
     normalized_query = query.strip()
@@ -26,6 +28,13 @@ def geocode(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Location query must not be empty.",
+        )
+
+    if not geocoding_rate_limiter.allow(get_client_ip(request)):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many geocoding requests. Please try again later.",
+            headers={"Retry-After": "60"},
         )
 
     try:
