@@ -66,6 +66,16 @@ const opportunity: Opportunity = {
         'The application is classified as Industrial, which receives 10 points for category fit.',
     },
   ],
+  electrical_work_brief: {
+    evidence_level: 'direct',
+    summary: 'Electrical work evidenced: electrical installation work.',
+    signals: [
+      {
+        work_type: 'electrical_installation',
+        evidence: 'electrical infrastructure',
+      },
+    ],
+  },
 }
 
 describe('OpportunityCard', () => {
@@ -88,6 +98,12 @@ describe('OpportunityCard', () => {
     expect(within(card).getByText('Industrial')).toBeInTheDocument()
     expect(within(card).getByText('18.7 km')).toBeInTheDocument()
     expect(within(card).getByText('18 August 2026')).toBeInTheDocument()
+    expect(within(card).getByText('Directly evidenced')).toBeInTheDocument()
+    expect(
+      within(card).getByText(
+        'Electrical work evidenced: electrical installation work.',
+      ),
+    ).toBeInTheDocument()
     expect(within(card).getByText(longDescription)).toBeInTheDocument()
 
     const descriptionSummary = within(card).getByText('Planning description')
@@ -135,5 +151,56 @@ describe('OpportunityCard', () => {
     expect(
       within(card).getByRole('link', { name: 'View opportunity' }),
     ).toHaveAttribute('href', '/opportunities/20')
+  })
+
+  it('summarises multiple direct electrical work types without expanding the card', () => {
+    render(
+      <OpportunityCard
+        opportunity={{
+          ...opportunity,
+          electrical_work_brief: {
+            evidence_level: 'direct',
+            summary:
+              'Electrical work evidenced: EV charging infrastructure, renewable or solar electrical infrastructure, lighting work.',
+            signals: [
+              { work_type: 'ev_charging', evidence: 'ev charging' },
+              { work_type: 'renewable_generation', evidence: 'solar' },
+              { work_type: 'lighting', evidence: 'car park lighting' },
+            ],
+          },
+        }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByText(
+        'Electrical work evidenced: EV charging infrastructure, renewable or solar electrical infrastructure, lighting work.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('uses a restrained low-evidence state when the API has no electrical evidence', () => {
+    render(
+      <OpportunityCard
+        opportunity={{
+          ...opportunity,
+          electrical_work_brief: {
+            evidence_level: 'unavailable',
+            summary:
+              'Electrical work is not evidenced by the available planning data.',
+            signals: [],
+          },
+        }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Limited evidence')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Electrical work is not evidenced by the available planning data.',
+      ),
+    ).toBeInTheDocument()
   })
 })

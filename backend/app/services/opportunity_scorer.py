@@ -24,6 +24,17 @@ OpportunityScoreComponentName = Literal[
     "category_fit",
 ]
 
+ElectricalEvidenceLevel = Literal["direct", "inferred", "unavailable"]
+ElectricalWorkType = Literal[
+    "ev_charging",
+    "substation_distribution",
+    "battery_storage",
+    "renewable_generation",
+    "lighting",
+    "electrical_installation",
+    "electrical_plant_equipment",
+]
+
 SCORE_COMPONENT_MAXIMUMS: dict[OpportunityScoreComponentName, int] = {
     "project_scope": 30,
     "electrical_relevance": 30,
@@ -72,12 +83,36 @@ class OpportunityScoreComponent:
 
 
 @dataclass(frozen=True)
+class ElectricalWorkSignal:
+    work_type: ElectricalWorkType
+    evidence: str
+
+
+@dataclass(frozen=True)
+class ElectricalWorkBrief:
+    evidence_level: ElectricalEvidenceLevel
+    summary: str
+    signals: tuple[ElectricalWorkSignal, ...]
+
+
+@dataclass(frozen=True)
+class _ElectricalAssessment:
+    evidence_level: ElectricalEvidenceLevel
+    signals: tuple[ElectricalWorkSignal, ...]
+    score: int
+    reason: str | None
+    explanation: str
+    brief_summary: str
+
+
+@dataclass(frozen=True)
 class OpportunityScoreResult:
     opportunity_score: int
     opportunity_level: OpportunityLevel
     score_breakdown: OpportunityScoreBreakdown
     score_components: tuple[OpportunityScoreComponent, ...]
     reasons: tuple[str, ...]
+    electrical_work_brief: ElectricalWorkBrief
 
 
 _ANCILLARY_SCOPE_MARKERS = (
@@ -172,8 +207,10 @@ _EV_CHARGING_PHRASES = (
     "ev charging",
     "electric vehicle charging",
     "vehicle charging infrastructure",
-    "charging points",
-    "charging stations",
+    "ev charge points",
+    "electric vehicle charge points",
+    "ev charging infrastructure",
+    "electric vehicle charging infrastructure",
 )
 
 _BATTERY_ENERGY_PHRASES = (
@@ -186,8 +223,9 @@ _SUBSTATION_PHRASES = (
     "electrical substation",
     "electricity substation",
     "esb substation",
-    "substation",
-    "substations",
+    "transformer substation",
+    "substation infrastructure",
+    "substation and switch room",
 )
 
 _EXPLICIT_ELECTRICAL_PHRASES = (
@@ -200,8 +238,11 @@ _EXPLICIT_ELECTRICAL_PHRASES = (
 )
 
 _RENEWABLE_INSTALLATION_PHRASES = (
-    "solar",
-    "photovoltaic",
+    "solar pv",
+    "solar photovoltaic",
+    "solar panels",
+    "photovoltaic panels",
+    "solar farm",
     "wind turbine",
     "wind turbines",
     "wind farm",
@@ -219,11 +260,14 @@ _SIGNIFICANT_LIGHTING_PHRASES = (
 )
 
 _PLANT_OR_EQUIPMENT_PHRASES = (
-    "plant",
-    "equipment",
+    "electrical plant",
     "switch room",
     "switchroom",
+    "switchgear",
+    "transformer",
 )
+
+_EXPLICIT_ELECTRICAL_EQUIPMENT_PHRASES = ("electrical equipment",)
 
 
 def _current_utc_date() -> date:
@@ -246,10 +290,158 @@ def _contains_any_phrase(text: str, phrases: tuple[str, ...]) -> bool:
     return any(_contains_phrase(text, phrase) for phrase in phrases)
 
 
-def _first_matching_phrase(text: str, phrases: tuple[str, ...]) -> str | None:
+def _is_incidental_or_negated_electrical_reference(text: str, start: int) -> bool:
+    preceding_words = text[:start].split()[-5:]
+    return any(
+        word
+        in {
+            "no", "not", "without", "exclude", "excluding", "existing",
+            "retention", "retained", "remove", "removed", "removal",
+            "demolish", "demolition", "decommission", "decommissioned",
+        }
+        for word in preceding_words
+    )
+
+
+def _first_supported_electrical_phrase(
+    text: str,
+    phrases: tuple[str, ...],
+) -> str | None:
+    for phrase in phrases:
+        for match in re.finditer(rf"(?<!\w){re.escape(phrase)}(?!\w)", text):
+            if not _is_incidental_or_negated_electrical_reference(text, match.start()):
+                return phrase
+    return None
+
+
+def _direct_electrical_signals(
+    text: str,
+    *,
+    category: PlanningApplicationCategory,
+    project_scope: int,
+) -> tuple[ElectricalWorkSignal, ...]:
+    signals: list[ElectricalWorkSignal] = []
+
+    for work_type, phrases in (
+        ("ev_charging", _EV_CHARGING_PHRASES),
+        ("battery_storage", _BATTERY_ENERGY_PHRASES),
+        ("substation_distribution", _SUBSTATION_PHRASES),
+        ("electrical_installation", _EXPLICIT_ELECTRICAL_PHRASES),
+        ("electrical_plant_equipment", _EXPLICIT_ELECTRICAL_EQUIPMENT_PHRASES),
+        ("renewable_generation", _RENEWABLE_INSTALLATION_PHRASES),
+        ("lighting", _SIGNIFICANT_LIGHTING_PHRASES),
+    ):
+        matched_phrase = _first_supported_electrical_phrase(text, phrases)
+        if matched_phrase is not None:
+            signals.append(ElectricalWorkSignal(work_type, matched_phrase))
+
+    if project_scope >= 20 and category != "residential":
+        matched_phrase = _first_supported_electrical_phrase(
+            text,
+            _PLANT_OR_EQUIPMENT_PHRASES,
+        )
+        if matched_phrase is not None:
+            signals.append(
+                ElectricalWorkSignal("electrical_plant_equipment", matched_phrase)
+            )
+
+    return tuple(signals)
+
+
+def _signal_for(
+    signals: tuple[ElectricalWorkSignal, ...],
+    work_type: ElectricalWorkType,
+) -> ElectricalWorkSignal | None:
     return next(
-        (phrase for phrase in phrases if _contains_phrase(text, phrase)),
+        (signal for signal in signals if signal.work_type == work_type),
         None,
+    )
+
+
+def _assess_electrical_relevance(
+    text: str,
+    *,
+    category: PlanningApplicationCategory,
+    project_scope: int,
+    project_scale: int,
+    has_large_residential_unit_count: bool,
+) -> _ElectricalAssessment:
+    signals = _direct_electrical_signals(
+        text,
+        category=category,
+        project_scope=project_scope,
+    )
+    if _MINOR_LIGHTING_PATTERN.search(text) and not signals:
+        return _ElectricalAssessment(
+            "unavailable", signals, 5, "Minor lighting replacement",
+            "The application includes replacement of one external light fitting.",
+            "Electrical work is not evidenced by the available planning data.",
+        )
+    for work_type, score, reason, explanation in (
+        ("ev_charging", 30, "EV charging infrastructure identified", "a strong electrical indicator."),
+        ("battery_storage", 30, "Battery energy storage identified", "a strong electrical indicator."),
+        ("substation_distribution", 30, "Electrical substation identified", "a strong electrical indicator."),
+        ("electrical_installation", 30, "Explicit electrical works identified", "a strong electrical indicator."),
+        ("renewable_generation", 25, "Renewable electrical installation identified", "indicating a renewable electrical installation."),
+        ("lighting", 20, "Significant lighting installation identified", "indicating significant lighting work."),
+        ("electrical_plant_equipment", 15, "Plant or electrical equipment identified", "in a substantial non-residential project."),
+    ):
+        if signal := _signal_for(signals, work_type):
+            return _ElectricalAssessment(
+                "direct", signals, score, reason,
+                f'The planning description includes "{signal.evidence}", {explanation}',
+                "",
+            )
+    if project_scope >= 20 and category in ("commercial", "industrial"):
+        return _ElectricalAssessment(
+            "inferred", (), 12,
+            "Electrical work implied by substantial business development",
+            "Electrical work is implied by the substantial commercial or industrial development scope.",
+            "Potential electrical package associated with a substantial "
+            f"{category} development -- review plans for confirmation.",
+        )
+    if category in ("residential", "mixed_use") and (
+        (project_scope == 30 and project_scale >= 12)
+        or (project_scope >= 10 and has_large_residential_unit_count)
+    ):
+        return _ElectricalAssessment(
+            "inferred", (), 15,
+            "Electrical work implied by large residential development",
+            "Electrical work is implied by the scale and scope of the residential development.",
+            "Potential electrical package associated with a large "
+            f"{category.replace('_', ' ')} development -- review plans for confirmation.",
+        )
+    return _ElectricalAssessment(
+        "unavailable", (), 0, None,
+        "No qualifying electrical work indicators were identified.",
+        "Electrical work is not evidenced by the available planning data.",
+    )
+
+
+def _electrical_work_brief_for_assessment(
+    assessment: _ElectricalAssessment,
+) -> ElectricalWorkBrief:
+    if assessment.evidence_level == "direct":
+        labels = {
+            "ev_charging": "EV charging infrastructure",
+            "battery_storage": "battery storage",
+            "substation_distribution": "substation or distribution infrastructure",
+            "electrical_installation": "electrical installation work",
+            "renewable_generation": "renewable or solar electrical infrastructure",
+            "lighting": "lighting work",
+            "electrical_plant_equipment": "electrical plant or equipment",
+        }
+        work_types = list(dict.fromkeys(signal.work_type for signal in assessment.signals))
+        return ElectricalWorkBrief(
+            "direct",
+            "Electrical work evidenced: "
+            + ", ".join(labels[work_type] for work_type in work_types) + ".",
+            assessment.signals,
+        )
+    return ElectricalWorkBrief(
+        assessment.evidence_level,
+        assessment.brief_summary,
+        (),
     )
 
 
@@ -498,101 +690,6 @@ def _score_project_scale(
     )
 
 
-def _score_electrical_relevance(
-    text: str,
-    category: PlanningApplicationCategory,
-    project_scope: int,
-    project_scale: int,
-    has_large_residential_unit_count: bool,
-) -> tuple[int, str | None, str]:
-    if _MINOR_LIGHTING_PATTERN.search(text):
-        return (
-            5,
-            "Minor lighting replacement",
-            "The application includes replacement of one external light fitting.",
-        )
-    if (matched_phrase := _first_matching_phrase(text, _EV_CHARGING_PHRASES)):
-        return (
-            30,
-            "EV charging infrastructure identified",
-            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
-        )
-    if (matched_phrase := _first_matching_phrase(text, _BATTERY_ENERGY_PHRASES)):
-        return (
-            30,
-            "Battery energy storage identified",
-            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
-        )
-    if (matched_phrase := _first_matching_phrase(text, _SUBSTATION_PHRASES)):
-        return (
-            30,
-            "Electrical substation identified",
-            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
-        )
-    if (
-        matched_phrase := _first_matching_phrase(text, _EXPLICIT_ELECTRICAL_PHRASES)
-    ):
-        return (
-            30,
-            "Explicit electrical works identified",
-            f'The planning description includes "{matched_phrase}", a strong electrical indicator.',
-        )
-    if (
-        matched_phrase := _first_matching_phrase(
-            text,
-            _RENEWABLE_INSTALLATION_PHRASES,
-        )
-    ):
-        return (
-            25,
-            "Renewable electrical installation identified",
-            f'The planning description includes "{matched_phrase}", indicating a renewable electrical installation.',
-        )
-    if (
-        matched_phrase := _first_matching_phrase(text, _SIGNIFICANT_LIGHTING_PHRASES)
-    ):
-        return (
-            20,
-            "Significant lighting installation identified",
-            f'The planning description includes "{matched_phrase}", indicating significant lighting work.',
-        )
-    if (
-        project_scope >= 20
-        and category != "residential"
-        and (
-            matched_phrase := _first_matching_phrase(
-                text,
-                _PLANT_OR_EQUIPMENT_PHRASES,
-            )
-        )
-    ):
-        return (
-            15,
-            "Plant or electrical equipment identified",
-            f'The planning description includes "{matched_phrase}" in a substantial non-residential project.',
-        )
-    if project_scope >= 20 and category in ("commercial", "industrial"):
-        return (
-            12,
-            "Electrical work implied by substantial business development",
-            "Electrical work is implied by the substantial commercial or industrial development scope.",
-        )
-    if category in ("residential", "mixed_use") and (
-        (project_scope == 30 and project_scale >= 12)
-        or (project_scope >= 10 and has_large_residential_unit_count)
-    ):
-        return (
-            15,
-            "Electrical work implied by large residential development",
-            "Electrical work is implied by the scale and scope of the residential development.",
-        )
-    return (
-        0,
-        None,
-        "No qualifying electrical work indicators were identified.",
-    )
-
-
 def _score_lead_timing(
     received_date: date | None,
     current_date: date,
@@ -694,16 +791,21 @@ def score_planning_application_opportunity(
     residential_units = _valid_units(number_residential_units)
     if residential_units is None:
         residential_units = _textual_units(full_text)
-    (
-        electrical_relevance,
-        electrical_reason,
-        electrical_explanation,
-    ) = _score_electrical_relevance(
+    has_large_residential_unit_count = (
+        residential_units is not None and residential_units >= 10
+    )
+    electrical_assessment = _assess_electrical_relevance(
         full_text,
-        category,
-        project_scope,
-        project_scale,
-        residential_units is not None and residential_units >= 10,
+        category=category,
+        project_scope=project_scope,
+        project_scale=project_scale,
+        has_large_residential_unit_count=has_large_residential_unit_count,
+    )
+    electrical_relevance = electrical_assessment.score
+    electrical_reason = electrical_assessment.reason
+    electrical_explanation = electrical_assessment.explanation
+    electrical_work_brief = _electrical_work_brief_for_assessment(
+        electrical_assessment,
     )
     lead_timing, timing_reason, timing_explanation = _score_lead_timing(
         received_date,
@@ -774,4 +876,5 @@ def score_planning_application_opportunity(
         score_breakdown=score_breakdown,
         score_components=score_components,
         reasons=reasons,
+        electrical_work_brief=electrical_work_brief,
     )

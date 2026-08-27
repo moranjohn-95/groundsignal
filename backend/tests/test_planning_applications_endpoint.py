@@ -15,6 +15,7 @@ from backend.app.main import app
 from backend.app.models import PlanningApplication
 from backend.app.services.opportunity_scorer import (
     SCORE_COMPONENT_MAXIMUMS,
+    ElectricalWorkBrief,
     OpportunityScoreBreakdown,
     OpportunityScoreComponent,
     OpportunityScoreResult,
@@ -449,6 +450,7 @@ def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
         "opportunity_level",
         "opportunity_breakdown",
         "opportunity_score_components",
+        "electrical_work_brief",
     }
 
 
@@ -514,6 +516,11 @@ def test_shared_response_mapper_passes_exact_fields_to_scorer(
             )
         ),
         reasons=("Test evidence",),
+        electrical_work_brief=ElectricalWorkBrief(
+            evidence_level="inferred",
+            summary="Test electrical work brief.",
+            signals=(),
+        ),
     )
     classifier = Mock(return_value="commercial")
     scorer = Mock(return_value=score_result)
@@ -542,6 +549,7 @@ def test_shared_response_mapper_passes_exact_fields_to_scorer(
     assert response.opportunity_level == "high"
     assert response.opportunity_breakdown == score_result.score_breakdown
     assert response.opportunity_score_components == score_result.score_components
+    assert response.electrical_work_brief == score_result.electrical_work_brief
 
 
 def test_detail_unknown_id_returns_404(client: TestClient) -> None:

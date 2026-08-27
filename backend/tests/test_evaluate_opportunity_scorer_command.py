@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from backend.app.commands import evaluate_opportunity_scorer as command
 from backend.app.services.opportunity_scorer import (
     SCORE_COMPONENT_MAXIMUMS,
+    ElectricalWorkBrief,
     OpportunityScoreBreakdown,
     OpportunityScoreComponent,
     OpportunityScoreResult,
@@ -65,6 +66,11 @@ def _score_result(score: int) -> OpportunityScoreResult:
             for name, points in zip(SCORE_COMPONENT_MAXIMUMS, components)
         ),
         reasons=("Test evidence",),
+        electrical_work_brief=ElectricalWorkBrief(
+            evidence_level="unavailable",
+            summary="Electrical work is not evidenced by the available planning data.",
+            signals=(),
+        ),
     )
 
 

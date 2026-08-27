@@ -35,6 +35,28 @@ export interface OpportunityScoreComponent {
   explanation: string
 }
 
+export type ElectricalEvidenceLevel = 'direct' | 'inferred' | 'unavailable'
+
+export type ElectricalWorkType =
+  | 'ev_charging'
+  | 'substation_distribution'
+  | 'battery_storage'
+  | 'renewable_generation'
+  | 'lighting'
+  | 'electrical_installation'
+  | 'electrical_plant_equipment'
+
+export interface ElectricalWorkSignal {
+  work_type: ElectricalWorkType
+  evidence: string
+}
+
+export interface ElectricalWorkBrief {
+  evidence_level: ElectricalEvidenceLevel
+  summary: string
+  signals: ElectricalWorkSignal[]
+}
+
 export interface Opportunity {
   id: number
   application_number: string
@@ -52,6 +74,7 @@ export interface Opportunity {
   opportunity_level: OpportunityLevel
   opportunity_breakdown: OpportunityBreakdown
   opportunity_score_components: OpportunityScoreComponent[]
+  electrical_work_brief?: ElectricalWorkBrief
 }
 
 export interface OpportunityFeedResponse {

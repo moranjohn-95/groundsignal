@@ -568,6 +568,59 @@ summary:focus-visible {
   border-top: 1px solid var(--color-border);
 }
 
+.electrical-work-brief {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  background: #fff9ec;
+}
+
+.electrical-work-brief strong {
+  color: var(--color-primary);
+  font-size: 0.875rem;
+}
+
+.electrical-work-brief p,
+.electrical-work-brief ul {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.electrical-work-brief ul {
+  padding-left: 1.25rem;
+}
+
+.electrical-work-brief__status {
+  width: fit-content;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.electrical-work-brief__status--inferred {
+  background: #7a5b1a;
+}
+
+.electrical-work-brief__status--unavailable {
+  background: var(--color-text-muted);
+}
+
+.electrical-work-brief--detail {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.electrical-work-brief__caveat {
+  font-weight: 700;
+}
+
 .opportunity-card__disclosures details + details {
   border-top: 1px solid var(--color-border);
 }

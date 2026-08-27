@@ -469,11 +469,11 @@ def test_future_received_date_receives_no_timing_points() -> None:
     assert not any("received" in reason.casefold() for reason in result.reasons)
 
 
-def test_non_residential_plant_and_equipment_evidence_is_preserved() -> None:
+def test_explicit_non_residential_electrical_equipment_evidence_is_preserved() -> None:
     result = _score(
         description=(
             "Construction of a new industrial manufacturing facility with "
-            "substantial plant and equipment."
+            "substantial electrical plant and electrical equipment."
         ),
         floor_area=2500.0,
         received_date=date(2024, 12, 20),
@@ -651,3 +651,244 @@ def test_zero_point_components_explain_missing_or_unmatched_evidence() -> None:
 def test_invalid_category_is_rejected() -> None:
     with pytest.raises(ValueError, match="Unsupported planning category"):
         _score(category="agricultural")
+
+
+@pytest.mark.parametrize(
+    ("description", "category", "floor_area", "work_type", "evidence"),
+    [
+        (
+            "Construction of a commercial building with EV charging points.",
+            "commercial",
+            800.0,
+            "ev_charging",
+            "ev charging",
+        ),
+        (
+            "Construction of an electrical substation and associated site works.",
+            "infrastructure",
+            None,
+            "substation_distribution",
+            "electrical substation",
+        ),
+        (
+            "Development of a battery energy storage facility.",
+            "energy",
+            None,
+            "battery_storage",
+            "battery energy storage",
+        ),
+        (
+            "Development of a solar farm with associated infrastructure.",
+            "energy",
+            None,
+            "renewable_generation",
+            "solar farm",
+        ),
+        (
+            "Construction of a commercial car park lighting installation.",
+            "commercial",
+            None,
+            "lighting",
+            "lighting installation",
+        ),
+        (
+            "Construction of an industrial facility with electrical equipment.",
+            "industrial",
+            900.0,
+            "electrical_plant_equipment",
+            "electrical equipment",
+        ),
+    ],
+)
+def test_electrical_work_brief_reports_direct_evidence(
+    description: str,
+    category: str,
+    floor_area: float | None,
+    work_type: str,
+    evidence: str,
+) -> None:
+    result = _score(
+        description=description,
+        category=category,
+        floor_area=floor_area,
+    )
+
+    assert result.electrical_work_brief.evidence_level == "direct"
+    assert result.electrical_work_brief.signals[0].work_type == work_type
+    assert result.electrical_work_brief.signals[0].evidence == evidence
+
+
+def test_electrical_work_brief_groups_multiple_direct_signals() -> None:
+    result = _score(
+        description=(
+            "Construction of a commercial development with EV charging, solar "
+            "photovoltaic panels and car park lighting."
+        ),
+        category="commercial",
+        floor_area=1200.0,
+    )
+
+    brief = result.electrical_work_brief
+    assert brief.evidence_level == "direct"
+    assert [signal.work_type for signal in brief.signals] == [
+        "ev_charging",
+        "renewable_generation",
+        "lighting",
+    ]
+    assert brief.summary == (
+        "Electrical work evidenced: EV charging infrastructure, renewable or solar "
+        "electrical infrastructure, lighting work."
+    )
+
+
+def test_large_development_without_direct_evidence_has_an_inferred_brief() -> None:
+    result = _score(
+        description="Construction of a new industrial manufacturing facility.",
+        category="industrial",
+        floor_area=2500.0,
+        received_date=date(2024, 12, 20),
+    )
+
+    assert result.opportunity_score == 76
+    assert result.electrical_work_brief.evidence_level == "inferred"
+    assert result.electrical_work_brief.signals == ()
+    assert "review plans for confirmation" in result.electrical_work_brief.summary
+
+
+def test_weak_application_has_an_unavailable_electrical_work_brief() -> None:
+    result = _score(description="Retention of a shop sign.", category="other")
+
+    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.electrical_work_brief.signals == ()
+    assert result.electrical_work_brief.summary == (
+        "Electrical work is not evidenced by the available planning data."
+    )
+
+
+def test_minor_lighting_replacement_remains_a_low_evidence_brief() -> None:
+    result = _score(
+        description="Replacement of one external light fitting.",
+        category="other",
+    )
+
+    assert result.score_breakdown.electrical_relevance == 5
+    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.electrical_work_brief.signals == ()
+
+
+def test_explicit_electrical_equipment_is_direct_regardless_of_project_scope() -> None:
+    result = _score(
+        description="Electrical equipment upgrade to an existing retail unit.",
+        category="commercial",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "direct"
+    assert result.electrical_work_brief.signals[0].work_type == (
+        "electrical_plant_equipment"
+    )
+    assert result.electrical_work_brief.signals[0].evidence == "electrical equipment"
+    assert result.score_breakdown.electrical_relevance == 15
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Installation of mechanical equipment in a retail unit.",
+        "New playground equipment at a school.",
+        "Replacement kitchen equipment in a restaurant.",
+    ],
+)
+def test_generic_equipment_does_not_create_direct_electrical_evidence(
+    description: str,
+) -> None:
+    result = _score(description=description, category="commercial")
+
+    assert result.electrical_work_brief.evidence_level != "direct"
+    assert result.electrical_work_brief.signals == ()
+
+
+@pytest.mark.parametrize(
+    ("description", "work_type"),
+    [
+        (
+            "Replacement of one external light fitting and installation of solar PV.",
+            "renewable_generation",
+        ),
+        (
+            "Replacement of one external light fitting and EV charging points.",
+            "ev_charging",
+        ),
+    ],
+)
+def test_minor_lighting_does_not_hide_stronger_direct_evidence(
+    description: str,
+    work_type: str,
+) -> None:
+    result = _score(description=description, category="commercial")
+
+    assert result.electrical_work_brief.evidence_level == "direct"
+    assert work_type in [
+        signal.work_type for signal in result.electrical_work_brief.signals
+    ]
+
+
+def test_direct_electrical_evidence_takes_precedence_over_inference() -> None:
+    result = _score(
+        description=(
+            "Construction of a new industrial manufacturing facility with EV "
+            "charging points."
+        ),
+        category="industrial",
+        floor_area=2500.0,
+        received_date=date(2024, 12, 20),
+    )
+
+    assert result.opportunity_score == 94
+    assert result.electrical_work_brief.evidence_level == "direct"
+    assert [signal.work_type for signal in result.electrical_work_brief.signals] == [
+        "ev_charging"
+    ]
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construction of a new industrial facility with a wastewater treatment plant.",
+        "Construction of a new commercial development with solar shading.",
+        "Construction of a new commercial development; no EV charging is proposed.",
+        "Construction of a new commercial development with bicycle charging points.",
+        "Construction of a new commercial development; no external lighting scheme is proposed.",
+        "Development without solar PV.",
+        "Development that does not include battery storage.",
+    ],
+)
+def test_generic_or_negated_terms_do_not_create_direct_electrical_evidence(
+    description: str,
+) -> None:
+    result = _score(description=description, category="commercial")
+
+    assert result.electrical_work_brief.evidence_level != "direct"
+    assert result.electrical_work_brief.signals == ()
+
+
+@pytest.mark.parametrize(
+    ("description", "work_type"),
+    [
+        ("Construction of a building with EV charging points.", "ev_charging"),
+        ("Construction of an electrical substation.", "substation_distribution"),
+        ("Development of a battery energy storage facility.", "battery_storage"),
+        ("Development with solar PV and photovoltaic panels.", "renewable_generation"),
+        ("Installation of a new external lighting scheme.", "lighting"),
+        ("Construction with explicit electrical installation works.", "electrical_installation"),
+    ],
+)
+def test_specific_electrical_terms_remain_direct_evidence(
+    description: str,
+    work_type: str,
+) -> None:
+    result = _score(description=description, category="commercial")
+
+    assert result.electrical_work_brief.evidence_level == "direct"
+    assert work_type in [
+        signal.work_type for signal in result.electrical_work_brief.signals
+    ]

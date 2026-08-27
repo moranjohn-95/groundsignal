@@ -64,6 +64,16 @@ const opportunity: OpportunityDetail = {
         'The application is classified as Industrial, which receives 10 points for category fit.',
     },
   ],
+  electrical_work_brief: {
+    evidence_level: 'direct',
+    summary: 'Electrical work evidenced: electrical installation work.',
+    signals: [
+      {
+        work_type: 'electrical_installation',
+        evidence: 'electrical infrastructure',
+      },
+    ],
+  },
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -113,6 +123,16 @@ describe('OpportunityDetailPage', () => {
     ).toBeInTheDocument()
     expect(within(detail).getByText('Kerry County Council')).toBeInTheDocument()
     expect(within(detail).getByText('0012345')).toBeInTheDocument()
+    expect(
+      within(detail).getByRole('heading', {
+        level: 3,
+        name: 'Likely electrical work',
+      }),
+    ).toBeInTheDocument()
+    expect(within(detail).getByText('Directly evidenced')).toBeInTheDocument()
+    expect(
+      within(detail).getByText('Planning evidence: electrical infrastructure'),
+    ).toBeInTheDocument()
 
     const breakdown = within(detail)
       .getByRole('heading', { level: 3, name: 'Score breakdown' })
@@ -154,6 +174,50 @@ describe('OpportunityDetailPage', () => {
       'rel',
       'noopener noreferrer',
     )
+  })
+
+  it('explains when a substantial development is an inferred opportunity', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        ...opportunity,
+        electrical_work_brief: {
+          evidence_level: 'inferred',
+          summary:
+            'Potential electrical package associated with a substantial industrial development -- review plans for confirmation.',
+          signals: [],
+        },
+      }),
+    )
+    render(<OpportunityDetailPage opportunityId={20} />)
+
+    expect(await screen.findByText('Inferred opportunity')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Review the official planning application before pursuing this lead.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    null,
+    { evidence_level: 'direct', summary: 'EV charging', signals: null },
+    { evidence_level: 'direct', summary: 'EV charging', signals: 'EV charging' },
+    { evidence_level: 'direct', summary: 'EV charging', signals: {} },
+    { evidence_level: 'unsupported', summary: 'EV charging', signals: [] },
+    { evidence_level: 'direct', signals: [] },
+    { evidence_level: 'direct', summary: 'EV charging', signals: [null] },
+  ])('safely falls back for a malformed electrical work brief: %j', async (brief) => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ ...opportunity, electrical_work_brief: brief }),
+    )
+    render(<OpportunityDetailPage opportunityId={20} />)
+
+    expect(await screen.findByText('Limited evidence')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Electrical work is not evidenced by the available planning data.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('preserves an allowed HTTPS source URL as the unsupported-authority fallback', async () => {

@@ -5,6 +5,8 @@ import {
   formatOpportunityDate,
   formatOpportunityDistance,
   formatOpportunityLabel,
+  electricalEvidenceLabel,
+  electricalWorkBriefFor,
   normalizeOpportunityDescription,
 } from './opportunityPresentation'
 
@@ -45,6 +47,7 @@ function OpportunityCard({
     opportunity.opportunity_level,
   )
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
+  const electricalWorkBrief = electricalWorkBriefFor(opportunity)
 
   function handleViewOpportunity(event: MouseEvent<HTMLAnchorElement>) {
     if (
@@ -124,6 +127,19 @@ function OpportunityCard({
           <dd>{opportunity.application_number}</dd>
         </div>
       </dl>
+
+      <section
+        className="electrical-work-brief"
+        aria-label="Likely electrical work"
+      >
+        <span
+          className={`electrical-work-brief__status electrical-work-brief__status--${electricalWorkBrief.evidence_level}`}
+        >
+          {electricalEvidenceLabel(electricalWorkBrief)}
+        </span>
+        <strong>Likely electrical work</strong>
+        <p>{electricalWorkBrief.summary}</p>
+      </section>
 
       <div className="opportunity-card__disclosures">
         {description !== null && (

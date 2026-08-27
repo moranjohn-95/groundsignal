@@ -15,6 +15,7 @@ from backend.app.services.rate_limiting import (
 )
 from backend.app.services.opportunity_scorer import (
     SCORE_COMPONENT_MAXIMUMS,
+    ElectricalWorkBrief,
     OpportunityScoreBreakdown,
     OpportunityScoreComponent,
     OpportunityScoreResult,
@@ -81,6 +82,11 @@ def _score_result(score: int) -> OpportunityScoreResult:
             for name, points in zip(SCORE_COMPONENT_MAXIMUMS, components)
         ),
         reasons=("Test evidence",),
+        electrical_work_brief=ElectricalWorkBrief(
+            evidence_level="unavailable",
+            summary="Electrical work is not evidenced by the available planning data.",
+            signals=(),
+        ),
     )
 
 
@@ -580,6 +586,29 @@ def test_response_exposes_only_feed_fields(opportunity_client) -> None:
         "opportunity_level",
         "opportunity_breakdown",
         "opportunity_score_components",
+        "electrical_work_brief",
+    }
+
+
+def test_response_serializes_a_complete_electrical_work_brief(opportunity_client) -> None:
+    client, session = opportunity_client
+    _set_candidate_rows(
+        session,
+        [
+            _candidate_row(
+                1,
+                description="Construction of a commercial building with EV charging points.",
+            )
+        ],
+    )
+
+    response = client.get("/api/v1/opportunities", params=_valid_params())
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["electrical_work_brief"] == {
+        "evidence_level": "direct",
+        "summary": "Electrical work evidenced: EV charging infrastructure.",
+        "signals": [{"work_type": "ev_charging", "evidence": "ev charging"}],
     }
 
 

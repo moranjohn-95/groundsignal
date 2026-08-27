@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 
 from ..services.opportunity_scorer import (
+    ElectricalWorkBrief,
     OpportunityLevel,
     OpportunityScoreBreakdown,
     OpportunityScoreComponent,
@@ -35,6 +36,7 @@ class PlanningApplicationResponse(BaseModel):
     opportunity_level: OpportunityLevel
     opportunity_breakdown: OpportunityScoreBreakdown
     opportunity_score_components: tuple[OpportunityScoreComponent, ...]
+    electrical_work_brief: ElectricalWorkBrief
 
 
 class PlanningApplicationListResponse(BaseModel):
