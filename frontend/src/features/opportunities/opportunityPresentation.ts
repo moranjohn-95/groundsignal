@@ -8,6 +8,29 @@ type OfficialApplicationOpportunity = Pick<
 const KERRY_PLANNING_AUTHORITY = 'Kerry County Council'
 const KERRY_EPLANNING_APPLICATION_BASE_URL =
   'https://www.eplanning.ie/KerryCC/AppFileRefDetails'
+const ALLOWED_APPLICATION_URL_PROTOCOLS = new Set(['http:', 'https:'])
+
+export function safeApplicationUrl(value: string | null) {
+  if (value === null || value !== value.trim() || /\s/.test(value)) {
+    return null
+  }
+
+  try {
+    const url = new URL(value)
+    if (
+      !ALLOWED_APPLICATION_URL_PROTOCOLS.has(url.protocol) ||
+      url.hostname === '' ||
+      url.username !== '' ||
+      url.password !== ''
+    ) {
+      return null
+    }
+  } catch {
+    return null
+  }
+
+  return value
+}
 
 export function formatOpportunityLabel(value: string) {
   const label = value.replaceAll('_', ' ')
@@ -43,5 +66,5 @@ export function officialApplicationUrl(
     return `${KERRY_EPLANNING_APPLICATION_BASE_URL}/${reference}/0`
   }
 
-  return opportunity.application_url
+  return safeApplicationUrl(opportunity.application_url)
 }

@@ -4,6 +4,7 @@ from typing import Any
 
 from geoalchemy2.elements import WKTElement
 
+from .application_urls import safe_application_url
 from .planning_classifier import classify_planning_application
 
 
@@ -185,9 +186,11 @@ def transform_planning_application(feature: dict) -> dict:
         ),
         "number_residential_units": properties.get("NumResidentialUnits"),
         "floor_area": properties.get("FloorArea"),
-        "application_url": _clean_optional_string(
-            properties.get("LinkAppDetails"),
-            "LinkAppDetails",
+        "application_url": safe_application_url(
+            _clean_optional_string(
+                properties.get("LinkAppDetails"),
+                "LinkAppDetails",
+            )
         ),
         "location": _transform_geometry(feature.get("geometry")),
         "source_updated_at": _epoch_milliseconds_to_datetime(

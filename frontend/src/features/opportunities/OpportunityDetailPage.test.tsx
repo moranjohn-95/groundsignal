@@ -156,7 +156,7 @@ describe('OpportunityDetailPage', () => {
     )
   })
 
-  it('preserves a source URL as the unsupported-authority fallback', async () => {
+  it('preserves an allowed HTTPS source URL as the unsupported-authority fallback', async () => {
     const sourceApplicationUrl =
       'https://planning.example.test/applications/reference/0012345'
     fetchMock.mockResolvedValueOnce(
@@ -174,6 +174,47 @@ describe('OpportunityDetailPage', () => {
     expect(fallbackLink).toHaveAttribute('href', sourceApplicationUrl)
     expect(fallbackLink).toHaveAttribute('target', '_blank')
     expect(fallbackLink).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  it('preserves an allowed HTTP eplanning.ie source URL', async () => {
+    const sourceApplicationUrl =
+      'http://www.eplanning.ie/SomeAuthority/AppFileRefDetails/0012345/0'
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        ...opportunity,
+        planning_authority: 'Another Planning Authority',
+        application_url: sourceApplicationUrl,
+      }),
+    )
+    render(<OpportunityDetailPage opportunityId={20} />)
+
+    expect(
+      await screen.findByRole('link', { name: 'View official application' }),
+    ).toHaveAttribute('href', sourceApplicationUrl)
+  })
+
+  it.each([
+    "javascript:alert('unsafe')",
+    'data:text/html,unsafe',
+    'not a valid URL',
+  ])('does not render an unsafe application URL: %s', async (applicationUrl) => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        ...opportunity,
+        planning_authority: 'Another Planning Authority',
+        application_url: applicationUrl,
+      }),
+    )
+    render(<OpportunityDetailPage opportunityId={20} />)
+
+    expect(
+      await screen.findByText(
+        'Official application link is not available for this authority.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'View official application' }),
+    ).not.toBeInTheDocument()
   })
 
   it('does not invent an official URL for an unsupported authority', async () => {

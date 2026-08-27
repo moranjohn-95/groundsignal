@@ -11,6 +11,7 @@ from sqlalchemy.sql import Select
 from ..dependencies import get_db
 from ..models import PlanningApplication
 from ..schemas import OpportunityFeedResponse, OpportunityResponse
+from ..services.application_urls import safe_application_url
 from ..services.opportunity_scorer import score_planning_application_opportunity
 from ..services.planning_classifier import PlanningApplicationCategory
 
@@ -218,7 +219,7 @@ def _score_candidates(
                 application_status=candidate.application_status,
                 decision=candidate.decision,
                 received_date=candidate.received_date,
-                application_url=candidate.application_url,
+                application_url=safe_application_url(candidate.application_url),
                 category=candidate.category,
                 distance_km=candidate.distance_km,
                 opportunity_score=opportunity.opportunity_score,

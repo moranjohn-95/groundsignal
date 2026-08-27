@@ -579,6 +579,21 @@ def test_response_exposes_only_feed_fields(opportunity_client) -> None:
     }
 
 
+def test_response_hides_unsafe_application_url_from_existing_records(
+    opportunity_client,
+) -> None:
+    client, session = opportunity_client
+    _set_candidate_rows(
+        session,
+        [_candidate_row(1, application_url="javascript:alert('unsafe')")],
+    )
+
+    response = client.get("/api/v1/opportunities", params=_valid_params())
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["application_url"] is None
+
+
 @pytest.mark.parametrize(
     "params",
     [

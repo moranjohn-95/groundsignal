@@ -16,6 +16,7 @@ from ..schemas import (
     PlanningApplicationListResponse,
     PlanningApplicationResponse,
 )
+from ..services.application_urls import safe_application_url
 from ..services.planning_classifier import (
     PLANNING_APPLICATION_CATEGORIES,
     PlanningApplicationCategory,
@@ -60,6 +61,9 @@ def _planning_application_response(
     public_values = {
         column.key: getattr(application, column.key) for column in PUBLIC_COLUMNS
     }
+    public_values["application_url"] = safe_application_url(
+        public_values["application_url"]
+    )
     category = classify_planning_application(
         description=application.description,
         application_type=application.application_type,

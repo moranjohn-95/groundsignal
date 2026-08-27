@@ -204,6 +204,42 @@ def test_empty_optional_strings_become_none() -> None:
     assert result["application_url"] is None
 
 
+@pytest.mark.parametrize(
+    "application_url",
+    [
+        "javascript:alert('unsafe')",
+        "data:text/html,unsafe",
+        "file:///etc/passwd",
+        "not a URL",
+        "https://",
+        "https://trusted.example@unexpected.example/path",
+    ],
+)
+def test_unsafe_application_urls_become_unavailable(application_url: str) -> None:
+    feature = deepcopy(VALID_FEATURE)
+    feature["properties"]["LinkAppDetails"] = application_url
+
+    result = transform_planning_application(feature)
+
+    assert result["application_url"] is None
+
+
+@pytest.mark.parametrize(
+    "application_url",
+    [
+        "http://www.eplanning.ie/KerryCC/AppFileRefDetails/0012345/0",
+        "https://planning.example.test/applications/0012345",
+    ],
+)
+def test_http_and_https_application_urls_are_preserved(application_url: str) -> None:
+    feature = deepcopy(VALID_FEATURE)
+    feature["properties"]["LinkAppDetails"] = application_url
+
+    result = transform_planning_application(feature)
+
+    assert result["application_url"] == application_url
+
+
 def test_nullable_dates_remain_none() -> None:
     feature = deepcopy(VALID_FEATURE)
     for field_name in ["ReceivedDate", "DecisionDate", "GrantDate", "ETL_DATE"]:
