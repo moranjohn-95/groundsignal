@@ -6,11 +6,13 @@ from ipaddress import ip_address, ip_network
 from threading import Lock
 from time import monotonic
 
-from fastapi import Request
+from fastapi import HTTPException, Request, status
 
 
 GEOCODING_RATE_LIMIT = 20
 GEOCODING_RATE_LIMIT_WINDOW_SECONDS = 60
+DATABASE_REQUEST_RATE_LIMIT = 60
+DATABASE_REQUEST_RATE_LIMIT_WINDOW_SECONDS = 60
 
 _MAX_TRACKED_CLIENTS = 10_000
 _TRUSTED_PROXY_NETWORKS = (
@@ -48,6 +50,22 @@ def get_client_ip(request: Request) -> str:
         return str(ip_address(forwarded_for.strip()))
     except ValueError:
         return str(direct_address)
+
+
+def enforce_rate_limit(
+    request: Request,
+    *,
+    limiter: "InMemoryRateLimiter",
+    detail: str,
+) -> None:
+    """Raise a safe 429 response when a client exceeds a limiter."""
+
+    if not limiter.allow(get_client_ip(request)):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=detail,
+            headers={"Retry-After": str(int(limiter.window_seconds))},
+        )
 
 
 class InMemoryRateLimiter:
@@ -97,8 +115,27 @@ class InMemoryRateLimiter:
         with self._lock:
             self._requests.clear()
 
+    @property
+    def window_seconds(self) -> float:
+        return self._window_seconds
+
 
 geocoding_rate_limiter = InMemoryRateLimiter(
     limit=GEOCODING_RATE_LIMIT,
     window_seconds=GEOCODING_RATE_LIMIT_WINDOW_SECONDS,
 )
+
+database_request_rate_limiter = InMemoryRateLimiter(
+    limit=DATABASE_REQUEST_RATE_LIMIT,
+    window_seconds=DATABASE_REQUEST_RATE_LIMIT_WINDOW_SECONDS,
+)
+
+
+def enforce_database_request_rate_limit(request: Request) -> None:
+    """Limit database-intensive public planning and opportunity requests."""
+
+    enforce_rate_limit(
+        request,
+        limiter=database_request_rate_limiter,
+        detail="Too many planning data requests. Please try again later.",
+    )

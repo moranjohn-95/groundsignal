@@ -14,6 +14,7 @@ from ..schemas import OpportunityFeedResponse, OpportunityResponse
 from ..services.application_urls import safe_application_url
 from ..services.opportunity_scorer import score_planning_application_opportunity
 from ..services.planning_classifier import PlanningApplicationCategory
+from ..services.rate_limiting import enforce_database_request_rate_limit
 
 
 # Exact upstream terminal statuses observed in planning data. Deliberately avoid
@@ -28,6 +29,7 @@ EXCLUDED_OPPORTUNITY_APPLICATION_STATUSES = (
 router = APIRouter(
     prefix="/api/v1/opportunities",
     tags=["opportunities"],
+    dependencies=[Depends(enforce_database_request_rate_limit)],
 )
 
 OpportunitySort = Literal["best", "nearest", "newest"]

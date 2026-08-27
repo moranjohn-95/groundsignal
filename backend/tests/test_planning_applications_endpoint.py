@@ -20,6 +20,10 @@ from backend.app.services.opportunity_scorer import (
     OpportunityScoreResult,
     score_planning_application_opportunity,
 )
+from backend.app.services.rate_limiting import (
+    DATABASE_REQUEST_RATE_LIMIT,
+    database_request_rate_limiter,
+)
 
 
 PLANNING_APPLICATION_ROWS = [
@@ -404,6 +408,18 @@ def test_detail_returns_application_by_internal_id(client: TestClient) -> None:
             "opportunity_score_components",
         )
     } == _expected_opportunity(PLANNING_APPLICATION_ROWS[0])
+
+
+def test_database_request_rate_limit_protects_planning_routes(
+    client: TestClient,
+) -> None:
+    for _ in range(DATABASE_REQUEST_RATE_LIMIT):
+        assert database_request_rate_limiter.allow("testclient")
+
+    response = client.get("/api/v1/planning-applications/1")
+
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "60"
 
 
 def test_detail_returns_only_public_response_fields(client: TestClient) -> None:

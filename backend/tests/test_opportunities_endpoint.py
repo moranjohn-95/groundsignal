@@ -9,6 +9,10 @@ from sqlalchemy.orm import Session
 from backend.app.api import opportunities
 from backend.app.dependencies import get_db
 from backend.app.main import app
+from backend.app.services.rate_limiting import (
+    DATABASE_REQUEST_RATE_LIMIT,
+    database_request_rate_limiter,
+)
 from backend.app.services.opportunity_scorer import (
     SCORE_COMPONENT_MAXIMUMS,
     OpportunityScoreBreakdown,
@@ -592,6 +596,57 @@ def test_response_hides_unsafe_application_url_from_existing_records(
 
     assert response.status_code == 200
     assert response.json()["items"][0]["application_url"] is None
+
+
+def test_database_request_rate_limit_allows_normal_opportunity_requests(
+    opportunity_client,
+) -> None:
+    client, session = opportunity_client
+
+    for _ in range(DATABASE_REQUEST_RATE_LIMIT):
+        response = client.get("/api/v1/opportunities", params=_valid_params())
+        assert response.status_code == 200
+
+    assert session.execute.call_count == DATABASE_REQUEST_RATE_LIMIT
+
+
+def test_database_request_rate_limit_rejects_before_database_dependency() -> None:
+    for _ in range(DATABASE_REQUEST_RATE_LIMIT):
+        assert database_request_rate_limiter.allow("testclient")
+
+    def fail_if_database_dependency_runs():
+        raise AssertionError("Database dependency must not run for a blocked request")
+
+    app.dependency_overrides[get_db] = fail_if_database_dependency_runs
+    try:
+        with TestClient(app) as client:
+            response = client.get("/api/v1/opportunities", params=_valid_params())
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "60"
+
+
+def test_database_request_rate_limit_is_independent_per_client(
+    opportunity_client,
+) -> None:
+    _, session = opportunity_client
+    first_client = TestClient(app, client=("198.51.100.10", 50000))
+    second_client = TestClient(app, client=("198.51.100.11", 50000))
+
+    for _ in range(DATABASE_REQUEST_RATE_LIMIT):
+        assert first_client.get(
+            "/api/v1/opportunities", params=_valid_params()
+        ).status_code == 200
+
+    assert first_client.get(
+        "/api/v1/opportunities", params=_valid_params()
+    ).status_code == 429
+    assert second_client.get(
+        "/api/v1/opportunities", params=_valid_params()
+    ).status_code == 200
+    assert session.execute.call_count == DATABASE_REQUEST_RATE_LIMIT + 1
 
 
 @pytest.mark.parametrize(

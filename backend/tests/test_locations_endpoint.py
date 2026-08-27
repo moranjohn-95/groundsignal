@@ -18,13 +18,6 @@ from backend.app.services.rate_limiting import (
 client = TestClient(app)
 
 
-@pytest.fixture(autouse=True)
-def reset_geocoding_rate_limit() -> None:
-    geocoding_rate_limiter.clear()
-    yield
-    geocoding_rate_limiter.clear()
-
-
 def test_geocode_endpoint_returns_normalized_query_and_location(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

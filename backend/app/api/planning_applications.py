@@ -23,11 +23,13 @@ from ..services.planning_classifier import (
     classify_planning_application,
 )
 from ..services.opportunity_scorer import score_planning_application_opportunity
+from ..services.rate_limiting import enforce_database_request_rate_limit
 
 
 router = APIRouter(
     prefix="/api/v1/planning-applications",
     tags=["planning-applications"],
+    dependencies=[Depends(enforce_database_request_rate_limit)],
 )
 
 PUBLIC_COLUMNS = (

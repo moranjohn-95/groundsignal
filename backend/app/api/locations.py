@@ -9,7 +9,7 @@ from ..services.geocoding import (
     GeocodingUpstreamError,
     geocode_location,
 )
-from ..services.rate_limiting import get_client_ip, geocoding_rate_limiter
+from ..services.rate_limiting import enforce_rate_limit, geocoding_rate_limiter
 
 
 router = APIRouter(
@@ -30,12 +30,11 @@ def geocode(
             detail="Location query must not be empty.",
         )
 
-    if not geocoding_rate_limiter.allow(get_client_ip(request)):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many geocoding requests. Please try again later.",
-            headers={"Retry-After": "60"},
-        )
+    enforce_rate_limit(
+        request,
+        limiter=geocoding_rate_limiter,
+        detail="Too many geocoding requests. Please try again later.",
+    )
 
     try:
         location = geocode_location(normalized_query)
