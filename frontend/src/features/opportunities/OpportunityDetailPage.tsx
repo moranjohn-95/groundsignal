@@ -11,6 +11,7 @@ import {
   formatOpportunityLabel,
   electricalEvidenceLabel,
   electricalWorkBriefFor,
+  electricalWorkSummary,
   officialApplicationUrl,
 } from './opportunityPresentation'
 
@@ -132,6 +133,7 @@ function OpportunityDetailPage({
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
   const applicationUrl = officialApplicationUrl(opportunity)
   const electricalWorkBrief = electricalWorkBriefFor(opportunity)
+  const electricalWorkBriefSummary = electricalWorkSummary(electricalWorkBrief)
   const availableDistance = distanceKm ?? opportunity.distance_km
 
   return (
@@ -235,18 +237,20 @@ function OpportunityDetailPage({
 
           <section aria-labelledby="electrical-work-heading">
             <h3 id="electrical-work-heading">Likely electrical work</h3>
-            <div className="electrical-work-brief electrical-work-brief--detail">
+            <div
+              className={`electrical-work-brief electrical-work-brief--${electricalWorkBrief.evidence_level} electrical-work-brief--detail`}
+            >
               <span
                 className={`electrical-work-brief__status electrical-work-brief__status--${electricalWorkBrief.evidence_level}`}
               >
                 {electricalEvidenceLabel(electricalWorkBrief)}
               </span>
-              <p>{electricalWorkBrief.summary}</p>
+              <p>{electricalWorkBriefSummary}</p>
               {electricalWorkBrief.signals.length > 0 && (
                 <ul>
                   {electricalWorkBrief.signals.map((signal) => (
                     <li key={`${signal.work_type}-${signal.evidence}`}>
-                      Planning evidence: {signal.evidence}
+                      Evidence: {signal.evidence}
                     </li>
                   ))}
                 </ul>

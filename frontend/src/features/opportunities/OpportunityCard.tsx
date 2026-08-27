@@ -7,6 +7,7 @@ import {
   formatOpportunityLabel,
   electricalEvidenceLabel,
   electricalWorkBriefFor,
+  electricalWorkSummary,
   normalizeOpportunityDescription,
 } from './opportunityPresentation'
 
@@ -48,6 +49,7 @@ function OpportunityCard({
   )
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
   const electricalWorkBrief = electricalWorkBriefFor(opportunity)
+  const electricalWorkBriefSummary = electricalWorkSummary(electricalWorkBrief)
 
   function handleViewOpportunity(event: MouseEvent<HTMLAnchorElement>) {
     if (
@@ -129,7 +131,7 @@ function OpportunityCard({
       </dl>
 
       <section
-        className="electrical-work-brief"
+        className={`electrical-work-brief electrical-work-brief--${electricalWorkBrief.evidence_level}`}
         aria-label="Likely electrical work"
       >
         <span
@@ -138,7 +140,16 @@ function OpportunityCard({
           {electricalEvidenceLabel(electricalWorkBrief)}
         </span>
         <strong>Likely electrical work</strong>
-        <p>{electricalWorkBrief.summary}</p>
+        <p>{electricalWorkBriefSummary}</p>
+        {electricalWorkBrief.evidence_level === 'direct' &&
+          electricalWorkBrief.signals.length > 0 && (
+            <p className="electrical-work-brief__evidence">
+              Evidence:{' '}
+              {electricalWorkBrief.signals
+                .map((signal) => signal.evidence)
+                .join(', ')}
+            </p>
+          )}
       </section>
 
       <div className="opportunity-card__disclosures">

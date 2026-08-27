@@ -90,6 +90,7 @@ describe('OpportunityCard', () => {
     const user = userEvent.setup()
 
     const card = screen.getByRole('article')
+    expect(card).toHaveClass('opportunity-card--very-high')
     const heading = within(card).getByRole('heading', { level: 3 })
     expect(heading.textContent).toMatch(/…$/)
     expect(heading).not.toHaveTextContent(longDescription)
@@ -98,12 +99,18 @@ describe('OpportunityCard', () => {
     expect(within(card).getByText('Industrial')).toBeInTheDocument()
     expect(within(card).getByText('18.7 km')).toBeInTheDocument()
     expect(within(card).getByText('18 August 2026')).toBeInTheDocument()
-    expect(within(card).getByText('Directly evidenced')).toBeInTheDocument()
+    expect(within(card).getByText('Confirmed signal')).toBeInTheDocument()
     expect(
       within(card).getByText(
         'Electrical work evidenced: electrical installation work.',
       ),
     ).toBeInTheDocument()
+    expect(
+      within(card).getByText('Evidence: electrical infrastructure'),
+    ).toBeInTheDocument()
+    expect(within(card).getByLabelText('Likely electrical work')).toHaveClass(
+      'electrical-work-brief--direct',
+    )
     expect(within(card).getByText(longDescription)).toBeInTheDocument()
 
     const descriptionSummary = within(card).getByText('Planning description')
@@ -153,6 +160,29 @@ describe('OpportunityCard', () => {
     ).toHaveAttribute('href', '/opportunities/20')
   })
 
+  it.each([
+    ['high', 'High', 'high'],
+    ['medium', 'Medium', 'medium'],
+  ] as const)(
+    'applies the %s priority state class',
+    (opportunityLevel, label, className) => {
+      render(
+        <OpportunityCard
+          opportunity={{
+            ...opportunity,
+            opportunity_level: opportunityLevel,
+          }}
+          onViewOpportunity={vi.fn()}
+        />,
+      )
+
+      expect(screen.getByText(`${label} opportunity`)).toBeInTheDocument()
+      expect(screen.getByRole('article')).toHaveClass(
+        `opportunity-card--${className}`,
+      )
+    },
+  )
+
   it('summarises multiple direct electrical work types without expanding the card', () => {
     render(
       <OpportunityCard
@@ -196,10 +226,62 @@ describe('OpportunityCard', () => {
       />,
     )
 
-    expect(screen.getByText('Limited evidence')).toBeInTheDocument()
+    expect(screen.getByText('No specific signal')).toBeInTheDocument()
     expect(
       screen.getByText(
-        'Electrical work is not evidenced by the available planning data.',
+        'No specific electrical work identified in the planning description.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Likely electrical work')).toHaveClass(
+      'electrical-work-brief--unavailable',
+    )
+  })
+
+  it('presents inferred work as a likely opportunity without evidence', () => {
+    render(
+      <OpportunityCard
+        opportunity={{
+          ...opportunity,
+          electrical_work_brief: {
+            evidence_level: 'inferred',
+            summary:
+              'Potential electrical package associated with a substantial industrial development -- review plans for confirmation.',
+            signals: [],
+          },
+        }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Likely opportunity')).toBeInTheDocument()
+    expect(
+      screen.getByText(/review plans for confirmation/i),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^Evidence:/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Likely electrical work')).toHaveClass(
+      'electrical-work-brief--inferred',
+    )
+  })
+
+  it('safely falls back for a malformed electrical work brief', () => {
+    render(
+      <OpportunityCard
+        opportunity={{
+          ...opportunity,
+          electrical_work_brief: {
+            evidence_level: 'direct',
+            summary: 'EV charging',
+            signals: null,
+          } as never,
+        }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('No specific signal')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'No specific electrical work identified in the planning description.',
       ),
     ).toBeInTheDocument()
   })

@@ -4,6 +4,8 @@
   --color-accent: #f59e0b;
   --color-accent-hover: #d97706;
   --color-accent-active: #b45309;
+  --color-opportunity-very-high: #2f7d4a;
+  --color-opportunity-medium: #3278ad;
   --color-background: #f6f7f8;
   --color-surface: #ffffff;
   --color-text: #17202a;
@@ -436,9 +438,16 @@ summary:focus-visible {
   box-shadow: var(--shadow-panel);
 }
 
-.opportunity-card--high,
-.opportunity-card--very-high {
+.opportunity-card--high {
   border-top-color: var(--color-accent);
+}
+
+.opportunity-card--very-high {
+  border-top-color: var(--color-opportunity-very-high);
+}
+
+.opportunity-card--medium {
+  border-top-color: var(--color-opportunity-medium);
 }
 
 .opportunity-card__header {
@@ -468,10 +477,19 @@ summary:focus-visible {
   line-height: 1.2;
 }
 
-.opportunity-card--high .opportunity-level,
-.opportunity-card--very-high .opportunity-level {
+.opportunity-card--high .opportunity-level {
   background: var(--color-accent);
   color: var(--color-primary);
+}
+
+.opportunity-card--very-high .opportunity-level {
+  background: var(--color-opportunity-very-high);
+  color: var(--color-surface);
+}
+
+.opportunity-card--medium .opportunity-level {
+  background: var(--color-opportunity-medium);
+  color: var(--color-surface);
 }
 
 .opportunity-score {
@@ -573,7 +591,23 @@ summary:focus-visible {
   gap: 0.5rem;
   padding: 1rem 1.25rem;
   border-top: 1px solid var(--color-border);
+  border-left: 0.25rem solid transparent;
+  background: var(--color-surface);
+}
+
+.electrical-work-brief--direct {
+  border-left-color: #2f7d4a;
+  background: #eff8f2;
+}
+
+.electrical-work-brief--inferred {
+  border-left-color: #7a5b1a;
   background: #fff9ec;
+}
+
+.electrical-work-brief--unavailable {
+  gap: 0.375rem;
+  padding-block: 0.75rem;
 }
 
 .electrical-work-brief strong {
@@ -587,6 +621,7 @@ summary:focus-visible {
   color: var(--color-text-muted);
   font-size: 0.875rem;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .electrical-work-brief ul {
@@ -603,6 +638,10 @@ summary:focus-visible {
   font-weight: 700;
 }
 
+.electrical-work-brief__status--direct {
+  background: #2f7d4a;
+}
+
 .electrical-work-brief__status--inferred {
   background: #7a5b1a;
 }
@@ -612,13 +651,16 @@ summary:focus-visible {
 }
 
 .electrical-work-brief--detail {
-  padding: 0;
-  border: 0;
-  background: transparent;
+  border-top: 0;
 }
 
 .electrical-work-brief__caveat {
   font-weight: 700;
+}
+
+.electrical-work-brief__evidence {
+  color: var(--color-text);
+  font-weight: 650;
 }
 
 .opportunity-card__disclosures details + details {
@@ -745,15 +787,31 @@ summary:focus-visible {
   box-shadow: var(--shadow-panel);
 }
 
-.opportunity-detail--high,
-.opportunity-detail--very-high {
+.opportunity-detail--high {
   border-top-color: var(--color-accent);
 }
 
-.opportunity-detail--high .opportunity-level,
-.opportunity-detail--very-high .opportunity-level {
+.opportunity-detail--very-high {
+  border-top-color: var(--color-opportunity-very-high);
+}
+
+.opportunity-detail--medium {
+  border-top-color: var(--color-opportunity-medium);
+}
+
+.opportunity-detail--high .opportunity-level {
   background: var(--color-accent);
   color: var(--color-primary);
+}
+
+.opportunity-detail--very-high .opportunity-level {
+  background: var(--color-opportunity-very-high);
+  color: var(--color-surface);
+}
+
+.opportunity-detail--medium .opportunity-level {
+  background: var(--color-opportunity-medium);
+  color: var(--color-surface);
 }
 
 .opportunity-detail__header {

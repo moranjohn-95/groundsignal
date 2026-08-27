@@ -30,14 +30,21 @@ const ELECTRICAL_WORK_TYPES = new Set([
 
 export const unavailableElectricalWorkBrief: ElectricalWorkBrief = {
   evidence_level: 'unavailable',
-  summary: 'Electrical work is not evidenced by the available planning data.',
+  summary:
+    'No specific electrical work identified in the planning description.',
   signals: [],
 }
 
 export function electricalEvidenceLabel(brief: ElectricalWorkBrief) {
-  if (brief.evidence_level === 'direct') return 'Directly evidenced'
-  if (brief.evidence_level === 'inferred') return 'Inferred opportunity'
-  return 'Limited evidence'
+  if (brief.evidence_level === 'direct') return 'Confirmed signal'
+  if (brief.evidence_level === 'inferred') return 'Likely opportunity'
+  return 'No specific signal'
+}
+
+export function electricalWorkSummary(brief: ElectricalWorkBrief) {
+  return brief.evidence_level === 'unavailable'
+    ? unavailableElectricalWorkBrief.summary
+    : brief.summary
 }
 
 export function electricalWorkBriefFor(

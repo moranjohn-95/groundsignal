@@ -129,9 +129,9 @@ describe('OpportunityDetailPage', () => {
         name: 'Likely electrical work',
       }),
     ).toBeInTheDocument()
-    expect(within(detail).getByText('Directly evidenced')).toBeInTheDocument()
+    expect(within(detail).getByText('Confirmed signal')).toBeInTheDocument()
     expect(
-      within(detail).getByText('Planning evidence: electrical infrastructure'),
+      within(detail).getByText('Evidence: electrical infrastructure'),
     ).toBeInTheDocument()
 
     const breakdown = within(detail)
@@ -190,7 +190,7 @@ describe('OpportunityDetailPage', () => {
     )
     render(<OpportunityDetailPage opportunityId={20} />)
 
-    expect(await screen.findByText('Inferred opportunity')).toBeInTheDocument()
+    expect(await screen.findByText('Likely opportunity')).toBeInTheDocument()
     expect(
       screen.getByText(
         'Review the official planning application before pursuing this lead.',
@@ -212,10 +212,10 @@ describe('OpportunityDetailPage', () => {
     )
     render(<OpportunityDetailPage opportunityId={20} />)
 
-    expect(await screen.findByText('Limited evidence')).toBeInTheDocument()
+    expect(await screen.findByText('No specific signal')).toBeInTheDocument()
     expect(
       screen.getByText(
-        'Electrical work is not evidenced by the available planning data.',
+        'No specific electrical work identified in the planning description.',
       ),
     ).toBeInTheDocument()
   })
