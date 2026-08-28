@@ -153,13 +153,6 @@ function OpportunityCard({
       </section>
 
       <div className="opportunity-card__disclosures">
-        {description !== null && (
-          <details className="opportunity-description">
-            <summary>Planning description</summary>
-            <p>{description}</p>
-          </details>
-        )}
-
         <details className="opportunity-score-details">
           <summary>Score breakdown</summary>
           <dl className="opportunity-breakdown">

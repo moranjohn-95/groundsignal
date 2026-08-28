@@ -79,7 +79,7 @@ const opportunity: Opportunity = {
 }
 
 describe('OpportunityCard', () => {
-  it('renders a compact heading, human metadata, and accessible disclosures', async () => {
+  it('renders a compact heading, human metadata, and score disclosure', async () => {
     const onViewOpportunity = vi.fn()
     render(
       <OpportunityCard
@@ -111,13 +111,10 @@ describe('OpportunityCard', () => {
     expect(within(card).getByLabelText('Likely electrical work')).toHaveClass(
       'electrical-work-brief--direct',
     )
-    expect(within(card).getByText(longDescription)).toBeInTheDocument()
-
-    const descriptionSummary = within(card).getByText('Planning description')
-    const descriptionDetails = descriptionSummary.closest('details')
-    expect(descriptionDetails).not.toHaveAttribute('open')
-    await user.click(descriptionSummary)
-    expect(descriptionDetails).toHaveAttribute('open')
+    expect(within(card).queryByText(longDescription)).not.toBeInTheDocument()
+    expect(
+      within(card).queryByText('Planning description'),
+    ).not.toBeInTheDocument()
 
     const breakdownSummary = within(card).getByText('Score breakdown')
     const breakdownDetails = breakdownSummary.closest('details')
@@ -152,9 +149,6 @@ describe('OpportunityCard', () => {
     const card = screen.getByRole('article', {
       name: 'Planning application 0012345',
     })
-    expect(
-      within(card).queryByText('Planning description'),
-    ).not.toBeInTheDocument()
     expect(
       within(card).getByRole('link', { name: 'View opportunity' }),
     ).toHaveAttribute('href', '/opportunities/20')
