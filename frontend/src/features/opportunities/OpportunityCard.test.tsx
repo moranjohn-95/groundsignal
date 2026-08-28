@@ -99,7 +99,19 @@ describe('OpportunityCard', () => {
     expect(within(card).getByText('Industrial')).toBeInTheDocument()
     expect(within(card).getByText('18.7 km')).toBeInTheDocument()
     expect(within(card).getByText('18 August 2026')).toBeInTheDocument()
-    expect(within(card).getByText('Confirmed signal')).toBeInTheDocument()
+    const signalIndicator = within(card).getByRole('img', {
+      name: 'Electrical signal: confirmed',
+    })
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--active',
+      ),
+    ).toHaveLength(3)
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--inactive',
+      ),
+    ).toHaveLength(0)
     expect(
       within(card).getByText(
         'Electrical work evidenced: electrical installation work.',
@@ -273,7 +285,19 @@ describe('OpportunityCard', () => {
       />,
     )
 
-    expect(screen.getByText('No specific signal')).toBeInTheDocument()
+    const signalIndicator = screen.getByRole('img', {
+      name: 'Electrical signal: no specific signal',
+    })
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--active',
+      ),
+    ).toHaveLength(0)
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--inactive',
+      ),
+    ).toHaveLength(3)
     expect(
       screen.getByText(
         'No specific electrical work identified in the planning description.',
@@ -300,7 +324,19 @@ describe('OpportunityCard', () => {
       />,
     )
 
-    expect(screen.getByText('Likely opportunity')).toBeInTheDocument()
+    const signalIndicator = screen.getByRole('img', {
+      name: 'Electrical signal: likely',
+    })
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--active',
+      ),
+    ).toHaveLength(2)
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--inactive',
+      ),
+    ).toHaveLength(1)
     expect(
       screen.getByText(/review plans for confirmation/i),
     ).toBeInTheDocument()
@@ -325,7 +361,11 @@ describe('OpportunityCard', () => {
       />,
     )
 
-    expect(screen.getByText('No specific signal')).toBeInTheDocument()
+    expect(
+      screen.getByRole('img', {
+        name: 'Electrical signal: no specific signal',
+      }),
+    ).toBeInTheDocument()
     expect(
       screen.getByText(
         'No specific electrical work identified in the planning description.',

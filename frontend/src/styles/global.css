@@ -633,6 +633,33 @@ summary:focus-visible {
   padding-left: 1.25rem;
 }
 
+.electrical-signal-indicator {
+  display: flex;
+  width: fit-content;
+  gap: 0.25rem;
+  color: var(--color-focus);
+}
+
+.electrical-signal-indicator__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.electrical-signal-indicator__icon--active path {
+  fill: currentColor;
+}
+
+.electrical-signal-indicator__icon--inactive {
+  color: var(--color-text-muted);
+}
+
+.electrical-signal-indicator__icon--inactive path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
+
 .electrical-work-brief__status {
   width: fit-content;
   padding: 0.1875rem 0.5rem;

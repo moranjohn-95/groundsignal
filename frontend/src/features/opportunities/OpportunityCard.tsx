@@ -5,12 +5,12 @@ import {
   formatOpportunityDate,
   formatOpportunityDistance,
   formatOpportunityLabel,
-  electricalEvidenceLabel,
   electricalWorkBriefFor,
   electricalWorkSummary,
   formatOpportunityLocation,
   normalizeOpportunityDescription,
 } from './opportunityPresentation'
+import ElectricalSignalIndicator from './ElectricalSignalIndicator'
 
 interface OpportunityCardProps {
   opportunity: Opportunity
@@ -140,11 +140,9 @@ function OpportunityCard({
         className={`electrical-work-brief electrical-work-brief--${electricalWorkBrief.evidence_level}`}
         aria-label="Likely electrical work"
       >
-        <span
-          className={`electrical-work-brief__status electrical-work-brief__status--${electricalWorkBrief.evidence_level}`}
-        >
-          {electricalEvidenceLabel(electricalWorkBrief)}
-        </span>
+        <ElectricalSignalIndicator
+          evidenceLevel={electricalWorkBrief.evidence_level}
+        />
         <strong>Likely electrical work</strong>
         <p>{electricalWorkBriefSummary}</p>
         {electricalWorkBrief.evidence_level === 'direct' &&
