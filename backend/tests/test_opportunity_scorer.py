@@ -55,6 +55,65 @@ OWN_DOOR_MAISONETTE_DESCRIPTION = (
     "site development works."
 )
 
+DOCTORS_SURGERY_DESCRIPTION = (
+    "Full planning permission to, A) change of use of the existing dwelling "
+    "house to doctors surgery, B) demolish existing garage, C) permission for "
+    "associated signage, D) internal alterations to existing dwelling house to "
+    "accommodate doctors surgery and minor elevational alterations to the "
+    "existing dwelling house and all ancillary site development works."
+)
+
+CONSERVATORY_ATTIC_EXTENSION_DESCRIPTION = (
+    "(a) conservatory at south side of dwelling, (b) extension with attic space "
+    "over, incorporating 2 no. rooflights at north side of dwelling, (c) "
+    "domestic garage/car port to rear of dwelling, (d) fuel shed/garden tools "
+    "storage shed to rear of dwelling and (e) all ancillary works"
+)
+
+KERRY_2660732_DESCRIPTION = (
+    "FULL PLANNING PERMISSION FOR PERMISSION TO CONSTRUCT A DOMESTIC GARAGE / "
+    "STORE, TO BE CONSTRUCTED IN CONJUNCTION WITH THE DEVELOPMENT PREVIOUSLY "
+    "GRANTED UNDER REFERENCE NO. 25/60740, TOGETHER WITH ALL ASSOCIATED "
+    "ANCILLARY SITE WORKS"
+)
+
+KERRY_2660719_DESCRIPTION = (
+    "permission to a) renovate the existing dwelling, b) demolish and rebuild "
+    "the existing porch, c) decommission the existing septic tank, d) install a "
+    "mechanical treatment unit and raised polishing filter and e) construct all "
+    "associated site works"
+)
+
+KERRY_2660717_DESCRIPTION = (
+    "PERMISSION for: (1)The demolition of existing glazed conservatory "
+    "extension, internal stone chimneybreast and internal blockwork partitions. "
+    "(2) Renovation and fabric upgrade of the existing stone cottage; (3) Change "
+    "of use of adjacent original stone outbuilding to ancillary accommodation "
+    "with the addition of a conservatory extension; and (4) All associated site "
+    "services. RETENTION PERMISSION for: Retention of two existing outbuildings "
+    "for use as a store and home office"
+)
+
+KERRY_2660734_DESCRIPTION = (
+    "Planning permission to refurbish and extend our existing dwelling house by "
+    "erecting a new single-story pitched roof extension to the east side, with "
+    "two Velux roof windows to the rear of the new roof and one Velux to the rear "
+    "of the existing roof. The development will include all associated ancillary "
+    "site works, including the demolition of the front boundary wall to the side "
+    "patio area"
+)
+
+KERRY_2660747_DESCRIPTION = (
+    "Retention permission to Retain as built garage/storage shed and associated "
+    "site works"
+)
+
+KERRY_2660736_DESCRIPTION = (
+    "Retention Permission to Retain utility room extension to dwelling house "
+    "previously granted permission under Ref 2560667, all in accordance with "
+    "the plans and particulars submitted"
+)
+
 
 def _score(**overrides):
     values = {
@@ -154,9 +213,9 @@ def _score(**overrides):
                 "received_date": date(2024, 12, 20),
                 "category": "residential",
             },
-            39,
-            "low",
-            OpportunityScoreBreakdown(20, 0, 4, 8, 7),
+            45,
+            "medium",
+            OpportunityScoreBreakdown(20, 6, 4, 8, 7),
             id="residential-extension",
         ),
         pytest.param(
@@ -168,9 +227,9 @@ def _score(**overrides):
                 "received_date": date(2024, 12, 1),
                 "category": "commercial",
             },
-            59,
+            53,
             "medium",
-            OpportunityScoreBreakdown(20, 12, 12, 5, 10),
+            OpportunityScoreBreakdown(20, 6, 12, 5, 10),
             id="commercial-medical-centre-change-of-use",
         ),
         pytest.param(
@@ -180,9 +239,9 @@ def _score(**overrides):
                 "received_date": date(2025, 1, 5),
                 "category": "commercial",
             },
-            38,
-            "low",
-            OpportunityScoreBreakdown(10, 0, 8, 10, 10),
+            44,
+            "medium",
+            OpportunityScoreBreakdown(10, 6, 8, 10, 10),
             id="hotel-alterations",
         ),
         pytest.param(
@@ -295,6 +354,96 @@ def test_erect_legitimate_buildings_remain_major(
     assert "Minor signage, boundary or lighting works" not in result.reasons
 
 
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construction of an off-road car park.",
+        "Construction of a service road.",
+        (
+            "Construction of an off-road car park, service road, play area, and "
+            "landscaping."
+        ),
+        "Development of a playground.",
+        "Provision of landscaping and a community garden.",
+        "Construction of a new access entrance.",
+        "Construction of boundary walls and fences.",
+        "Provision of drainage and ancillary site works.",
+        "Development of a public car park.",
+    ],
+)
+def test_site_only_works_receive_limited_project_scope(description: str) -> None:
+    result = _score(description=description, category="other")
+
+    assert result.score_breakdown.project_scope == 5
+    assert result.score_breakdown.electrical_relevance == 0
+    assert result.opportunity_score == 8
+    assert result.opportunity_level == "very_low"
+
+
+def test_demolition_only_does_not_receive_major_project_scope() -> None:
+    result = _score(
+        description="Demolition of an existing warehouse.",
+        category="industrial",
+    )
+
+    assert result.score_breakdown.project_scope == 0
+    assert result.score_breakdown.electrical_relevance == 0
+
+
+@pytest.mark.parametrize(
+    ("description", "category", "expected_electrical_points"),
+    [
+        (
+            "Construction of a new school building with car parking and landscaping.",
+            "other",
+            12,
+        ),
+        (
+            "Construction of a warehouse and associated parking.",
+            "industrial",
+            12,
+        ),
+        (
+            "Construction of 20 dwellings with roads, parking, and landscaping.",
+            "residential",
+            15,
+        ),
+    ],
+)
+def test_building_construction_remains_major_with_ancillary_site_works(
+    description: str,
+    category: str,
+    expected_electrical_points: int,
+) -> None:
+    result = _score(description=description, category=category)
+
+    assert result.score_breakdown.project_scope == 30
+    assert result.score_breakdown.electrical_relevance == expected_electrical_points
+    assert result.electrical_work_brief.evidence_level == "inferred"
+
+
+def test_ev_charging_in_a_car_park_retains_direct_electrical_evidence() -> None:
+    result = _score(
+        description="Construction of a car park with EV charging points.",
+        category="other",
+    )
+
+    assert result.score_breakdown.project_scope == 5
+    assert result.score_breakdown.electrical_relevance == 30
+    assert result.electrical_work_brief.evidence_level == "direct"
+
+
+def test_significant_car_park_lighting_retains_direct_electrical_evidence() -> None:
+    result = _score(
+        description="Construction of a car park with a car park lighting installation.",
+        category="other",
+    )
+
+    assert result.score_breakdown.project_scope == 5
+    assert result.score_breakdown.electrical_relevance == 20
+    assert result.electrical_work_brief.evidence_level == "direct"
+
+
 def test_accommodation_solar_retains_strong_electrical_relevance() -> None:
     result = _score(
         description=ACCOMMODATION_SOLAR_DESCRIPTION,
@@ -308,16 +457,17 @@ def test_accommodation_solar_retains_strong_electrical_relevance() -> None:
     assert "Renewable electrical installation identified" in result.reasons
 
 
-def test_commercial_fit_out_has_contextual_electrical_relevance() -> None:
+def test_commercial_fit_out_has_possible_electrical_relevance() -> None:
     result = _score(
         description="Fit-out of an existing retail unit as a medical clinic.",
         category="commercial",
     )
 
     assert result.score_breakdown.project_scope == 20
-    assert result.score_breakdown.electrical_relevance == 12
+    assert result.score_breakdown.electrical_relevance == 6
+    assert result.electrical_work_brief.evidence_level == "possible"
     assert (
-        "Electrical work implied by substantial business development"
+        "Electrical work possible for substantive building work"
         in result.reasons
     )
 
@@ -408,6 +558,67 @@ def test_large_apartment_development_retains_strong_inferred_electrical_work() -
     assert result.electrical_work_brief.signals == ()
 
 
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construct a dwelling house.",
+        "Construct a dwelling.",
+        "Construct one dwelling.",
+        "Construct 1 dwelling.",
+    ],
+)
+def test_new_single_dwelling_text_is_parsed_as_possible_electrical_work(
+    description: str,
+) -> None:
+    result = _score(description=description, category="residential")
+
+    assert result.opportunity_score == 47
+    assert result.opportunity_level == "medium"
+    assert result.score_breakdown == OpportunityScoreBreakdown(30, 6, 4, 0, 7)
+    assert result.electrical_work_brief.evidence_level == "possible"
+
+
+@pytest.mark.parametrize(
+    "unit_phrase",
+    [
+        "8 apartments",
+        "8 no. apartments",
+        "8 no apartments",
+        "8no. apartments",
+        "8no apartments",
+        "8 dwelling units",
+        "8 house units",
+    ],
+)
+def test_common_irish_numeric_residential_unit_formats_are_parsed(
+    unit_phrase: str,
+) -> None:
+    result = _score(
+        description=f"Construction of {unit_phrase}.",
+        category="residential",
+    )
+
+    assert result.score_breakdown.project_scale == 8
+    assert result.score_breakdown.electrical_relevance == 12
+    assert result.electrical_work_brief.evidence_level == "inferred"
+
+
+def test_real_apartment_application_parses_compact_unit_count_after_demolition() -> None:
+    result = _score(
+        description=(
+            "Demolish the existing warehouse on site b) construct a new 4 storey "
+            "building consisting of 8no. apartments with associated circulation and "
+            "service spaces"
+        ),
+        category="residential",
+    )
+
+    assert result.opportunity_score == 57
+    assert result.opportunity_level == "medium"
+    assert result.score_breakdown == OpportunityScoreBreakdown(30, 12, 8, 0, 7)
+    assert result.electrical_work_brief.evidence_level == "inferred"
+
+
 def test_substantial_residential_extension_is_possible_electrical_work() -> None:
     result = _score(
         description=(
@@ -422,6 +633,147 @@ def test_substantial_residential_extension_is_possible_electrical_work() -> None
     assert result.electrical_work_brief.signals == ()
 
 
+def test_real_doctors_surgery_conversion_is_possible_electrical_work() -> None:
+    result = _score(
+        description=DOCTORS_SURGERY_DESCRIPTION,
+        application_type="PERMISSION",
+        category="residential",
+    )
+
+    assert result.score_breakdown == OpportunityScoreBreakdown(20, 6, 0, 0, 7)
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.electrical_work_brief.summary == (
+        "Possible electrical work associated with proposed building, internal, "
+        "conversion, or mechanical work -- review plans for confirmation."
+    )
+
+
+def test_real_conservatory_attic_extension_is_possible_electrical_work() -> None:
+    result = _score(
+        description=CONSERVATORY_ATTIC_EXTENSION_DESCRIPTION,
+        application_type="RETENTION",
+        category="residential",
+    )
+
+    assert result.score_breakdown == OpportunityScoreBreakdown(20, 6, 0, 0, 7)
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.electrical_work_brief.summary == (
+        "Possible electrical work associated with proposed building, internal, "
+        "conversion, or mechanical work -- review plans for confirmation."
+    )
+
+
+@pytest.mark.parametrize(
+    ("application_number", "description", "application_type", "category", "expected_evidence"),
+    [
+        ("2660732", KERRY_2660732_DESCRIPTION, "PERMISSION", "other", "possible"),
+        ("2660719", KERRY_2660719_DESCRIPTION, "PERMISSION", "other", "possible"),
+        ("2660717", KERRY_2660717_DESCRIPTION, "PERMISSION", "other", "possible"),
+        ("2660734", KERRY_2660734_DESCRIPTION, "PERMISSION", "other", "possible"),
+        ("2660747", KERRY_2660747_DESCRIPTION, "RETENTION", "other", "unavailable"),
+        ("2660736", KERRY_2660736_DESCRIPTION, "RETENTION", "residential", "unavailable"),
+    ],
+)
+def test_real_kerry_building_work_regressions(
+    application_number: str,
+    description: str,
+    application_type: str,
+    category: str,
+    expected_evidence: str,
+) -> None:
+    result = _score(
+        description=description,
+        application_type=application_type,
+        category=category,
+    )
+
+    assert result.electrical_work_brief.evidence_level == expected_evidence
+    assert result.score_breakdown.electrical_relevance == (
+        6 if expected_evidence == "possible" else 0
+    ), application_number
+
+
+@pytest.mark.parametrize(
+    ("description", "category"),
+    [
+        ("Construction of a new workshop.", "other"),
+        ("Construction of a new detached garage.", "residential"),
+        ("Construction of a new garden room for a home office.", "residential"),
+        ("Internal alterations to an existing office.", "commercial"),
+        ("Fit-out of an existing retail unit.", "commercial"),
+        ("Conversion of an attic to a bedroom in an existing dwelling.", "residential"),
+        (
+            "Construction of a substantial kitchen and living-room extension to "
+            "an existing dwelling.",
+            "residential",
+        ),
+        ("Construction of a utility-room extension to an existing dwelling.", "residential"),
+        ("Rebuild an existing porch at a dwelling house.", "residential"),
+        ("Construction of a new conservatory at an existing dwelling.", "residential"),
+        (
+            "Installation of a mechanical treatment plant serving an existing "
+            "dwelling.",
+            "residential",
+        ),
+    ],
+)
+def test_substantive_building_work_is_possible_electrical_work(
+    description: str,
+    category: str,
+) -> None:
+    result = _score(description=description, category=category)
+
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.score_breakdown.electrical_relevance == 6
+
+
+@pytest.mark.parametrize(
+    ("description", "category"),
+    [
+        ("Landscaping and garden works at an existing dwelling.", "residential"),
+        ("Drainage works serving an existing dwelling.", "residential"),
+        ("Construction of a car park and turning area.", "other"),
+        ("Demolition of an existing dwelling.", "residential"),
+        ("Retention of a completed domestic garage.", "residential"),
+        ("Construction of a boundary wall and fence.", "residential"),
+        ("Retention of an existing garage/storage shed.", "residential"),
+        ("Minor internal alterations to an existing dwelling.", "residential"),
+        ("Construction of a car park extension at an existing dwelling.", "residential"),
+    ],
+)
+def test_site_only_retention_or_minor_work_remains_without_electrical_evidence(
+    description: str,
+    category: str,
+) -> None:
+    result = _score(description=description, category=category)
+
+    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.score_breakdown.electrical_relevance == 0
+
+
+@pytest.mark.parametrize(
+    ("electrical_words", "expected_points"),
+    [
+        ("EV charging points", 30),
+        ("solar PV", 25),
+        ("electrical substation", 30),
+        ("external lighting scheme", 20),
+        ("electrical works", 30),
+    ],
+)
+def test_direct_electrical_evidence_overrides_possible_conversion_inference(
+    electrical_words: str,
+    expected_points: int,
+) -> None:
+    result = _score(
+        description=f"{DOCTORS_SURGERY_DESCRIPTION} Including {electrical_words}.",
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "direct"
+    assert result.score_breakdown.electrical_relevance == expected_points
+
+
 def test_trivial_residential_alteration_remains_without_electrical_evidence() -> None:
     result = _score(
         description="Minor alterations to an existing dwelling.",
@@ -430,6 +782,23 @@ def test_trivial_residential_alteration_remains_without_electrical_evidence() ->
 
     assert result.electrical_work_brief.evidence_level == "unavailable"
     assert result.score_breakdown.electrical_relevance == 0
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Retention of an existing dwelling house.",
+        "Demolition of a dwelling house.",
+    ],
+)
+def test_existing_dwelling_references_do_not_create_textual_unit_counts(
+    description: str,
+) -> None:
+    result = _score(description=description, category="residential")
+
+    assert result.score_breakdown.project_scale == 0
+    assert result.score_breakdown.electrical_relevance == 0
+    assert result.electrical_work_brief.evidence_level == "unavailable"
 
 
 def test_new_school_building_has_inferred_electrical_work() -> None:
@@ -464,7 +833,7 @@ def test_plausible_small_school_alterations_are_possible_electrical_work() -> No
     )
 
     assert result.electrical_work_brief.evidence_level == "possible"
-    assert result.score_breakdown.electrical_relevance == 5
+    assert result.score_breakdown.electrical_relevance == 6
     assert result.electrical_work_brief.signals == ()
 
 
@@ -498,9 +867,7 @@ def test_school_site_only_work_remains_without_electrical_evidence(
         "Demolition of a dwelling house.",
         "Retention of an existing dwelling.",
         "Alterations to an existing dwelling.",
-        "Construction of a domestic garage at an existing dwelling.",
         "Construction of garden works at an existing dwelling.",
-        "Construction of a 120 sqm garden room at an existing dwelling.",
         "Construction of a 120 sqm car park extension at an existing dwelling.",
         "Construction of a boundary wall at an existing dwelling.",
     ],
