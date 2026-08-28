@@ -612,6 +612,33 @@ def test_response_serializes_a_complete_electrical_work_brief(opportunity_client
     }
 
 
+def test_response_serializes_a_possible_electrical_work_brief(opportunity_client) -> None:
+    client, session = opportunity_client
+    _set_candidate_rows(
+        session,
+        [
+            _candidate_row(
+                1,
+                description="Replacement of one external light fitting.",
+                category="other",
+                floor_area=None,
+            )
+        ],
+    )
+
+    response = client.get("/api/v1/opportunities", params=_valid_params())
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["electrical_work_brief"] == {
+        "evidence_level": "possible",
+        "summary": (
+            "Possible limited electrical work: replacement of one external "
+            "light fitting."
+        ),
+        "signals": [],
+    }
+
+
 def test_response_hides_unsafe_application_url_from_existing_records(
     opportunity_client,
 ) -> None:

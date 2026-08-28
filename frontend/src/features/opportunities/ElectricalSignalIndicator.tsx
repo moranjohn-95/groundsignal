@@ -6,6 +6,7 @@ interface ElectricalSignalIndicatorProps {
 
 const signalStates = {
   direct: { activeIcons: 3, label: 'confirmed' },
+  possible: { activeIcons: 1, label: 'possible' },
   inferred: { activeIcons: 2, label: 'likely' },
   unavailable: { activeIcons: 0, label: 'no specific signal' },
 } as const

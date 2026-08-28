@@ -15,6 +15,7 @@ const KERRY_EPLANNING_APPLICATION_BASE_URL =
 const ALLOWED_APPLICATION_URL_PROTOCOLS = new Set(['http:', 'https:'])
 const ELECTRICAL_EVIDENCE_LEVELS = new Set([
   'direct',
+  'possible',
   'inferred',
   'unavailable',
 ])
@@ -37,6 +38,7 @@ export const unavailableElectricalWorkBrief: ElectricalWorkBrief = {
 
 export function electricalEvidenceLabel(brief: ElectricalWorkBrief) {
   if (brief.evidence_level === 'direct') return 'Confirmed signal'
+  if (brief.evidence_level === 'possible') return 'Possible electrical work'
   if (brief.evidence_level === 'inferred') return 'Likely opportunity'
   return 'No specific signal'
 }
@@ -49,6 +51,7 @@ export function electricalWorkSummary(brief: ElectricalWorkBrief) {
 
 export function electricalWorkCardHeading(brief: ElectricalWorkBrief) {
   if (brief.evidence_level === 'direct') return 'Confirmed electrical work'
+  if (brief.evidence_level === 'possible') return 'Possible electrical work'
   if (brief.evidence_level === 'inferred') return 'Very likely electrical work'
   return 'No specific electrical work'
 }

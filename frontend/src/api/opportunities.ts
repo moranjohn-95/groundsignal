@@ -35,7 +35,11 @@ export interface OpportunityScoreComponent {
   explanation: string
 }
 
-export type ElectricalEvidenceLevel = 'direct' | 'inferred' | 'unavailable'
+export type ElectricalEvidenceLevel =
+  | 'direct'
+  | 'possible'
+  | 'inferred'
+  | 'unavailable'
 
 export type ElectricalWorkType =
   | 'ev_charging'

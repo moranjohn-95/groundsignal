@@ -765,15 +765,19 @@ def test_weak_application_has_an_unavailable_electrical_work_brief() -> None:
     )
 
 
-def test_minor_lighting_replacement_remains_a_low_evidence_brief() -> None:
+def test_minor_lighting_replacement_is_a_possible_electrical_work_brief() -> None:
     result = _score(
         description="Replacement of one external light fitting.",
         category="other",
     )
 
     assert result.score_breakdown.electrical_relevance == 5
-    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.electrical_work_brief.evidence_level == "possible"
     assert result.electrical_work_brief.signals == ()
+    assert result.electrical_work_brief.summary == (
+        "Possible limited electrical work: replacement of one external light "
+        "fitting."
+    )
 
 
 def test_explicit_electrical_equipment_is_direct_regardless_of_project_scope() -> None:

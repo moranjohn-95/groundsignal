@@ -349,6 +349,46 @@ describe('OpportunityCard', () => {
     )
   })
 
+  it('presents limited electrical work as a possible opportunity', () => {
+    render(
+      <OpportunityCard
+        opportunity={{
+          ...opportunity,
+          electrical_work_brief: {
+            evidence_level: 'possible',
+            summary:
+              'Possible limited electrical work: replacement of one external light fitting.',
+            signals: [],
+          },
+        }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    const signalIndicator = screen.getByRole('img', {
+      name: 'Electrical signal: possible',
+    })
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--active',
+      ),
+    ).toHaveLength(1)
+    expect(
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--inactive',
+      ),
+    ).toHaveLength(2)
+    expect(screen.getByText('Possible electrical work')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Possible limited electrical work: replacement of one external light fitting.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Likely electrical work')).toHaveClass(
+      'electrical-work-brief--possible',
+    )
+  })
+
   it('safely falls back for a malformed electrical work brief', () => {
     render(
       <OpportunityCard

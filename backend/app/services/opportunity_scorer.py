@@ -24,7 +24,7 @@ OpportunityScoreComponentName = Literal[
     "category_fit",
 ]
 
-ElectricalEvidenceLevel = Literal["direct", "inferred", "unavailable"]
+ElectricalEvidenceLevel = Literal["direct", "possible", "inferred", "unavailable"]
 ElectricalWorkType = Literal[
     "ev_charging",
     "substation_distribution",
@@ -373,9 +373,10 @@ def _assess_electrical_relevance(
     )
     if _MINOR_LIGHTING_PATTERN.search(text) and not signals:
         return _ElectricalAssessment(
-            "unavailable", signals, 5, "Minor lighting replacement",
+            "possible", signals, 5, "Minor lighting replacement",
             "The application includes replacement of one external light fitting.",
-            "Electrical work is not evidenced by the available planning data.",
+            "Possible limited electrical work: replacement of one external "
+            "light fitting.",
         )
     for work_type, score, reason, explanation in (
         ("ev_charging", 30, "EV charging infrastructure identified", "a strong electrical indicator."),
