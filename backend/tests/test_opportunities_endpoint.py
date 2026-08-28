@@ -61,8 +61,14 @@ def _candidate_row(
     }
 
 
-def _score_result(score: int) -> OpportunityScoreResult:
-    remaining = score
+def _score_result(
+    score: int,
+    *,
+    raw_score: int | None = None,
+    evidence_level: str = "direct",
+) -> OpportunityScoreResult:
+    raw_score = score if raw_score is None else raw_score
+    remaining = raw_score
     components = []
     for maximum in (30, 30, 20, 10, 10):
         component = min(remaining, maximum)
@@ -70,6 +76,7 @@ def _score_result(score: int) -> OpportunityScoreResult:
         remaining -= component
     return OpportunityScoreResult(
         opportunity_score=score,
+        raw_opportunity_score=raw_score,
         opportunity_level=opportunity_level_for_score(score),
         score_breakdown=OpportunityScoreBreakdown(*components),
         score_components=tuple(
@@ -83,7 +90,7 @@ def _score_result(score: int) -> OpportunityScoreResult:
         ),
         reasons=("Test evidence",),
         electrical_work_brief=ElectricalWorkBrief(
-            evidence_level="unavailable",
+            evidence_level=evidence_level,
             summary="Electrical work is not evidenced by the available planning data.",
             signals=(),
         ),
@@ -440,6 +447,43 @@ def test_best_sort_and_page_are_applied_after_all_candidates_are_scored(
     assert scorer.call_count == 4
 
 
+def test_best_sort_uses_effective_scores_capped_by_electrical_evidence(
+    opportunity_client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, session = opportunity_client
+    _set_candidate_rows(
+        session,
+        [
+            _candidate_row(1),
+            _candidate_row(2),
+            _candidate_row(3),
+            _candidate_row(4),
+        ],
+    )
+    scorer = Mock(
+        side_effect=[
+            _score_result(39, raw_score=90, evidence_level="unavailable"),
+            _score_result(59, raw_score=70, evidence_level="possible"),
+            _score_result(79, raw_score=85, evidence_level="inferred"),
+            _score_result(85, raw_score=85, evidence_level="direct"),
+        ]
+    )
+    monkeypatch.setattr(
+        opportunities,
+        "score_planning_application_opportunity",
+        scorer,
+    )
+
+    response = client.get("/api/v1/opportunities", params=_valid_params(sort="best"))
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [item["id"] for item in items] == [4, 3, 2, 1]
+    assert [item["opportunity_score"] for item in items] == [85, 79, 59, 39]
+    assert [item["raw_opportunity_score"] for item in items] == [85, 85, 70, 90]
+
+
 def test_equal_scores_use_received_date_then_id_descending(
     opportunity_client,
     monkeypatch: pytest.MonkeyPatch,
@@ -583,6 +627,7 @@ def test_response_exposes_only_feed_fields(opportunity_client) -> None:
         "category",
         "distance_km",
         "opportunity_score",
+        "raw_opportunity_score",
         "opportunity_level",
         "opportunity_breakdown",
         "opportunity_score_components",

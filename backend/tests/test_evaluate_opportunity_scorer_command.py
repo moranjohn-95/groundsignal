@@ -54,6 +54,7 @@ def _score_result(score: int) -> OpportunityScoreResult:
         remaining -= component
     return OpportunityScoreResult(
         opportunity_score=score,
+        raw_opportunity_score=score,
         opportunity_level=opportunity_level_for_score(score),
         score_breakdown=OpportunityScoreBreakdown(*components),
         score_components=tuple(

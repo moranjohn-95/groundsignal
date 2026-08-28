@@ -225,6 +225,7 @@ def _score_candidates(
                 category=candidate.category,
                 distance_km=candidate.distance_km,
                 opportunity_score=opportunity.opportunity_score,
+                raw_opportunity_score=opportunity.raw_opportunity_score,
                 opportunity_level=opportunity.opportunity_level,
                 opportunity_breakdown=opportunity.score_breakdown,
                 opportunity_score_components=opportunity.score_components,

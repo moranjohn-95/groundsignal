@@ -75,6 +75,7 @@ export interface Opportunity {
   category: PlanningApplicationCategory
   distance_km: number
   opportunity_score: number
+  raw_opportunity_score?: number
   opportunity_level: OpportunityLevel
   opportunity_breakdown: OpportunityBreakdown
   opportunity_score_components: OpportunityScoreComponent[]

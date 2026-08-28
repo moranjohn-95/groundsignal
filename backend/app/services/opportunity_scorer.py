@@ -43,6 +43,16 @@ SCORE_COMPONENT_MAXIMUMS: dict[OpportunityScoreComponentName, int] = {
     "category_fit": 10,
 }
 
+# The displayed opportunity score is capped by the confidence of the electrical
+# evidence. The raw component values remain available separately so that the
+# cap does not hide how the underlying project was assessed.
+ELECTRICAL_EVIDENCE_SCORE_CEILINGS: dict[ElectricalEvidenceLevel, int] = {
+    "unavailable": 39,
+    "possible": 59,
+    "inferred": 79,
+    "direct": 100,
+}
+
 
 CATEGORY_FIT_SCORES: dict[PlanningApplicationCategory, int] = {
     "industrial": 10,
@@ -108,6 +118,7 @@ class _ElectricalAssessment:
 @dataclass(frozen=True)
 class OpportunityScoreResult:
     opportunity_score: int
+    raw_opportunity_score: int
     opportunity_level: OpportunityLevel
     score_breakdown: OpportunityScoreBreakdown
     score_components: tuple[OpportunityScoreComponent, ...]
@@ -1214,6 +1225,17 @@ def opportunity_level_for_score(score: int) -> OpportunityLevel:
     return "very_low"
 
 
+def _effective_opportunity_score(
+    raw_opportunity_score: int,
+    evidence_level: ElectricalEvidenceLevel,
+) -> int:
+    """Apply the opportunity ceiling associated with electrical evidence."""
+    return min(
+        raw_opportunity_score,
+        ELECTRICAL_EVIDENCE_SCORE_CEILINGS[evidence_level],
+    )
+
+
 def score_planning_application_opportunity(
     description: str | None = None,
     application_type: str | None = None,
@@ -1328,9 +1350,16 @@ def score_planning_application_opportunity(
         ),
     )
 
+    raw_opportunity_score = score_breakdown.total
+    opportunity_score = _effective_opportunity_score(
+        raw_opportunity_score,
+        electrical_assessment.evidence_level,
+    )
+
     return OpportunityScoreResult(
-        opportunity_score=score_breakdown.total,
-        opportunity_level=opportunity_level_for_score(score_breakdown.total),
+        opportunity_score=opportunity_score,
+        raw_opportunity_score=raw_opportunity_score,
+        opportunity_level=opportunity_level_for_score(opportunity_score),
         score_breakdown=score_breakdown,
         score_components=score_components,
         reasons=reasons,

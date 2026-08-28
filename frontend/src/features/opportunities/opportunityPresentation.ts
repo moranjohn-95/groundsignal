@@ -28,6 +28,11 @@ const ELECTRICAL_WORK_TYPES = new Set([
   'electrical_installation',
   'electrical_plant_equipment',
 ])
+const SCORE_CAP_EXPLANATIONS = {
+  unavailable: 'no specific electrical opportunity was identified',
+  possible: 'electrical work is possible but not strongly evidenced',
+  inferred: 'electrical work is inferred rather than directly evidenced',
+} as const
 
 export const unavailableElectricalWorkBrief: ElectricalWorkBrief = {
   evidence_level: 'unavailable',
@@ -63,6 +68,30 @@ export function electricalWorkBriefFor(
   return isElectricalWorkBrief(brief) ? brief : unavailableElectricalWorkBrief
 }
 
+export function scoreCapMessageFor(
+  opportunity: Pick<
+    Opportunity,
+    | 'opportunity_score'
+    | 'raw_opportunity_score'
+    | 'electrical_work_brief'
+  >,
+) {
+  const rawScore = opportunity.raw_opportunity_score
+  const effectiveScore = opportunity.opportunity_score
+  const evidenceLevel = electricalWorkBriefFor(opportunity).evidence_level
+
+  if (
+    !isOpportunityScore(rawScore) ||
+    !isOpportunityScore(effectiveScore) ||
+    rawScore <= effectiveScore ||
+    evidenceLevel === 'direct'
+  ) {
+    return null
+  }
+
+  return `Raw score: ${rawScore}. Final score capped at ${effectiveScore} because ${SCORE_CAP_EXPLANATIONS[evidenceLevel]}.`
+}
+
 function isElectricalWorkSignal(value: unknown): value is ElectricalWorkSignal {
   if (typeof value !== 'object' || value === null) return false
 
@@ -85,6 +114,10 @@ function isElectricalWorkBrief(value: unknown): value is ElectricalWorkBrief {
     Array.isArray(brief.signals) &&
     brief.signals.every(isElectricalWorkSignal)
   )
+}
+
+function isOpportunityScore(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100
 }
 
 export function safeApplicationUrl(value: string | null) {

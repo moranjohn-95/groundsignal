@@ -25,6 +25,7 @@ class OpportunityResponse(BaseModel):
     category: PlanningApplicationCategory
     distance_km: float
     opportunity_score: int
+    raw_opportunity_score: int
     opportunity_level: OpportunityLevel
     opportunity_breakdown: OpportunityScoreBreakdown
     opportunity_score_components: tuple[OpportunityScoreComponent, ...]

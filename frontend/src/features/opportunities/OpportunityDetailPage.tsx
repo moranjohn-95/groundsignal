@@ -13,6 +13,7 @@ import {
   electricalWorkBriefFor,
   electricalWorkSummary,
   officialApplicationUrl,
+  scoreCapMessageFor,
 } from './opportunityPresentation'
 
 type DetailState =
@@ -134,6 +135,7 @@ function OpportunityDetailPage({
   const applicationUrl = officialApplicationUrl(opportunity)
   const electricalWorkBrief = electricalWorkBriefFor(opportunity)
   const electricalWorkBriefSummary = electricalWorkSummary(electricalWorkBrief)
+  const scoreCapMessage = scoreCapMessageFor(opportunity)
   const availableDistance = distanceKm ?? opportunity.distance_km
 
   return (
@@ -233,6 +235,11 @@ function OpportunityDetailPage({
                 </div>
               ))}
             </dl>
+            {scoreCapMessage !== null && (
+              <p className="opportunity-detail__score-cap-note">
+                {scoreCapMessage}
+              </p>
+            )}
           </section>
 
           <section aria-labelledby="electrical-work-heading">

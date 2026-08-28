@@ -20,6 +20,7 @@ const opportunity: OpportunityDetail = {
   application_url: 'https://example.test/generic-planning-search',
   category: 'industrial',
   opportunity_score: 96,
+  raw_opportunity_score: 96,
   opportunity_level: 'very_high',
   opportunity_breakdown: {
     project_scope: 30,
@@ -196,6 +197,90 @@ describe('OpportunityDetailPage', () => {
         'Review the official planning application before pursuing this lead.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'unavailable',
+      70,
+      39,
+      'Raw score: 70. Final score capped at 39 because no specific electrical opportunity was identified.',
+    ],
+    [
+      'possible',
+      70,
+      59,
+      'Raw score: 70. Final score capped at 59 because electrical work is possible but not strongly evidenced.',
+    ],
+    [
+      'inferred',
+      85,
+      79,
+      'Raw score: 85. Final score capped at 79 because electrical work is inferred rather than directly evidenced.',
+    ],
+  ])(
+    'explains the applied %s score cap',
+    async (evidenceLevel, rawScore, effectiveScore, expectedMessage) => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          ...opportunity,
+          opportunity_score: effectiveScore,
+          raw_opportunity_score: rawScore,
+          electrical_work_brief: {
+            evidence_level: evidenceLevel,
+            summary: 'Test electrical work brief.',
+            signals: [],
+          },
+        }),
+      )
+      render(<OpportunityDetailPage opportunityId={20} />)
+
+      expect(await screen.findByText(expectedMessage)).toBeInTheDocument()
+    },
+  )
+
+  it.each([
+    ['direct electrical evidence is uncapped', 'direct', 85, 85],
+    ['raw and final scores are equal', 'unavailable', 39, 39],
+  ])(
+    'does not show a cap explanation when %s',
+    async (_description, evidenceLevel, rawScore, effectiveScore) => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          ...opportunity,
+          opportunity_score: effectiveScore,
+          raw_opportunity_score: rawScore,
+          electrical_work_brief: {
+            evidence_level: evidenceLevel,
+            summary: 'Test electrical work brief.',
+            signals: [],
+          },
+        }),
+      )
+      render(<OpportunityDetailPage opportunityId={20} />)
+
+      await screen.findByRole('heading', { level: 3, name: 'Score breakdown' })
+      expect(screen.queryByText(/^Raw score:/)).not.toBeInTheDocument()
+    },
+  )
+
+  it('does not render a cap explanation for an invalid raw score response value', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        ...opportunity,
+        opportunity_score: 39,
+        raw_opportunity_score: '70',
+        electrical_work_brief: {
+          evidence_level: 'unavailable',
+          summary: 'Test electrical work brief.',
+          signals: [],
+        },
+      }),
+    )
+    render(<OpportunityDetailPage opportunityId={20} />)
+
+    await screen.findByRole('heading', { level: 3, name: 'Score breakdown' })
+    expect(screen.queryByText(/^Raw score:/)).not.toBeInTheDocument()
   })
 
   it.each([

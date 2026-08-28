@@ -928,6 +928,13 @@ summary:focus-visible {
   line-height: 1.5;
 }
 
+.opportunity-detail__score-cap-note {
+  margin: 0.875rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
 .opportunity-detail__footer {
   display: flex;
   align-items: center;
