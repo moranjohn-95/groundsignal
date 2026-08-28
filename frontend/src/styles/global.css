@@ -690,11 +690,6 @@ summary:focus-visible {
   font-weight: 700;
 }
 
-.electrical-work-brief__evidence {
-  color: var(--color-text);
-  font-weight: 650;
-}
-
 .opportunity-card__footer {
   display: flex;
   justify-content: flex-end;
@@ -1006,6 +1001,14 @@ summary:focus-visible {
 
   .opportunity-metadata {
     grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  }
+
+  .opportunity-card .electrical-work-brief {
+    min-height: 8rem;
+  }
+
+  .opportunity-card .electrical-work-brief > p {
+    min-height: 2.9em;
   }
 
   .opportunity-card__action {

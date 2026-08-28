@@ -47,6 +47,12 @@ export function electricalWorkSummary(brief: ElectricalWorkBrief) {
     : brief.summary
 }
 
+export function electricalWorkCardHeading(brief: ElectricalWorkBrief) {
+  if (brief.evidence_level === 'direct') return 'Confirmed electrical work'
+  if (brief.evidence_level === 'inferred') return 'Very likely electrical work'
+  return 'No specific electrical work'
+}
+
 export function electricalWorkBriefFor(
   opportunity: Pick<Opportunity, 'electrical_work_brief'>,
 ) {

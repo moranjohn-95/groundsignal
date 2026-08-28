@@ -6,6 +6,7 @@ import {
   formatOpportunityDistance,
   formatOpportunityLabel,
   electricalWorkBriefFor,
+  electricalWorkCardHeading,
   electricalWorkSummary,
   formatOpportunityLocation,
   normalizeOpportunityDescription,
@@ -51,6 +52,7 @@ function OpportunityCard({
   )
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
   const electricalWorkBrief = electricalWorkBriefFor(opportunity)
+  const electricalWorkBriefHeading = electricalWorkCardHeading(electricalWorkBrief)
   const electricalWorkBriefSummary = electricalWorkSummary(electricalWorkBrief)
 
   function handleViewOpportunity(event: MouseEvent<HTMLAnchorElement>) {
@@ -143,17 +145,8 @@ function OpportunityCard({
         <ElectricalSignalIndicator
           evidenceLevel={electricalWorkBrief.evidence_level}
         />
-        <strong>Likely electrical work</strong>
+        <strong>{electricalWorkBriefHeading}</strong>
         <p>{electricalWorkBriefSummary}</p>
-        {electricalWorkBrief.evidence_level === 'direct' &&
-          electricalWorkBrief.signals.length > 0 && (
-            <p className="electrical-work-brief__evidence">
-              Evidence:{' '}
-              {electricalWorkBrief.signals
-                .map((signal) => signal.evidence)
-                .join(', ')}
-            </p>
-          )}
       </section>
 
       <footer className="opportunity-card__footer">

@@ -113,13 +113,14 @@ describe('OpportunityCard', () => {
       ),
     ).toHaveLength(0)
     expect(
+      within(card).getByText('Confirmed electrical work'),
+    ).toBeInTheDocument()
+    expect(
       within(card).getByText(
         'Electrical work evidenced: electrical installation work.',
       ),
     ).toBeInTheDocument()
-    expect(
-      within(card).getByText('Evidence: electrical infrastructure'),
-    ).toBeInTheDocument()
+    expect(within(card).queryByText(/^Evidence:/)).not.toBeInTheDocument()
     expect(within(card).getByLabelText('Likely electrical work')).toHaveClass(
       'electrical-work-brief--direct',
     )
@@ -298,6 +299,7 @@ describe('OpportunityCard', () => {
         '.electrical-signal-indicator__icon--inactive',
       ),
     ).toHaveLength(3)
+    expect(screen.getByText('No specific electrical work')).toBeInTheDocument()
     expect(
       screen.getByText(
         'No specific electrical work identified in the planning description.',
@@ -337,6 +339,7 @@ describe('OpportunityCard', () => {
         '.electrical-signal-indicator__icon--inactive',
       ),
     ).toHaveLength(1)
+    expect(screen.getByText('Very likely electrical work')).toBeInTheDocument()
     expect(
       screen.getByText(/review plans for confirmation/i),
     ).toBeInTheDocument()
