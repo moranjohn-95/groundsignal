@@ -8,6 +8,7 @@ import {
   electricalEvidenceLabel,
   electricalWorkBriefFor,
   electricalWorkSummary,
+  formatOpportunityLocation,
   normalizeOpportunityDescription,
 } from './opportunityPresentation'
 
@@ -43,6 +44,7 @@ function OpportunityCard({
 }: OpportunityCardProps) {
   const headingId = `opportunity-${opportunity.id}-heading`
   const description = normalizeOpportunityDescription(opportunity.description)
+  const locationLines = formatOpportunityLocation(opportunity.address)
   const heading = displayHeading(description, opportunity.application_number)
   const opportunityLevel = formatOpportunityLabel(
     opportunity.opportunity_level,
@@ -113,10 +115,14 @@ function OpportunityCard({
         <div className="opportunity-metadata__location">
           <dt>Location</dt>
           <dd>
-            {opportunity.address === null ? (
+            {locationLines === null ? (
               'Not provided'
             ) : (
-              <address>{opportunity.address}</address>
+              <address className="opportunity-card__location-value">
+                {locationLines.map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
+              </address>
             )}
           </dd>
         </div>

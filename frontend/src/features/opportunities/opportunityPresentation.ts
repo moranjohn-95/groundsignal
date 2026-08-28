@@ -118,6 +118,20 @@ export function formatOpportunityDistance(distanceKm: number) {
   }).format(distanceKm)} km`
 }
 
+export function formatOpportunityLocation(address: string | null) {
+  if (address === null) return null
+
+  const parts = address
+    .split(',')
+    .map((part) => part.replaceAll(/\s+/g, ' ').trim())
+    .filter((part) => part !== '')
+
+  if (parts.length === 0) return null
+  if (parts.length <= 2) return [parts.join(', ')]
+
+  return [parts.slice(0, 2).join(', '), parts.slice(2).join(', ')]
+}
+
 export function normalizeOpportunityDescription(description: string | null) {
   const normalizedDescription = description?.replaceAll(/\s+/g, ' ').trim()
   return normalizedDescription === '' ? null : (normalizedDescription ?? null)

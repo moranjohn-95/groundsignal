@@ -558,10 +558,9 @@ describe('OpportunitiesPage', () => {
     ).toBeInTheDocument()
     expect(within(opportunity).getByText('26/1042')).toBeInTheDocument()
     expect(
-      within(opportunity).getByText(
-        'Manor West Business Park, Tralee, Co. Kerry',
-      ),
+      within(opportunity).getByText('Manor West Business Park, Tralee'),
     ).toBeInTheDocument()
+    expect(within(opportunity).getByText('Co. Kerry')).toBeInTheDocument()
     expect(within(opportunity).getByText('18 August 2026')).toBeInTheDocument()
     expect(within(opportunity).getByText('Score breakdown')).toBeInTheDocument()
     const viewOpportunityLink = within(opportunity).getByRole('link', {

@@ -154,6 +154,63 @@ describe('OpportunityCard', () => {
     ).toHaveAttribute('href', '/opportunities/20')
   })
 
+  it('splits a three-part location across two card lines', () => {
+    render(
+      <OpportunityCard
+        opportunity={{
+          ...opportunity,
+          address: 'Tonbwee, Castleisland, Co. Kerry',
+        }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    const location = screen.getByText('Tonbwee, Castleisland').parentElement
+    expect(location).toHaveClass('opportunity-card__location-value')
+    expect(within(location as HTMLElement).getByText('Co. Kerry')).toBeInTheDocument()
+  })
+
+  it('keeps remaining location parts together on the second card line', () => {
+    render(
+      <OpportunityCard
+        opportunity={{
+          ...opportunity,
+          address: 'Building A, Unit 2, Tralee, Co. Kerry',
+        }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Building A, Unit 2')).toBeInTheDocument()
+    expect(screen.getByText('Tralee, Co. Kerry')).toBeInTheDocument()
+  })
+
+  it.each(['Castleisland', 'Castleisland, Co. Kerry']) (
+    'keeps a short location on one card line: %s',
+    (address) => {
+      render(
+        <OpportunityCard
+          opportunity={{ ...opportunity, address }}
+          onViewOpportunity={vi.fn()}
+        />,
+      )
+
+      const location = screen.getByText(address).parentElement
+      expect(location?.querySelectorAll('span')).toHaveLength(1)
+    },
+  )
+
+  it('shows Not provided when the location is null', () => {
+    render(
+      <OpportunityCard
+        opportunity={{ ...opportunity, address: null }}
+        onViewOpportunity={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Not provided')).toBeInTheDocument()
+  })
+
   it.each([
     ['high', 'High', 'high'],
     ['medium', 'Medium', 'medium'],

@@ -581,6 +581,18 @@ summary:focus-visible {
   font-style: normal;
 }
 
+.opportunity-card__location-value {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+}
+
+.opportunity-card__location-value > span {
+  display: block;
+}
+
 .opportunity-card__disclosures {
   margin-top: auto;
   border-top: 1px solid var(--color-border);
