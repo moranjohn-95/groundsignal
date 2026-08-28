@@ -12,6 +12,8 @@ from sqlalchemy.sql import Select
 from ..database import SessionLocal
 from ..models import PlanningApplication
 from ..services.opportunity_scorer import (
+    ELECTRICAL_EVIDENCE_SCORE_CEILINGS,
+    ElectricalEvidenceLevel,
     OpportunityLevel,
     OpportunityScoreResult,
     score_planning_application_opportunity,
@@ -24,7 +26,13 @@ MIN_SAMPLE_SIZE = 1
 MAX_SAMPLE_SIZE = 5000
 TOP_RESULT_COUNT = 30
 MAX_EXAMPLES_PER_LEVEL = 5
+MAX_EXAMPLES_PER_EVIDENCE_LEVEL = 10
+MAX_SUSPICIOUS_EXAMPLES = 10
 DESCRIPTION_MAX_LENGTH = 110
+MEANINGFUL_BUILDING_SCOPE_MINIMUM = 20
+VERY_HIGH_RAW_SCORE_MINIMUM = 80
+DIRECT_LOW_TOTAL_SCORE_MAXIMUM = 39
+HIGH_EFFECTIVE_SCORE_MINIMUM = 60
 
 OPPORTUNITY_LEVELS: tuple[OpportunityLevel, ...] = (
     "very_high",
@@ -32,6 +40,29 @@ OPPORTUNITY_LEVELS: tuple[OpportunityLevel, ...] = (
     "medium",
     "low",
     "very_low",
+)
+
+ELECTRICAL_EVIDENCE_LEVELS: tuple[ElectricalEvidenceLevel, ...] = (
+    "unavailable",
+    "possible",
+    "inferred",
+    "direct",
+)
+
+ELECTRICAL_EVIDENCE_VALUES: dict[ElectricalEvidenceLevel, int] = {
+    "unavailable": 0,
+    "possible": 1,
+    "inferred": 2,
+    "direct": 3,
+}
+
+SUSPICIOUS_COMBINATION_LABELS = (
+    "unavailable with raw score >= 40",
+    "unavailable with meaningful building scope",
+    "possible with very high raw score",
+    "inferred with raw score >= 80",
+    "direct evidence with unexpectedly low effective score",
+    "high/very-high effective opportunity with weak electrical evidence",
 )
 
 SessionFactory = Callable[[], Session]
@@ -65,6 +96,15 @@ class OpportunityScorerEvaluation:
     average_score: float
     minimum_score: int | None
     maximum_score: int | None
+    evidence_counts: dict[ElectricalEvidenceLevel, int]
+    electrical_relevance_counts: dict[int, int]
+    capped_application_count: int
+    average_raw_score: float
+    average_effective_score: float
+    average_cap_reduction: float | None
+    maximum_cap_reduction: int | None
+    suspicious_examples: dict[str, tuple[ScoredOpportunityApplication, ...]]
+    consistency_violations: tuple[str, ...]
 
     @property
     def total_evaluated(self) -> int:
@@ -190,6 +230,22 @@ def evaluate_sample(
         level_counts[result.score.opportunity_level] += 1
 
     scores = [result.score.opportunity_score for result in scored_records]
+    raw_scores = [result.score.raw_opportunity_score for result in scored_records]
+    cap_reductions = [
+        result.score.raw_opportunity_score - result.score.opportunity_score
+        for result in scored_records
+        if result.score.raw_opportunity_score > result.score.opportunity_score
+    ]
+    evidence_counts = {evidence_level: 0 for evidence_level in ELECTRICAL_EVIDENCE_LEVELS}
+    electrical_relevance_counts: dict[int, int] = {}
+    for result in scored_records:
+        score = result.score
+        evidence_counts[score.electrical_work_brief.evidence_level] += 1
+        electrical_relevance = score.score_breakdown.electrical_relevance
+        electrical_relevance_counts[electrical_relevance] = (
+            electrical_relevance_counts.get(electrical_relevance, 0) + 1
+        )
+
     return OpportunityScorerEvaluation(
         evaluated_on=evaluation_date,
         results=tuple(scored_records),
@@ -197,6 +253,17 @@ def evaluate_sample(
         average_score=sum(scores) / len(scores) if scores else 0.0,
         minimum_score=min(scores) if scores else None,
         maximum_score=max(scores) if scores else None,
+        evidence_counts=evidence_counts,
+        electrical_relevance_counts=electrical_relevance_counts,
+        capped_application_count=len(cap_reductions),
+        average_raw_score=sum(raw_scores) / len(raw_scores) if raw_scores else 0.0,
+        average_effective_score=sum(scores) / len(scores) if scores else 0.0,
+        average_cap_reduction=(
+            sum(cap_reductions) / len(cap_reductions) if cap_reductions else None
+        ),
+        maximum_cap_reduction=max(cap_reductions) if cap_reductions else None,
+        suspicious_examples=_collect_suspicious_examples(scored_records),
+        consistency_violations=_collect_consistency_violations(scored_records),
     )
 
 
@@ -223,11 +290,91 @@ def _print_result(
         f"application_number={application.application_number} | "
         f"authority={application.planning_authority} | "
         f"category={application.category} | "
-        f"score={score.opportunity_score} | "
+        f"evidence={score.electrical_work_brief.evidence_level}/"
+        f"{ELECTRICAL_EVIDENCE_VALUES[score.electrical_work_brief.evidence_level]} | "
+        f"electrical_relevance={score.score_breakdown.electrical_relevance} | "
+        f"raw_score={score.raw_opportunity_score} | "
+        f"effective_score={score.opportunity_score} | "
         f"level={score.opportunity_level} | "
         f"description={_shorten_description(application.description)}",
         file=output,
     )
+
+
+def _collect_suspicious_examples(
+    results: Sequence[ScoredOpportunityApplication],
+) -> dict[str, tuple[ScoredOpportunityApplication, ...]]:
+    examples = {label: [] for label in SUSPICIOUS_COMBINATION_LABELS}
+    for result in results:
+        score = result.score
+        evidence_level = score.electrical_work_brief.evidence_level
+        raw_score = score.raw_opportunity_score
+        effective_score = score.opportunity_score
+        project_scope = score.score_breakdown.project_scope
+
+        if evidence_level == "unavailable" and raw_score >= 40:
+            examples["unavailable with raw score >= 40"].append(result)
+        if (
+            evidence_level == "unavailable"
+            and project_scope >= MEANINGFUL_BUILDING_SCOPE_MINIMUM
+        ):
+            examples["unavailable with meaningful building scope"].append(result)
+        if evidence_level == "possible" and raw_score >= VERY_HIGH_RAW_SCORE_MINIMUM:
+            examples["possible with very high raw score"].append(result)
+        if evidence_level == "inferred" and raw_score >= VERY_HIGH_RAW_SCORE_MINIMUM:
+            examples["inferred with raw score >= 80"].append(result)
+        if (
+            evidence_level == "direct"
+            and effective_score <= DIRECT_LOW_TOTAL_SCORE_MAXIMUM
+        ):
+            examples[
+                "direct evidence with unexpectedly low effective score"
+            ].append(result)
+        if (
+            effective_score >= HIGH_EFFECTIVE_SCORE_MINIMUM
+            and evidence_level in {"unavailable", "possible"}
+        ):
+            examples[
+                "high/very-high effective opportunity with weak electrical evidence"
+            ].append(result)
+
+    return {
+        label: tuple(results[:MAX_SUSPICIOUS_EXAMPLES])
+        for label, results in examples.items()
+    }
+
+
+def _collect_consistency_violations(
+    results: Sequence[ScoredOpportunityApplication],
+) -> tuple[str, ...]:
+    violations = []
+    for result in results:
+        application_number = result.application.application_number
+        score = result.score
+        evidence_level = score.electrical_work_brief.evidence_level
+        raw_score = score.raw_opportunity_score
+        effective_score = score.opportunity_score
+
+        if evidence_level == "direct":
+            if effective_score != raw_score:
+                violations.append(
+                    f"application {application_number}: direct evidence has "
+                    f"raw score {raw_score} but effective score {effective_score}."
+                )
+        elif effective_score > ELECTRICAL_EVIDENCE_SCORE_CEILINGS[evidence_level]:
+            violations.append(
+                f"application {application_number}: {evidence_level} evidence "
+                f"has effective score {effective_score}, above its maximum of "
+                f"{ELECTRICAL_EVIDENCE_SCORE_CEILINGS[evidence_level]}."
+            )
+
+        if score.score_breakdown.total != raw_score:
+            violations.append(
+                f"application {application_number}: score breakdown total "
+                f"{score.score_breakdown.total} does not match raw score {raw_score}."
+            )
+
+    return tuple(violations)
 
 
 def print_evaluation(
@@ -265,6 +412,67 @@ def print_evaluation(
     print(f"  maximum: {maximum}", file=output)
 
     print("", file=output)
+    print("Electrical evidence distribution:", file=output)
+    for evidence_level in ELECTRICAL_EVIDENCE_LEVELS:
+        count = evaluation.evidence_counts[evidence_level]
+        percentage = (
+            count / evaluation.total_evaluated * 100
+            if evaluation.total_evaluated
+            else 0.0
+        )
+        print(
+            f"  {evidence_level} / {ELECTRICAL_EVIDENCE_VALUES[evidence_level]}: "
+            f"{count} ({percentage:.1f}%)",
+            file=output,
+        )
+
+    print("", file=output)
+    print("Electrical relevance point distribution:", file=output)
+    if not evaluation.electrical_relevance_counts:
+        print("  (none)", file=output)
+    for points, count in sorted(evaluation.electrical_relevance_counts.items()):
+        print(f"  {points}: {count}", file=output)
+
+    average_cap_reduction = (
+        f"{evaluation.average_cap_reduction:.1f}"
+        if evaluation.average_cap_reduction is not None
+        else "n/a"
+    )
+    maximum_cap_reduction = (
+        str(evaluation.maximum_cap_reduction)
+        if evaluation.maximum_cap_reduction is not None
+        else "n/a"
+    )
+    print("", file=output)
+    print("Raw vs effective scores:", file=output)
+    print(f"  applications capped: {evaluation.capped_application_count}", file=output)
+    print(f"  average raw score: {evaluation.average_raw_score:.1f}", file=output)
+    print(
+        f"  average effective score: {evaluation.average_effective_score:.1f}",
+        file=output,
+    )
+    print(f"  average cap reduction: {average_cap_reduction}", file=output)
+    print(f"  maximum cap reduction: {maximum_cap_reduction}", file=output)
+
+    print("", file=output)
+    print("Suspicious combinations:", file=output)
+    for label in SUSPICIOUS_COMBINATION_LABELS:
+        print(f"  {label}:", file=output)
+        examples = evaluation.suspicious_examples[label]
+        if not examples:
+            print("    (none)", file=output)
+            continue
+        for result in examples:
+            _print_result(result, output)
+
+    print("", file=output)
+    print("Consistency checks:", file=output)
+    if not evaluation.consistency_violations:
+        print("  all structural checks passed", file=output)
+    for violation in evaluation.consistency_violations:
+        print(f"  WARNING: {violation}", file=output)
+
+    print("", file=output)
     print(f"Top {TOP_RESULT_COUNT} opportunities:", file=output)
     top_results = evaluation.results[:TOP_RESULT_COUNT]
     if not top_results:
@@ -281,6 +489,24 @@ def print_evaluation(
             for result in evaluation.results
             if result.score.opportunity_level == level
         ][:MAX_EXAMPLES_PER_LEVEL]
+        if not examples:
+            print("    (none)", file=output)
+            continue
+        for result in examples:
+            _print_result(result, output)
+
+    print("", file=output)
+    print("Representative examples by electrical evidence:", file=output)
+    for evidence_level in ELECTRICAL_EVIDENCE_LEVELS:
+        print(
+            f"  {evidence_level} / {ELECTRICAL_EVIDENCE_VALUES[evidence_level]}:",
+            file=output,
+        )
+        examples = [
+            result
+            for result in evaluation.results
+            if result.score.electrical_work_brief.evidence_level == evidence_level
+        ][:MAX_EXAMPLES_PER_EVIDENCE_LEVEL]
         if not examples:
             print("    (none)", file=output)
             continue
@@ -333,7 +559,7 @@ def main(
     stderr = sys.stderr if stderr is None else stderr
 
     try:
-        run_evaluation(
+        evaluation = run_evaluation(
             sample_size=args.sample_size,
             session_factory=session_factory,
             scorer=scorer,
@@ -342,6 +568,13 @@ def main(
         )
     except Exception as exc:
         print(f"Opportunity scorer evaluation failed: {exc}", file=stderr)
+        return 1
+
+    if evaluation.consistency_violations:
+        print(
+            "Opportunity scorer evaluation found structural consistency violations.",
+            file=stderr,
+        )
         return 1
 
     return 0

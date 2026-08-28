@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from backend.app.commands import evaluate_opportunity_scorer as command
 from backend.app.services.opportunity_scorer import (
     SCORE_COMPONENT_MAXIMUMS,
+    ElectricalEvidenceLevel,
     ElectricalWorkBrief,
     OpportunityScoreBreakdown,
     OpportunityScoreComponent,
@@ -45,18 +46,35 @@ def _record(
     )
 
 
-def _score_result(score: int) -> OpportunityScoreResult:
-    remaining = score
-    components = []
-    for maximum in (30, 30, 20, 10, 10):
-        component = min(remaining, maximum)
-        components.append(component)
-        remaining -= component
+def _score_result(
+    score: int,
+    *,
+    raw_score: int | None = None,
+    evidence_level: ElectricalEvidenceLevel = "direct",
+    score_breakdown: OpportunityScoreBreakdown | None = None,
+) -> OpportunityScoreResult:
+    raw_score = score if raw_score is None else raw_score
+    if score_breakdown is None:
+        remaining = raw_score
+        components = []
+        for maximum in (30, 30, 20, 10, 10):
+            component = min(remaining, maximum)
+            components.append(component)
+            remaining -= component
+        score_breakdown = OpportunityScoreBreakdown(*components)
+
+    component_values = (
+        score_breakdown.project_scope,
+        score_breakdown.electrical_relevance,
+        score_breakdown.project_scale,
+        score_breakdown.lead_timing,
+        score_breakdown.category_fit,
+    )
     return OpportunityScoreResult(
         opportunity_score=score,
-        raw_opportunity_score=score,
+        raw_opportunity_score=raw_score,
         opportunity_level=opportunity_level_for_score(score),
-        score_breakdown=OpportunityScoreBreakdown(*components),
+        score_breakdown=score_breakdown,
         score_components=tuple(
             OpportunityScoreComponent(
                 name=name,
@@ -64,11 +82,11 @@ def _score_result(score: int) -> OpportunityScoreResult:
                 maximum_points=SCORE_COMPONENT_MAXIMUMS[name],
                 explanation="Test scoring evidence.",
             )
-            for name, points in zip(SCORE_COMPONENT_MAXIMUMS, components)
+            for name, points in zip(SCORE_COMPONENT_MAXIMUMS, component_values)
         ),
         reasons=("Test evidence",),
         electrical_work_brief=ElectricalWorkBrief(
-            evidence_level="unavailable",
+            evidence_level=evidence_level,
             summary="Electrical work is not evidenced by the available planning data.",
             signals=(),
         ),
@@ -274,6 +292,319 @@ def test_distribution_and_summary_statistics_are_calculated() -> None:
     assert evaluation.maximum_score == 90
 
 
+def test_electrical_evidence_and_cap_metrics_are_calculated() -> None:
+    records = [_record(identifier) for identifier in range(1, 5)]
+    evaluation = command.evaluate_sample(
+        records,
+        evaluation_date=EVALUATION_DATE,
+        scorer=Mock(
+            side_effect=[
+                _score_result(
+                    39,
+                    raw_score=70,
+                    evidence_level="unavailable",
+                    score_breakdown=OpportunityScoreBreakdown(30, 0, 20, 10, 10),
+                ),
+                _score_result(
+                    56,
+                    raw_score=56,
+                    evidence_level="possible",
+                    score_breakdown=OpportunityScoreBreakdown(20, 6, 10, 10, 10),
+                ),
+                _score_result(
+                    79,
+                    raw_score=85,
+                    evidence_level="inferred",
+                    score_breakdown=OpportunityScoreBreakdown(30, 15, 20, 10, 10),
+                ),
+                _score_result(
+                    28,
+                    raw_score=28,
+                    evidence_level="direct",
+                    score_breakdown=OpportunityScoreBreakdown(5, 20, 0, 0, 3),
+                ),
+            ]
+        ),
+    )
+
+    assert evaluation.evidence_counts == {
+        "unavailable": 1,
+        "possible": 1,
+        "inferred": 1,
+        "direct": 1,
+    }
+    assert evaluation.electrical_relevance_counts == {0: 1, 6: 1, 15: 1, 20: 1}
+    assert evaluation.capped_application_count == 2
+    assert evaluation.average_raw_score == pytest.approx(59.75)
+    assert evaluation.average_effective_score == pytest.approx(50.5)
+    assert evaluation.average_cap_reduction == pytest.approx(18.5)
+    assert evaluation.maximum_cap_reduction == 31
+    assert [
+        result.application.application_number
+        for result in evaluation.suspicious_examples[
+            "unavailable with raw score >= 40"
+        ]
+    ] == ["APP-1"]
+    assert [
+        result.application.application_number
+        for result in evaluation.suspicious_examples[
+            "unavailable with meaningful building scope"
+        ]
+    ] == ["APP-1"]
+    assert evaluation.suspicious_examples["possible with very high raw score"] == ()
+    assert [
+        result.application.application_number
+        for result in evaluation.suspicious_examples[
+            "inferred with raw score >= 80"
+        ]
+    ] == ["APP-3"]
+    assert [
+        result.application.application_number
+        for result in evaluation.suspicious_examples[
+            "direct evidence with unexpectedly low effective score"
+        ]
+    ] == ["APP-4"]
+    assert (
+        evaluation.suspicious_examples[
+            "high/very-high effective opportunity with weak electrical evidence"
+        ]
+        == ()
+    )
+    assert evaluation.consistency_violations == ()
+
+
+def test_report_prints_evidence_cap_and_suspicious_combination_sections() -> None:
+    records = [_record(identifier) for identifier in range(1, 5)]
+    evaluation = command.evaluate_sample(
+        records,
+        evaluation_date=EVALUATION_DATE,
+        scorer=Mock(
+            side_effect=[
+                _score_result(
+                    39,
+                    raw_score=70,
+                    evidence_level="unavailable",
+                    score_breakdown=OpportunityScoreBreakdown(30, 0, 20, 10, 10),
+                ),
+                _score_result(
+                    56,
+                    raw_score=56,
+                    evidence_level="possible",
+                    score_breakdown=OpportunityScoreBreakdown(20, 6, 10, 10, 10),
+                ),
+                _score_result(
+                    79,
+                    raw_score=85,
+                    evidence_level="inferred",
+                    score_breakdown=OpportunityScoreBreakdown(30, 15, 20, 10, 10),
+                ),
+                _score_result(
+                    28,
+                    raw_score=28,
+                    evidence_level="direct",
+                    score_breakdown=OpportunityScoreBreakdown(5, 20, 0, 0, 3),
+                ),
+            ]
+        ),
+    )
+    output = StringIO()
+
+    command.print_evaluation(evaluation, output)
+
+    report = output.getvalue()
+    assert "Electrical evidence distribution:" in report
+    assert "unavailable / 0: 1 (25.0%)" in report
+    assert "possible / 1: 1 (25.0%)" in report
+    assert "inferred / 2: 1 (25.0%)" in report
+    assert "direct / 3: 1 (25.0%)" in report
+    assert "Electrical relevance point distribution:" in report
+    assert "  15: 1" in report
+    assert "Raw vs effective scores:" in report
+    assert "applications capped: 2" in report
+    assert "average raw score: 59.8" in report
+    assert "average effective score: 50.5" in report
+    assert "average cap reduction: 18.5" in report
+    assert "maximum cap reduction: 31" in report
+    assert "Suspicious combinations:" in report
+    assert "unavailable with meaningful building scope:" in report
+    assert "Representative examples by electrical evidence:" in report
+    assert "application_number=APP-1" in report
+    assert "evidence=unavailable/0" in report
+    assert "electrical_relevance=0" in report
+    assert "raw_score=70" in report
+    assert "effective_score=39" in report
+    assert "Consistency checks:" in report
+    assert "all structural checks passed" in report
+
+
+def test_evidence_examples_are_limited_to_ten_per_level() -> None:
+    records = [_record(identifier) for identifier in range(1, 13)]
+    score = _score_result(
+        39,
+        raw_score=70,
+        evidence_level="unavailable",
+        score_breakdown=OpportunityScoreBreakdown(30, 0, 20, 10, 10),
+    )
+    evaluation = command.evaluate_sample(
+        records,
+        evaluation_date=EVALUATION_DATE,
+        scorer=Mock(side_effect=[score] * len(records)),
+    )
+    output = StringIO()
+
+    command.print_evaluation(evaluation, output)
+
+    evidence_examples = output.getvalue().split(
+        "Representative examples by electrical evidence:"
+    )[1]
+    unavailable_examples = evidence_examples.split("  possible / 1:")[0]
+    assert unavailable_examples.count("  id=") == 10
+
+
+@pytest.mark.parametrize(
+    ("score", "expected_message"),
+    [
+        (
+            _score_result(
+                40,
+                raw_score=40,
+                evidence_level="unavailable",
+                score_breakdown=OpportunityScoreBreakdown(20, 0, 10, 5, 5),
+            ),
+            "unavailable evidence has effective score 40, above its maximum of 39",
+        ),
+        (
+            _score_result(
+                60,
+                raw_score=60,
+                evidence_level="possible",
+                score_breakdown=OpportunityScoreBreakdown(30, 6, 12, 2, 10),
+            ),
+            "possible evidence has effective score 60, above its maximum of 59",
+        ),
+        (
+            _score_result(
+                80,
+                raw_score=80,
+                evidence_level="inferred",
+                score_breakdown=OpportunityScoreBreakdown(30, 12, 20, 8, 10),
+            ),
+            "inferred evidence has effective score 80, above its maximum of 79",
+        ),
+        (
+            _score_result(
+                70,
+                raw_score=80,
+                evidence_level="direct",
+                score_breakdown=OpportunityScoreBreakdown(30, 20, 20, 10, 0),
+            ),
+            "direct evidence has raw score 80 but effective score 70",
+        ),
+        (
+            _score_result(
+                39,
+                raw_score=70,
+                evidence_level="unavailable",
+                score_breakdown=OpportunityScoreBreakdown(30, 0, 20, 10, 9),
+            ),
+            "score breakdown total 69 does not match raw score 70",
+        ),
+    ],
+)
+def test_structural_consistency_violations_are_flagged(
+    score: OpportunityScoreResult,
+    expected_message: str,
+) -> None:
+    evaluation = command.evaluate_sample(
+        [_record(1)],
+        evaluation_date=EVALUATION_DATE,
+        scorer=Mock(return_value=score),
+    )
+
+    assert len(evaluation.consistency_violations) == 1
+    assert expected_message in evaluation.consistency_violations[0]
+
+
+def test_suspicious_examples_do_not_cause_main_to_fail() -> None:
+    session = _session_with_rows(
+        [
+            {
+                "id": 1,
+                "application_number": "26/1",
+                "planning_authority": "Kerry County Council",
+                "description": "Construction of a large building.",
+                "application_type": "Permission",
+                "number_residential_units": None,
+                "floor_area": 5000.0,
+                "received_date": EVALUATION_DATE,
+                "category": "other",
+            }
+        ]
+    )
+    stdout = StringIO()
+    stderr = StringIO()
+
+    exit_code = command.main(
+        [],
+        session_factory=Mock(return_value=session),
+        scorer=Mock(
+            return_value=_score_result(
+                39,
+                raw_score=70,
+                evidence_level="unavailable",
+                score_breakdown=OpportunityScoreBreakdown(30, 0, 20, 10, 10),
+            )
+        ),
+        evaluation_date=EVALUATION_DATE,
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+    assert exit_code == 0
+    assert "unavailable with raw score >= 40:" in stdout.getvalue()
+    assert stderr.getvalue() == ""
+
+
+def test_structural_consistency_violations_make_main_return_non_zero() -> None:
+    session = _session_with_rows(
+        [
+            {
+                "id": 1,
+                "application_number": "26/1",
+                "planning_authority": "Kerry County Council",
+                "description": "Construction of a building.",
+                "application_type": "Permission",
+                "number_residential_units": None,
+                "floor_area": None,
+                "received_date": EVALUATION_DATE,
+                "category": "other",
+            }
+        ]
+    )
+    stdout = StringIO()
+    stderr = StringIO()
+
+    exit_code = command.main(
+        [],
+        session_factory=Mock(return_value=session),
+        scorer=Mock(
+            return_value=_score_result(
+                40,
+                raw_score=40,
+                evidence_level="unavailable",
+                score_breakdown=OpportunityScoreBreakdown(20, 0, 10, 5, 5),
+            )
+        ),
+        evaluation_date=EVALUATION_DATE,
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+    assert exit_code == 1
+    assert "WARNING: application 26/1" in stdout.getvalue()
+    assert "structural consistency violations" in stderr.getvalue()
+
+
 def test_report_prints_distribution_percentages_and_statistics() -> None:
     records = [_record(identifier) for identifier in range(1, 5)]
     evaluation = command.evaluate_sample(
@@ -323,7 +654,10 @@ def test_report_prints_required_record_fields_and_short_description() -> None:
     assert "application_number=26/0042" in report
     assert "authority=Cork City Council" in report
     assert "category=industrial" in report
-    assert "score=75" in report
+    assert "evidence=direct/3" in report
+    assert "electrical_relevance=30" in report
+    assert "raw_score=75" in report
+    assert "effective_score=75" in report
     assert "level=high" in report
     assert "First line long description" in report
     assert "\nlong description" not in report
@@ -343,8 +677,8 @@ def test_report_limits_highest_scoring_section_to_top_thirty() -> None:
     command.print_evaluation(evaluation, output)
 
     top_section = output.getvalue().split(
-        "Representative examples by opportunity level:"
-    )[0]
+        f"Top {command.TOP_RESULT_COUNT} opportunities:"
+    )[1].split("Representative examples by opportunity level:")[0]
     assert top_section.count("  id=") == 30
 
 
@@ -369,7 +703,7 @@ def test_report_includes_representative_examples_for_every_level() -> None:
 
     examples = output.getvalue().split(
         "Representative examples by opportunity level:"
-    )[1]
+    )[1].split("Representative examples by electrical evidence:")[0]
     for level in command.OPPORTUNITY_LEVELS:
         assert f"  {level}:" in examples
     assert examples.count("  id=") == 5
