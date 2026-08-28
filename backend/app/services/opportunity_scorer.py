@@ -269,6 +269,71 @@ _PLANT_OR_EQUIPMENT_PHRASES = (
 
 _EXPLICIT_ELECTRICAL_EQUIPMENT_PHRASES = ("electrical equipment",)
 
+_INSTITUTIONAL_BUILDING_PHRASES = (
+    "school",
+    "community centre",
+    "community center",
+    "community building",
+    "public library",
+)
+
+_SUBSTANTIAL_EXTENSION_PHRASES = (
+    "substantial extension",
+    "major extension",
+    "two storey extension",
+    "extension and refurbishment",
+    "new classroom block",
+)
+
+_PLAUSIBLE_INSTITUTIONAL_ALTERATION_PHRASES = (
+    "fit out",
+    "fitout",
+    "refurbishment",
+    "refurbish",
+    "internal alterations",
+    "classroom upgrade",
+    "classroom refurbishment",
+)
+
+_NEW_RESIDENTIAL_DEVELOPMENT_PATTERN = re.compile(
+    r"\b(?:construction|construct|erection|erect|development|develop)\b"
+    r"(?:\s+of)?"
+    r"(?:\s+(?:a|an|the|new|no|\d+|detached|semi\s+detached|terraced|"
+    r"own\s+door|dwelling|house|apartment)){0,8}"
+    r"\s+(?:dwellings?|houses?|apartments?)(?:\s+units?)?\b"
+)
+
+_INSTITUTIONAL_BUILDING_TERM_PATTERN = (
+    r"(?:school(?:\s+building)?|community\s+(?:centre|center|building)|"
+    r"public\s+library)"
+)
+
+_NEW_INSTITUTIONAL_BUILDING_PATTERN = re.compile(
+    r"\b(?:construction|construct|erection|erect|development|develop)"
+    r"\s+(?:of\s+)?(?:(?:a|an|the)\s+)?(?:new\s+)?"
+    r"(?:(?:primary|secondary)\s+)?"
+    + _INSTITUTIONAL_BUILDING_TERM_PATTERN
+    + r"(?!\s+(?:car\s+park|parking|road|turning\s+area|play\s+area|"
+    r"playground|garden|landscaping|entrance|boundary|site\s+works))"
+)
+
+_INSTITUTIONAL_BUILDING_EXTENSION_PATTERN = re.compile(
+    r"\b(?:extension|refurbishment|refurbish)\s+(?:to|of)\s+"
+    r"(?:(?:a|an|the)\s+)?(?:existing\s+)?(?:(?:primary|secondary)\s+)?"
+    + _INSTITUTIONAL_BUILDING_TERM_PATTERN
+    + r"|\b"
+    + _INSTITUTIONAL_BUILDING_TERM_PATTERN
+    + r"\s+(?:building\s+)?(?:extension|refurbishment)\b"
+)
+
+_RESIDENTIAL_BUILDING_EXTENSION_PATTERN = re.compile(
+    r"\bextension\s+(?:to|of)\s+(?:(?:a|an|the)\s+)?(?:existing\s+)?"
+    r"(?:(?:detached|semi\s+detached)\s+)?"
+    r"(?:dwelling(?:\s+house)?|house|apartment)\b"
+    r"|\b(?:dwelling(?:\s+house)?|house|apartment)\s+"
+    r"(?:building\s+)?extension\b"
+)
+
 
 def _current_utc_date() -> date:
     return datetime.now(timezone.utc).date()
@@ -358,26 +423,161 @@ def _signal_for(
     )
 
 
+def _residential_electrical_assessment(
+    text: str,
+    *,
+    category: PlanningApplicationCategory,
+    project_scope: int,
+    project_scale: int,
+    residential_unit_count: int | None,
+) -> _ElectricalAssessment | None:
+    if category not in ("residential", "mixed_use"):
+        return None
+
+    is_new_residential_development = bool(
+        _NEW_RESIDENTIAL_DEVELOPMENT_PATTERN.search(text)
+    )
+    if residential_unit_count is not None and is_new_residential_development:
+        if residential_unit_count >= 10 and project_scope >= 10:
+            return _ElectricalAssessment(
+                "inferred", (), 15,
+                "Electrical work implied by large residential development",
+                "Electrical work is implied by the scale and scope of the "
+                "residential development.",
+                "Potential electrical package associated with a large "
+                f"{category.replace('_', ' ')} development -- review plans for "
+                "confirmation.",
+            )
+        if project_scope == 30 and residential_unit_count >= 6:
+            return _ElectricalAssessment(
+                "inferred", (), 12,
+                "Electrical work implied by multi-dwelling development",
+                "Electrical work is implied by the scope of this multi-dwelling "
+                "development.",
+                "Potential electrical package associated with a multi-dwelling "
+                "development -- review plans for confirmation.",
+            )
+        if project_scope == 30 and residential_unit_count >= 2:
+            return _ElectricalAssessment(
+                "inferred", (), 10,
+                "Electrical work implied by small multi-dwelling development",
+                "Electrical work is implied by the new multi-dwelling "
+                "development.",
+                "Potential electrical package associated with a small "
+                "multi-dwelling development -- review plans for confirmation.",
+            )
+        if project_scope == 30 and residential_unit_count == 1:
+            return _ElectricalAssessment(
+                "possible", (), 6,
+                "Electrical work possible for new dwelling",
+                "Electrical work is possible for the new dwelling, but it is "
+                "not explicitly described.",
+                "Possible electrical work associated with a new dwelling -- "
+                "review plans for confirmation.",
+            )
+
+    if (
+        is_new_residential_development
+        and project_scope == 30
+        and project_scale >= 12
+    ):
+        return _ElectricalAssessment(
+            "inferred", (), 15,
+            "Electrical work implied by large residential development",
+            "Electrical work is implied by the scale and scope of the "
+            "residential development.",
+            "Potential electrical package associated with a large "
+            f"{category.replace('_', ' ')} development -- review plans for "
+            "confirmation.",
+        )
+
+    if (
+        category == "residential"
+        and project_scope >= 20
+        and _RESIDENTIAL_BUILDING_EXTENSION_PATTERN.search(text)
+        and (
+            project_scale >= 8
+            or _contains_any_phrase(text, _SUBSTANTIAL_EXTENSION_PHRASES)
+        )
+    ):
+        return _ElectricalAssessment(
+            "possible", (), 6,
+            "Electrical work possible for substantial residential extension",
+            "Electrical alterations are possible for the substantial residential "
+            "extension, but they are not explicitly described.",
+            "Possible electrical work associated with a substantial residential "
+            "extension -- review plans for confirmation.",
+        )
+    return None
+
+
+def _institutional_electrical_assessment(
+    text: str,
+    *,
+    project_scope: int,
+    project_scale: int,
+) -> _ElectricalAssessment | None:
+    if not _contains_any_phrase(text, _INSTITUTIONAL_BUILDING_PHRASES):
+        return None
+
+    if _NEW_INSTITUTIONAL_BUILDING_PATTERN.search(text):
+        return _ElectricalAssessment(
+            "inferred", (), 12,
+            "Electrical work implied by new institutional building",
+            "Electrical work is implied by the new school or public/community "
+            "building.",
+            "Potential electrical package associated with a new school or "
+            "public/community building -- review plans for confirmation.",
+        )
+
+    if (
+        project_scope >= 20
+        and _INSTITUTIONAL_BUILDING_EXTENSION_PATTERN.search(text)
+        and (
+            project_scale >= 8
+            or _contains_any_phrase(text, _SUBSTANTIAL_EXTENSION_PHRASES)
+        )
+    ):
+        return _ElectricalAssessment(
+            "inferred", (), 10,
+            "Electrical work implied by substantial institutional extension",
+            "Electrical work is implied by the substantial school or "
+            "public/community building extension.",
+            "Potential electrical package associated with a substantial school "
+            "or public/community building extension -- review plans for "
+            "confirmation.",
+        )
+
+    if (
+        project_scope >= 10
+        and _contains_any_phrase(text, _PLAUSIBLE_INSTITUTIONAL_ALTERATION_PHRASES)
+    ):
+        return _ElectricalAssessment(
+            "possible", (), 5,
+            "Electrical work possible for institutional alterations",
+            "Electrical alterations are possible for the school or "
+            "public/community building work, but they are not explicitly "
+            "described.",
+            "Possible electrical work associated with school or "
+            "public/community building alterations -- review plans for "
+            "confirmation.",
+        )
+    return None
+
+
 def _assess_electrical_relevance(
     text: str,
     *,
     category: PlanningApplicationCategory,
     project_scope: int,
     project_scale: int,
-    has_large_residential_unit_count: bool,
+    residential_unit_count: int | None,
 ) -> _ElectricalAssessment:
     signals = _direct_electrical_signals(
         text,
         category=category,
         project_scope=project_scope,
     )
-    if _MINOR_LIGHTING_PATTERN.search(text) and not signals:
-        return _ElectricalAssessment(
-            "possible", signals, 5, "Minor lighting replacement",
-            "The application includes replacement of one external light fitting.",
-            "Possible limited electrical work: replacement of one external "
-            "light fitting.",
-        )
     for work_type, score, reason, explanation in (
         ("ev_charging", 30, "EV charging infrastructure identified", "a strong electrical indicator."),
         ("battery_storage", 30, "Battery energy storage identified", "a strong electrical indicator."),
@@ -401,16 +601,26 @@ def _assess_electrical_relevance(
             "Potential electrical package associated with a substantial "
             f"{category} development -- review plans for confirmation.",
         )
-    if category in ("residential", "mixed_use") and (
-        (project_scope == 30 and project_scale >= 12)
-        or (project_scope >= 10 and has_large_residential_unit_count)
+    if assessment := _residential_electrical_assessment(
+        text,
+        category=category,
+        project_scope=project_scope,
+        project_scale=project_scale,
+        residential_unit_count=residential_unit_count,
     ):
+        return assessment
+    if assessment := _institutional_electrical_assessment(
+        text,
+        project_scope=project_scope,
+        project_scale=project_scale,
+    ):
+        return assessment
+    if _MINOR_LIGHTING_PATTERN.search(text):
         return _ElectricalAssessment(
-            "inferred", (), 15,
-            "Electrical work implied by large residential development",
-            "Electrical work is implied by the scale and scope of the residential development.",
-            "Potential electrical package associated with a large "
-            f"{category.replace('_', ' ')} development -- review plans for confirmation.",
+            "possible", (), 5, "Minor lighting replacement",
+            "The application includes replacement of one external light fitting.",
+            "Possible limited electrical work: replacement of one external "
+            "light fitting.",
         )
     return _ElectricalAssessment(
         "unavailable", (), 0, None,
@@ -792,15 +1002,12 @@ def score_planning_application_opportunity(
     residential_units = _valid_units(number_residential_units)
     if residential_units is None:
         residential_units = _textual_units(full_text)
-    has_large_residential_unit_count = (
-        residential_units is not None and residential_units >= 10
-    )
     electrical_assessment = _assess_electrical_relevance(
         full_text,
         category=category,
         project_scope=project_scope,
         project_scale=project_scale,
-        has_large_residential_unit_count=has_large_residential_unit_count,
+        residential_unit_count=residential_units,
     )
     electrical_relevance = electrical_assessment.score
     electrical_reason = electrical_assessment.reason

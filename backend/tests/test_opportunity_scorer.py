@@ -139,9 +139,9 @@ def _score(**overrides):
                 "received_date": date(2025, 1, 5),
                 "category": "residential",
             },
-            55,
-            "medium",
-            OpportunityScoreBreakdown(30, 0, 8, 10, 7),
+            61,
+            "high",
+            OpportunityScoreBreakdown(30, 6, 8, 10, 7),
             id="single-dwelling",
         ),
         pytest.param(
@@ -339,6 +339,242 @@ def test_significant_lighting_is_distinct_from_one_light_fitting() -> None:
 
 
 @pytest.mark.parametrize(
+    ("description", "units", "expected_evidence", "expected_points"),
+    [
+        (
+            "Construction of a new detached dwelling house.",
+            1,
+            "possible",
+            6,
+        ),
+        (
+            "Construction of 2 new dwelling houses.",
+            2,
+            "inferred",
+            10,
+        ),
+        (
+            "Construction of 5 new dwelling houses.",
+            5,
+            "inferred",
+            10,
+        ),
+        (
+            "Construction of 6 new dwelling houses.",
+            6,
+            "inferred",
+            12,
+        ),
+        (
+            "Construction of 9 new dwelling houses.",
+            9,
+            "inferred",
+            12,
+        ),
+        (
+            "Construction of 10 new dwelling houses.",
+            10,
+            "inferred",
+            15,
+        ),
+    ],
+)
+def test_new_residential_developments_have_proportionate_electrical_inference(
+    description: str,
+    units: int,
+    expected_evidence: str,
+    expected_points: int,
+) -> None:
+    result = _score(
+        description=description,
+        number_residential_units=units,
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == expected_evidence
+    assert result.score_breakdown.electrical_relevance == expected_points
+    assert result.electrical_work_brief.signals == ()
+
+
+def test_large_apartment_development_retains_strong_inferred_electrical_work() -> None:
+    result = _score(
+        description="Construction of 80 apartments.",
+        number_residential_units=80,
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "inferred"
+    assert result.score_breakdown.electrical_relevance == 15
+    assert result.electrical_work_brief.signals == ()
+
+
+def test_substantial_residential_extension_is_possible_electrical_work() -> None:
+    result = _score(
+        description=(
+            "Construction of a substantial two-storey extension to an existing "
+            "dwelling."
+        ),
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.score_breakdown.electrical_relevance == 6
+    assert result.electrical_work_brief.signals == ()
+
+
+def test_trivial_residential_alteration_remains_without_electrical_evidence() -> None:
+    result = _score(
+        description="Minor alterations to an existing dwelling.",
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.score_breakdown.electrical_relevance == 0
+
+
+def test_new_school_building_has_inferred_electrical_work() -> None:
+    result = _score(
+        description="Construction of a new school building.",
+        category="other",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "inferred"
+    assert result.score_breakdown.electrical_relevance == 12
+    assert result.electrical_work_brief.signals == ()
+
+
+def test_substantial_school_extension_has_inferred_electrical_work() -> None:
+    result = _score(
+        description=(
+            "Construction of a substantial two-storey extension to an existing "
+            "school building."
+        ),
+        category="other",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "inferred"
+    assert result.score_breakdown.electrical_relevance == 10
+    assert result.electrical_work_brief.signals == ()
+
+
+def test_plausible_small_school_alterations_are_possible_electrical_work() -> None:
+    result = _score(
+        description="Internal alterations to an existing school classroom.",
+        category="other",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.score_breakdown.electrical_relevance == 5
+    assert result.electrical_work_brief.signals == ()
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construction of a school car park, service road, turning area, and entrance works.",
+        "Construction of a new school car park.",
+        "Construction of a school play area, garden, landscaping, and boundary works.",
+        "Construction of a community centre boundary wall.",
+        "Demolition of a public library building.",
+        "Demolition of a public building.",
+        "School playground redevelopment.",
+        "Community garden works.",
+        "Public car park extension.",
+        "School entrance alterations.",
+    ],
+)
+def test_school_site_only_work_remains_without_electrical_evidence(
+    description: str,
+) -> None:
+    result = _score(description=description, category="other")
+
+    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.score_breakdown.electrical_relevance == 0
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Demolition of a dwelling house.",
+        "Retention of an existing dwelling.",
+        "Alterations to an existing dwelling.",
+        "Construction of a domestic garage at an existing dwelling.",
+        "Construction of garden works at an existing dwelling.",
+        "Construction of a 120 sqm garden room at an existing dwelling.",
+        "Construction of a 120 sqm car park extension at an existing dwelling.",
+        "Construction of a boundary wall at an existing dwelling.",
+    ],
+)
+def test_existing_dwelling_work_does_not_infer_new_electrical_work(
+    description: str,
+) -> None:
+    result = _score(
+        description=description,
+        number_residential_units=1,
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.score_breakdown.electrical_relevance == 0
+
+
+@pytest.mark.parametrize(
+    ("description", "category"),
+    [
+        ("Construction of a new commercial building.", "commercial"),
+        ("Construction of a new industrial manufacturing facility.", "industrial"),
+    ],
+)
+def test_substantial_business_development_retains_inferred_electrical_work(
+    description: str,
+    category: str,
+) -> None:
+    result = _score(description=description, category=category)
+
+    assert result.electrical_work_brief.evidence_level == "inferred"
+    assert result.score_breakdown.electrical_relevance == 12
+
+
+@pytest.mark.parametrize(
+    ("description", "category", "units", "expected_points"),
+    [
+        (
+            "Construction of a new dwelling with EV charging points.",
+            "residential",
+            1,
+            30,
+        ),
+        (
+            "Construction of 10 apartments with solar PV.",
+            "residential",
+            10,
+            25,
+        ),
+        (
+            "Construction of a new school with an electrical substation.",
+            "other",
+            None,
+            30,
+        ),
+    ],
+)
+def test_direct_electrical_evidence_overrides_contextual_inference(
+    description: str,
+    category: str,
+    units: int | None,
+    expected_points: int,
+) -> None:
+    result = _score(
+        description=description,
+        category=category,
+        number_residential_units=units,
+    )
+
+    assert result.electrical_work_brief.evidence_level == "direct"
+    assert result.score_breakdown.electrical_relevance == expected_points
+
+
+@pytest.mark.parametrize(
     ("units", "expected_scale"),
     [(1, 4), (2, 8), (10, 12), (20, 16), (50, 20)],
 )
@@ -376,7 +612,7 @@ def test_explicit_textual_scale_is_used_when_structured_values_are_missing() -> 
     assert "Significant residential unit count" in result.reasons
 
 
-def test_real_own_door_maisonette_wording_scores_large_residential_scale() -> None:
+def test_existing_own_door_maisonette_amendments_do_not_infer_new_electrical_work() -> None:
     result = _score(
         description=OWN_DOOR_MAISONETTE_DESCRIPTION,
         number_residential_units=0,
@@ -385,14 +621,11 @@ def test_real_own_door_maisonette_wording_scores_large_residential_scale() -> No
         category="residential",
     )
 
-    assert result.opportunity_score == 80
-    assert result.opportunity_level == "very_high"
-    assert result.score_breakdown == OpportunityScoreBreakdown(30, 15, 20, 8, 7)
+    assert result.opportunity_score == 65
+    assert result.opportunity_level == "high"
+    assert result.score_breakdown == OpportunityScoreBreakdown(30, 0, 20, 8, 7)
     assert "Large residential unit count" in result.reasons
-    assert (
-        "Electrical work implied by large residential development"
-        in result.reasons
-    )
+    assert result.electrical_work_brief.evidence_level == "unavailable"
 
 
 @pytest.mark.parametrize(
