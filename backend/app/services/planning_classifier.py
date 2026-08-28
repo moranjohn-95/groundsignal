@@ -64,6 +64,10 @@ _CATEGORY_KEYWORDS: dict[PlanningApplicationCategory, tuple[str, ...]] = {
         "retail stores",
         "dental surgery",
         "dental surgeries",
+        "doctor surgery",
+        "doctor surgeries",
+        "doctors surgery",
+        "doctors surgeries",
         "medical centre",
         "medical centres",
         "medical center",
@@ -117,6 +121,12 @@ _CONVENTIONAL_USE_PRECEDENCE: tuple[PlanningApplicationCategory, ...] = (
     "industrial",
     "commercial",
     "residential",
+)
+
+_SUPPORTED_PROPOSED_USE_CATEGORIES: tuple[PlanningApplicationCategory, ...] = (
+    *_CONVENTIONAL_USE_PRECEDENCE,
+    "energy",
+    "infrastructure",
 )
 
 _PRIMARY_ENERGY_PHRASES = (
@@ -203,20 +213,25 @@ _DEMOLITION_PHRASES = (
     "removal",
 )
 
-_CONVERSION_DESTINATION_WORD_LIMIT = 8
+_PROPOSED_USE_DESTINATION_WORD_LIMIT = 8
 
-_CHANGE_OF_USE_PATTERNS = (
+_PROPOSED_USE_PATTERNS = (
     re.compile(r"\bchange\s+of\s+use\b.*?\b(?:to|into|as)\b(?P<use>.+)$"),
     re.compile(
         rf"\bconvert(?:ed|ing)?\b"
-        rf"(?:\s+\w+){{0,{_CONVERSION_DESTINATION_WORD_LIMIT}}}?"
+        rf"(?:\s+\w+){{0,{_PROPOSED_USE_DESTINATION_WORD_LIMIT}}}?"
         r"\s+(?:to|into)\b(?P<use>.+)$"
     ),
     re.compile(
         rf"\bconversion\b"
-        rf"(?:\s+\w+){{0,{_CONVERSION_DESTINATION_WORD_LIMIT}}}?"
+        rf"(?:\s+\w+){{0,{_PROPOSED_USE_DESTINATION_WORD_LIMIT}}}?"
         r"\s+(?:to|into)\b(?P<use>.+)$"
     ),
+    re.compile(r"\bfor\s+use\s+as\b\s+(?P<use>.+)$"),
+)
+
+_TO_ACCOMMODATE_PROPOSED_USE_PATTERN = re.compile(
+    r"\bto\s+accommodate\b\s+(?P<use>.+)$"
 )
 
 _PROPOSED_AFTER_DEMOLITION_PATTERNS = (
@@ -270,7 +285,9 @@ _AGRICULTURAL_HOUSE_PATTERN = re.compile(
     r"(?:(?:storage|cubicle)\s+){0,2}houses?\b"
 )
 
-_HOME_OFFICE_PATTERN = re.compile(r"\bhome\s+offices?\b")
+_NON_COMMERCIAL_OFFICE_PATTERN = re.compile(
+    r"\b(?:home|domestic|ancillary)\s+offices?\b"
+)
 
 
 def _normalize_text(value: str | None) -> str:
@@ -343,11 +360,27 @@ def _first_ancillary_addition_boundary(
     return min(positions) if positions else None
 
 
-def _extract_change_of_use_destination(text: str) -> str:
-    for pattern in _CHANGE_OF_USE_PATTERNS:
+def _extract_proposed_use_destination(text: str) -> str:
+    """Return the immediate proposed destination from explicit use wording."""
+    for pattern in _PROPOSED_USE_PATTERNS:
         match = pattern.search(text)
         if match:
-            return match.group("use").strip()
+            return " ".join(
+                match.group("use").split()[:_PROPOSED_USE_DESTINATION_WORD_LIMIT]
+            )
+
+    accommodate_match = _TO_ACCOMMODATE_PROPOSED_USE_PATTERN.search(text)
+    if accommodate_match:
+        destination = " ".join(
+            accommodate_match.group("use").split()[
+                :_PROPOSED_USE_DESTINATION_WORD_LIMIT
+            ]
+        )
+        if any(
+            _has_category_evidence((destination,), category)
+            for category in _SUPPORTED_PROPOSED_USE_CATEGORIES
+        ):
+            return destination
 
     return ""
 
@@ -388,7 +421,7 @@ def _mask_non_residential_house_uses(text: str) -> str:
 
 
 def _mask_non_commercial_office_uses(text: str) -> str:
-    return _HOME_OFFICE_PATTERN.sub("domestic workspace", text)
+    return _NON_COMMERCIAL_OFFICE_PATTERN.sub("domestic workspace", text)
 
 
 def _has_category_evidence(
@@ -554,26 +587,19 @@ def classify_planning_application(
         number_residential_units
     )
 
-    change_of_use_destination = _extract_change_of_use_destination(
+    proposed_use_destination = _extract_proposed_use_destination(
         description_text
     )
-    if change_of_use_destination:
-        destination_texts = tuple(
-            text
-            for text in (
-                change_of_use_destination,
-                application_type_text,
-            )
-            if text
-        )
+    if proposed_use_destination:
+        destination_texts = (proposed_use_destination,)
         if _has_mixed_use_evidence(
             destination_texts,
-            has_residential_units,
+            False,
         ):
             return "mixed_use"
         return _classify_primary_use(
             destination_texts,
-            has_residential_units,
+            False,
         )
 
     primary_proposal = _extract_primary_proposal(description_text)

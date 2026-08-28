@@ -46,6 +46,14 @@ HOUSES_APARTMENTS_DUPLEXES_COMMERCIAL_DESCRIPTION = (
     "paths, green areas and associated site works"
 )
 
+DOCTORS_SURGERY_DESCRIPTION = (
+    "Full planning permission to, A) change of use of the existing dwelling "
+    "house to doctors surgery, B) demolish existing garage, C) permission for "
+    "associated signage, D) internal alterations to existing dwelling house to "
+    "accommodate doctors surgery and minor elevational alterations to the "
+    "existing dwelling house and all ancillary site development works."
+)
+
 
 def test_supported_categories_are_stable() -> None:
     assert PLANNING_APPLICATION_CATEGORIES == (
@@ -122,6 +130,62 @@ def test_application_type_is_classification_input() -> None:
     )
 
     assert result == "industrial"
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        pytest.param(
+            DOCTORS_SURGERY_DESCRIPTION,
+            "commercial",
+            id="2660737-dwelling-to-doctors-surgery",
+        ),
+        (
+            "Change of use of an existing dwelling house to an office.",
+            "commercial",
+        ),
+        (
+            "Change of use of an existing house to a retail shop.",
+            "commercial",
+        ),
+        (
+            "Conversion of an existing warehouse to eight apartments.",
+            "residential",
+        ),
+        (
+            "Convert an existing commercial unit into six apartments.",
+            "residential",
+        ),
+        (
+            "Internal alterations to an existing dwelling house to accommodate a "
+            "doctors surgery.",
+            "commercial",
+        ),
+        (
+            "Internal alterations to an existing dwelling house and porch.",
+            "residential",
+        ),
+        (
+            "Extension to the existing dwelling house to accommodate a larger "
+            "kitchen.",
+            "residential",
+        ),
+        (
+            "Conversion of an existing warehouse into apartments and associated "
+            "site works.",
+            "residential",
+        ),
+        (
+            "Alterations to an existing dwelling house with an ancillary office.",
+            "residential",
+        ),
+    ],
+)
+def test_explicit_proposed_use_overrides_existing_use_context(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category
 
 
 def test_positive_residential_unit_count_is_residential_evidence() -> None:
