@@ -562,7 +562,9 @@ describe('OpportunitiesPage', () => {
     ).toBeInTheDocument()
     expect(within(opportunity).getByText('Co. Kerry')).toBeInTheDocument()
     expect(within(opportunity).getByText('18 August 2026')).toBeInTheDocument()
-    expect(within(opportunity).getByText('Score breakdown')).toBeInTheDocument()
+    expect(
+      within(opportunity).queryByText('Score breakdown'),
+    ).not.toBeInTheDocument()
     const viewOpportunityLink = within(opportunity).getByRole('link', {
       name: 'View opportunity',
     })

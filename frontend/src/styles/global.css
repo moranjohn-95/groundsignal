@@ -535,8 +535,7 @@ summary:focus-visible {
 }
 
 .opportunity-summary span,
-.opportunity-metadata dt,
-.opportunity-breakdown dt {
+.opportunity-metadata dt {
   color: var(--color-text-muted);
   font-size: 0.75rem;
   font-weight: 650;
@@ -565,8 +564,7 @@ summary:focus-visible {
   gap: 0.1875rem;
 }
 
-.opportunity-metadata dd,
-.opportunity-breakdown dd {
+.opportunity-metadata dd {
   margin: 0;
   color: var(--color-text);
   overflow-wrap: anywhere;
@@ -591,11 +589,6 @@ summary:focus-visible {
 
 .opportunity-card__location-value > span {
   display: block;
-}
-
-.opportunity-card__disclosures {
-  margin-top: auto;
-  border-top: 1px solid var(--color-border);
 }
 
 .electrical-work-brief {
@@ -673,40 +666,6 @@ summary:focus-visible {
 .electrical-work-brief__evidence {
   color: var(--color-text);
   font-weight: 650;
-}
-
-.opportunity-card__disclosures summary {
-  padding: 0.875rem 1.25rem;
-  color: var(--color-primary);
-  font-size: 0.875rem;
-  font-weight: 700;
-  line-height: 1.35;
-  cursor: pointer;
-}
-
-.opportunity-card__disclosures summary:focus-visible {
-  outline-offset: -0.1875rem;
-}
-
-.opportunity-breakdown {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0 1.25rem 1rem;
-}
-
-.opportunity-breakdown > div {
-  display: grid;
-  gap: 0.1875rem;
-  padding: 0.625rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-background);
-}
-
-.opportunity-breakdown dd {
-  font-size: 1rem;
-  font-weight: 750;
 }
 
 .opportunity-card__footer {

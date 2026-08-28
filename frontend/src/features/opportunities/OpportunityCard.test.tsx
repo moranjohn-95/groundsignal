@@ -79,7 +79,7 @@ const opportunity: Opportunity = {
 }
 
 describe('OpportunityCard', () => {
-  it('renders a compact heading, human metadata, and score disclosure', async () => {
+  it('renders a compact heading, human metadata, and score', async () => {
     const onViewOpportunity = vi.fn()
     render(
       <OpportunityCard
@@ -116,12 +116,8 @@ describe('OpportunityCard', () => {
       within(card).queryByText('Planning description'),
     ).not.toBeInTheDocument()
 
-    const breakdownSummary = within(card).getByText('Score breakdown')
-    const breakdownDetails = breakdownSummary.closest('details')
-    expect(breakdownDetails).not.toHaveAttribute('open')
-    await user.click(breakdownSummary)
-    expect(breakdownDetails).toHaveAttribute('open')
-    expect(within(card).getByText('Electrical relevance')).toBeInTheDocument()
+    expect(within(card).queryByText('Score breakdown')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Electrical relevance')).not.toBeInTheDocument()
     const viewOpportunityLink = within(card).getByRole('link', {
       name: 'View opportunity',
     })
