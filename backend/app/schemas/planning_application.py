@@ -33,6 +33,7 @@ class PlanningApplicationResponse(BaseModel):
     source_updated_at: datetime | None
     category: PlanningApplicationCategory
     opportunity_score: int
+    raw_opportunity_score: int
     opportunity_level: OpportunityLevel
     opportunity_breakdown: OpportunityScoreBreakdown
     opportunity_score_components: tuple[OpportunityScoreComponent, ...]

@@ -237,6 +237,7 @@ def _expected_opportunity(row: dict) -> dict:
     )
     return {
         "opportunity_score": result.opportunity_score,
+        "raw_opportunity_score": result.raw_opportunity_score,
         "opportunity_level": result.opportunity_level,
         "opportunity_breakdown": asdict(result.score_breakdown),
         "opportunity_score_components": [
@@ -404,6 +405,7 @@ def test_detail_returns_application_by_internal_id(client: TestClient) -> None:
         field: data[field]
         for field in (
             "opportunity_score",
+            "raw_opportunity_score",
             "opportunity_level",
             "opportunity_breakdown",
             "opportunity_score_components",
@@ -447,6 +449,7 @@ def test_detail_returns_only_public_response_fields(client: TestClient) -> None:
         "source_updated_at",
         "category",
         "opportunity_score",
+        "raw_opportunity_score",
         "opportunity_level",
         "opportunity_breakdown",
         "opportunity_score_components",
@@ -501,6 +504,7 @@ def test_shared_response_mapper_passes_exact_fields_to_scorer(
     )
     score_result = OpportunityScoreResult(
         opportunity_score=65,
+        raw_opportunity_score=65,
         opportunity_level="high",
         score_breakdown=OpportunityScoreBreakdown(30, 12, 8, 5, 10),
         score_components=tuple(
@@ -546,6 +550,7 @@ def test_shared_response_mapper_passes_exact_fields_to_scorer(
         category="commercial",
     )
     assert response.opportunity_score == 65
+    assert response.raw_opportunity_score == 65
     assert response.opportunity_level == "high"
     assert response.opportunity_breakdown == score_result.score_breakdown
     assert response.opportunity_score_components == score_result.score_components

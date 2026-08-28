@@ -4,8 +4,10 @@ import pytest
 
 from backend.app.services.opportunity_scorer import (
     CATEGORY_FIT_SCORES,
+    ELECTRICAL_EVIDENCE_SCORE_CEILINGS,
     SCORE_COMPONENT_MAXIMUMS,
     OpportunityScoreBreakdown,
+    _effective_opportunity_score,
     opportunity_level_for_score,
     score_planning_application_opportunity,
 )
@@ -182,8 +184,8 @@ def _score(**overrides):
                 "received_date": date(2025, 1, 5),
                 "category": "residential",
             },
-            82,
-            "very_high",
+            79,
+            "high",
             OpportunityScoreBreakdown(30, 15, 20, 10, 7),
             id="large-multi-unit-residential-development",
         ),
@@ -198,8 +200,8 @@ def _score(**overrides):
                 "received_date": date(2025, 1, 5),
                 "category": "residential",
             },
-            61,
-            "high",
+            59,
+            "medium",
             OpportunityScoreBreakdown(30, 6, 8, 10, 7),
             id="single-dwelling",
         ),
@@ -988,8 +990,9 @@ def test_existing_own_door_maisonette_amendments_do_not_infer_new_electrical_wor
         category="residential",
     )
 
-    assert result.opportunity_score == 65
-    assert result.opportunity_level == "high"
+    assert result.raw_opportunity_score == 65
+    assert result.opportunity_score == 39
+    assert result.opportunity_level == "low"
     assert result.score_breakdown == OpportunityScoreBreakdown(30, 0, 20, 8, 7)
     assert "Large residential unit count" in result.reasons
     assert result.electrical_work_brief.evidence_level == "unavailable"
@@ -1155,16 +1158,42 @@ def test_opportunity_level_rejects_invalid_scores(score: object) -> None:
         },
     ],
 )
-def test_score_is_bounded_and_breakdown_sums_exactly(values: dict) -> None:
+def test_scores_are_bounded_and_breakdown_sums_to_raw_score(values: dict) -> None:
     result = _score(**values)
 
     assert 0 <= result.opportunity_score <= 100
-    assert result.score_breakdown.total == result.opportunity_score
+    assert result.score_breakdown.total == result.raw_opportunity_score
+    assert result.opportunity_score <= result.raw_opportunity_score
     assert result.score_breakdown.project_scope <= 30
     assert result.score_breakdown.electrical_relevance <= 30
     assert result.score_breakdown.project_scale <= 20
     assert result.score_breakdown.lead_timing <= 10
     assert result.score_breakdown.category_fit <= 10
+
+
+@pytest.mark.parametrize(
+    ("raw_score", "evidence_level", "expected_score", "expected_level"),
+    [
+        (35, "unavailable", 35, "low"),
+        (70, "unavailable", 39, "low"),
+        (35, "possible", 35, "low"),
+        (70, "possible", 59, "medium"),
+        (55, "inferred", 55, "medium"),
+        (85, "inferred", 79, "high"),
+        (85, "direct", 85, "very_high"),
+    ],
+)
+def test_electrical_evidence_ceiling_controls_effective_score_and_level(
+    raw_score: int,
+    evidence_level: str,
+    expected_score: int,
+    expected_level: str,
+) -> None:
+    effective_score = _effective_opportunity_score(raw_score, evidence_level)
+
+    assert effective_score == expected_score
+    assert opportunity_level_for_score(effective_score) == expected_level
+    assert ELECTRICAL_EVIDENCE_SCORE_CEILINGS[evidence_level] in {39, 59, 79, 100}
 
 
 def test_reasons_only_report_detected_evidence() -> None:
