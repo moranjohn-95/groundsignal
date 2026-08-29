@@ -242,6 +242,8 @@ _MINOR_LIGHTING_PATTERN = re.compile(
 
 _EXPLICIT_UNIT_COUNT_PATTERN = re.compile(
     r"\b(?P<count>\d+)\s*(?:no\s*)?"
+    r"(?:\s+(?:\d+|one|two|three|four|five|six|single|double|storey|storeys|"
+    r"bed|bedroom|bedrooms|semi|detached|terraced)){0,6}\s*"
     r"(?:residential\s+units?|dwellings?(?:\s+(?:houses?|units?))?|"
     r"houses?(?:\s+units?)?|apartments?(?:\s+units?)?|"
     r"(?:own\s+door\s+)?(?:maisonette|apartment|duplex)"
@@ -343,12 +345,72 @@ _NEW_RESIDENTIAL_DEVELOPMENT_PATTERN = re.compile(
     r"\s+(?:dwellings?|houses?|apartments?)(?:\s+units?)?\b"
 )
 
+_EXPLICIT_MULTI_UNIT_RESIDENTIAL_PROPOSAL_PATTERN = re.compile(
+    r"\b(?:(?:housing|residential)\s+)?development"
+    r"(?:\s+\w+){0,4}?\s+"
+    r"(?:of|compris(?:e|es|ing)|consist(?:s|ing)?\s+of)\s+"
+    r"(?P<count>\d+)\s*(?:no\s*)?"
+    r"(?:\s+(?:\w+)){0,5}?\s+"
+    r"(?:dwellings?(?:\s+(?:houses?|units?))?|houses?(?:\s+units?)?|"
+    r"apartments?(?:\s+units?)?|residential\s+units?|units?)\b"
+)
+
+_EXPLICIT_RESIDENTIAL_DEVELOPMENT_PHASE_PATTERN = re.compile(
+    r"\bphase\s+(?:\d+|[a-z]+)\s+of\s+(?:the\s+)?"
+    r"(?:\w+\s+){0,6}?(?:estate|housing\s+development|residential\s+development)"
+    r"\s*,?\s+(?:(?:which|that)\s+)?(?:will\s+)?"
+    r"(?:compris(?:e|es|ing)|consist(?:s|ing)?\s+of)\s+"
+    r"(?P<count>\d+)\s*(?:no\s*)?"
+    r"(?:\s+\w+){0,5}?\s+"
+    r"(?:dwellings?(?:\s+(?:houses?|units?))?|houses?(?:\s+units?)?|"
+    r"apartments?(?:\s+units?)?|residential\s+units?|units?)\b"
+)
+
+_EXPLICIT_MULTI_DWELLING_CONSTRUCTION_PATTERN = re.compile(
+    r"\b(?:construction\s+of|construct|erection\s+of|erect|development\s+of|"
+    r"develop)\b"
+    r"(?:\s+(?:a|an|the|new|proposed)){0,3}\s+"
+    r"(?P<count>\d+)\s*(?:(?:no|number)\s*)?"
+    r"(?:\s+(?:\d+|one|two|three|four|five|six|single|double|storey|"
+    r"storeys|bed|bedroom|bedrooms|semi|detached|terraced)){0,6}\s*"
+    r"(?:dwellings?(?:\s+(?:houses?|units?))?|houses?(?:\s+units?)?|"
+    r"apartments?(?:\s+units?)?|residential\s+units?|units?)\b"
+)
+
+_AS_BUILT_PATTERN = re.compile(r"\b(?:as\s+built|as\s+constructed)\b")
+
+_DURATION_EXTENSION_PRIMARY_PATTERN = re.compile(
+    r"^(?:permission\s+(?:is\s+)?sought\s+for\s+)?"
+    r"(?:an?\s+)?(?:extension\s+of\s+(?:duration|time)|time\s+extension)\b"
+)
+
+_MINOR_AMENDMENT_PATTERN = re.compile(
+    r"\bminor(?:\s+\w+){0,2}\s+amendments?\b"
+)
+
+_POWERED_TELECOMMUNICATIONS_INFRASTRUCTURE_PATTERN = re.compile(
+    r"\b(?:erection\s+of|erect|construction\s+of|construct|installation\s+of|"
+    r"install|provision\s+of|provide)\b"
+    r"(?:\s+\w+){0,10}?\s+"
+    r"(?:telecommunications?|telecoms?)\b"
+    r"(?:\s+\w+){0,18}?\s+"
+    r"(?:antennae?|dishes?|equipment|cabinets?)\b"
+)
+
+_POWERED_WASTEWATER_TREATMENT_PATTERN = re.compile(
+    r"\b(?:new|proposed|installation\s+of|install|construction\s+of|"
+    r"construct|provision\s+of|provide)\s+"
+    r"(?:temporary\s+)?(?:wastewater|sewage|effluent)\s+"
+    r"(?:treatment\s+)?(?:system|plant|unit)\b"
+)
+
 _NEW_SINGLE_DWELLING_PROPOSAL_PATTERN = re.compile(
     r"\b(?:construction|construct|erection|erect|development|develop)\b"
-    r"(?:\s+of)?\s+"
-    r"(?:(?:a|an|one|1)\s+)?(?:new\s+)?"
-    r"(?:(?:detached|semi\s+detached|terraced)\s+)?"
-    r"(?:dwelling(?:\s+house)?|house)\b"
+    r"(?:\s+of)?"
+    r"(?:\s+(?:a|an|the|new|proposed|one|two|three|four|five|six|\d+|"
+    r"single|double|storey|storeys|bed|bedroom|bedrooms|family|detached|"
+    r"semi|terraced)){0,10}\s+"
+    r"(?:family\s+)?dwelling(?:\s+house)?\b"
 )
 
 _INSTITUTIONAL_BUILDING_TERM_PATTERN = (
@@ -412,18 +474,30 @@ _POSSIBLE_BUILDING_CONTEXT_PHRASES = (
 
 _POSSIBLE_ENCLOSED_BUILDING_OBJECT_PATTERN = (
     r"(?:dwelling(?:\s+house)?|house|apartment|cottage|garage|store|workshop|"
-    r"shed|outbuilding|garden\s+room|home\s+office|ancillary\s+accommodation|"
+    r"shed|barn|outbuilding|garden\s+room|home\s+office|ancillary\s+accommodation|"
     r"conservatory|porch|utility\s+room|attic(?:\s+room|\s+conversion)?|"
-    r"building|office|retail\s+unit|shop|clinic|medical\s+centre|"
+    r"home|property|building|warehouse|factory|facility|office|retail\s+unit|"
+    r"shop|clinic|medical\s+centre|"
     r"hotel|restaurant|"
     r"community\s+(?:centre|center|building)|school(?:\s+building)?|"
     r"classroom|room)"
 )
 
+_PROPOSED_BUILDING_DESCRIPTOR_PATTERN = (
+    r"(?:a|an|the|new|existing|one|two|three|four|five|six|no|\d+|single|"
+    r"double|multi|storey|storeys|bedroom|bedrooms|detached|semi|domestic|"
+    r"ancillary|agricultural|machinery|hay|storage|farm|replacement|"
+    r"residential|commercial|industrial|office|retail|community|public|staff|"
+    r"private|dormer|slatted|cattle|livestock|dairy|calf|poultry|equine|grain|"
+    r"feed|milking|silage|slurry|farmyard)"
+)
+
 _PROPOSED_ENCLOSED_BUILDING_PATTERN = re.compile(
     r"\b(?:construction\s+of|construct|erection\s+of|erect|build|rebuild|"
     r"provide|addition\s+of|add)\b"
-    r"(?:\s+\w+){0,4}\s+"
+    r"(?:\s+" + _PROPOSED_BUILDING_DESCRIPTOR_PATTERN + r"){0,4}"
+    r"(?:\s+\w+)?"
+    r"(?:\s+" + _PROPOSED_BUILDING_DESCRIPTOR_PATTERN + r"){0,4}\s+"
     + _POSSIBLE_ENCLOSED_BUILDING_OBJECT_PATTERN
     + r"\b(?!\s+(?:car\s+park|parking|play\s+area|playground|garden|"
     r"boundary|entrance|road|footpath|hardstanding))"
@@ -436,15 +510,40 @@ _NEW_ENCLOSED_BUILDING_PATTERN = re.compile(
     r"boundary|entrance|road|footpath|hardstanding))"
 )
 
-_BUILDING_ENLARGEMENT_PATTERN = re.compile(
-    r"\bextension\b(?:\s+\w+){0,10}\s+(?:to|of|at|on)\s+"
-    r"(?:(?:a|an|the|existing|new|rear|front|side|north|south|east|west|"
-    r"detached|semi\s+detached)\s+){0,6}"
+_EXTENSION_TO_BUILDING_PATTERN = re.compile(
+    r"\bextensions?\b(?:\s+\w+){0,12}?\s+(?:to|of|at|on)\s+"
+    r"(?:\w+\s+){0,12}?"
     + _POSSIBLE_ENCLOSED_BUILDING_OBJECT_PATTERN
     + r"\b"
-    r"|\b"
+)
+
+_EXTEND_BUILDING_PATTERN = re.compile(
+    r"\bextend(?:ed|ing|s)?\b(?:\s+\w+){0,10}?\s+"
     + _POSSIBLE_ENCLOSED_BUILDING_OBJECT_PATTERN
-    + r"\s+(?:building\s+)?extension\b"
+    + r"\b"
+)
+
+_PROPOSED_EXTENSION_PATTERN = re.compile(
+    r"\b(?:construction\s+of|construct|erection\s+of|erect|proposed)\b"
+    r"(?:\s+(?:a|an|the|new|single|double|two|three|four|five|six|storey|"
+    r"storeys|rear|front|side|first|second|upper)){0,10}\s+"
+    r"extens(?:ion)?s?\b"
+)
+
+_UPPER_FLOOR_OR_DORMER_EXTENSION_PATTERN = re.compile(
+    r"\b(?:construction\s+of|construct|erection\s+of|erect|proposed)\s+"
+    r"(?:(?:a|an|the|new)\s+)?"
+    r"(?:(?:first|second|upper)\s+(?:floor|storey|story)\s+extensions?|"
+    r"dormer(?:\s+\w+){0,4}?\s+extensions?|"
+    r"extensions?(?:\s+\w+){0,4}?\s+dormers?)\b"
+)
+
+_MULTI_DWELLING_CONVERSION_PATTERN = re.compile(
+    r"\b(?:subdivide|subdivision|convert(?:ed|ing)?|conversion)\b"
+    r"(?:\s+\w+){0,12}?\s+(?:to\s+form|into|to)\s+"
+    r"(?P<count>\d+)\s*(?:no\s*)?"
+    r"(?:dwellings?(?:\s+(?:houses?|units?))?|houses?(?:\s+units?)?|"
+    r"apartments?(?:\s+units?)?)\b"
 )
 
 _HABITABLE_EXTENSION_FEATURE_PATTERN = re.compile(
@@ -458,12 +557,19 @@ _ANCILLARY_SITE_OR_STRUCTURE_PHRASES = (
     "carpark",
     "car park",
     "parking",
-    "shed",
-    "garden",
     "boundary",
+    "fence",
+    "wall",
     "driveway",
     "entrance",
-    "site works",
+    "access",
+    "road",
+    "footpath",
+    "hardstanding",
+    "yard",
+    "drainage",
+    "land restoration",
+    "topsoil",
 )
 
 _SUBSTANTIVE_BUILDING_WORK_PHRASES = (
@@ -601,10 +707,64 @@ def _has_ancillary_extension_context(text: str, start: int, end: int) -> bool:
 
 def _has_enclosed_building_enlargement(text: str) -> bool:
     """Recognise building enlargement, without treating site work as an extension."""
-    for match in _BUILDING_ENLARGEMENT_PATTERN.finditer(text):
-        if not _has_ancillary_extension_context(text, match.start(), match.end()):
-            return True
-    return _has_habitable_extension_feature(text)
+    for pattern in (_EXTENSION_TO_BUILDING_PATTERN, _EXTEND_BUILDING_PATTERN):
+        for match in pattern.finditer(text):
+            if not _has_ancillary_extension_context(text, match.start(), match.end()):
+                return True
+    return bool(
+        _PROPOSED_EXTENSION_PATTERN.search(text)
+        or _UPPER_FLOOR_OR_DORMER_EXTENSION_PATTERN.search(text)
+        or _has_habitable_extension_feature(text)
+    )
+
+
+def _explicit_multi_unit_residential_proposal_count(
+    text: str,
+    *,
+    primary_text: str,
+) -> int | None:
+    """Return an explicit proposed multi-home count, excluding existing works."""
+    if _is_non_proposed_scope(primary_text):
+        return None
+
+    for pattern in (
+        _EXPLICIT_MULTI_UNIT_RESIDENTIAL_PROPOSAL_PATTERN,
+        _EXPLICIT_RESIDENTIAL_DEVELOPMENT_PHASE_PATTERN,
+        _EXPLICIT_MULTI_DWELLING_CONSTRUCTION_PATTERN,
+    ):
+        match = pattern.search(text)
+        if match is not None:
+            count = int(match.group("count"))
+            return count if count >= 2 else None
+    return None
+
+
+def _is_multi_dwelling_conversion(
+    text: str,
+    *,
+    primary_text: str,
+) -> bool:
+    """Recognise a proposed conversion that explicitly creates multiple homes."""
+    match = _MULTI_DWELLING_CONVERSION_PATTERN.search(text)
+    return (
+        match is not None
+        and int(match.group("count")) >= 2
+        and not _is_non_proposed_scope(primary_text)
+    )
+
+
+def _has_plausibly_powered_infrastructure(
+    text: str,
+    *,
+    primary_text: str,
+) -> bool:
+    """Recognise proposed infrastructure that would plausibly require power."""
+    if _is_non_proposed_scope(primary_text):
+        return False
+    return bool(
+        _POWERED_TELECOMMUNICATIONS_INFRASTRUCTURE_PATTERN.search(text)
+        or _POWERED_WASTEWATER_TREATMENT_PATTERN.search(text)
+    )
 
 
 def _has_habitable_extension_feature(text: str) -> bool:
@@ -653,13 +813,36 @@ def _is_retention_only_application(primary_text: str) -> bool:
     )
 
 
+def _is_non_proposed_scope(primary_text: str) -> bool:
+    """Exclude completed and administrative applications from inference."""
+    return (
+        _is_retention_only_application(primary_text)
+        or _AS_BUILT_PATTERN.search(primary_text) is not None
+        or _DURATION_EXTENSION_PRIMARY_PATTERN.search(primary_text) is not None
+        or _is_administrative_amendment_scope(primary_text)
+    )
+
+
+def _is_administrative_amendment_scope(primary_text: str) -> bool:
+    """Keep amendment-only applications out without suppressing new building work."""
+    if (
+        _MINOR_AMENDMENT_PATTERN.search(primary_text)
+        or _contains_phrase(primary_text, "planning condition")
+    ):
+        return True
+    return _contains_any_phrase(
+        primary_text,
+        ("amendment", "amendments"),
+    ) and not _has_substantive_building_work(primary_text)
+
+
 def _possible_building_electrical_assessment(
     text: str,
     *,
     primary_text: str,
 ) -> _ElectricalAssessment | None:
     if (
-        _is_retention_only_application(primary_text)
+        _is_non_proposed_scope(primary_text)
         or _MINOR_SCOPE_PATTERN.search(primary_text)
         or _ERECT_SIGNAGE_PATTERN.search(primary_text)
         or not _has_substantive_building_work(text)
@@ -680,6 +863,7 @@ def _possible_building_electrical_assessment(
 def _residential_electrical_assessment(
     text: str,
     *,
+    primary_text: str,
     category: PlanningApplicationCategory,
     project_scope: int,
     project_scale: int,
@@ -688,9 +872,17 @@ def _residential_electrical_assessment(
     if category not in ("residential", "mixed_use"):
         return None
 
-    is_new_residential_development = bool(
-        _NEW_RESIDENTIAL_DEVELOPMENT_PATTERN.search(text)
+    explicit_multi_unit_count = _explicit_multi_unit_residential_proposal_count(
+        text,
+        primary_text=primary_text,
     )
+    is_new_residential_development = not _is_non_proposed_scope(primary_text) and bool(
+        _NEW_RESIDENTIAL_DEVELOPMENT_PATTERN.search(text)
+        or _NEW_SINGLE_DWELLING_PROPOSAL_PATTERN.search(text)
+        or explicit_multi_unit_count is not None
+    )
+    if explicit_multi_unit_count is not None:
+        residential_unit_count = explicit_multi_unit_count
     if residential_unit_count is not None and is_new_residential_development:
         if residential_unit_count >= 10 and project_scope >= 10:
             return _ElectricalAssessment(
@@ -729,6 +921,22 @@ def _residential_electrical_assessment(
                 "Possible electrical work associated with a new dwelling -- "
                 "review plans for confirmation.",
             )
+
+    if (
+        project_scope >= 20
+        and _is_multi_dwelling_conversion(
+            text,
+            primary_text=primary_text,
+        )
+    ):
+        return _ElectricalAssessment(
+            "inferred", (), 10,
+            "Electrical work implied by multi-dwelling conversion",
+            "Electrical work is implied by the proposed creation of multiple "
+            "dwellings through conversion.",
+            "Potential electrical package associated with a multi-dwelling "
+            "conversion -- review plans for confirmation.",
+        )
 
     if (
         is_new_residential_development
@@ -830,6 +1038,7 @@ def _assess_electrical_relevance(
         )
     if assessment := _residential_electrical_assessment(
         text,
+        primary_text=primary_text,
         category=category,
         project_scope=project_scope,
         project_scale=project_scale,
@@ -842,6 +1051,15 @@ def _assess_electrical_relevance(
         project_scale=project_scale,
     ):
         return assessment
+    if _has_plausibly_powered_infrastructure(text, primary_text=primary_text):
+        return _ElectricalAssessment(
+            "possible", (), 6,
+            "Electrical work possible for powered infrastructure",
+            "The proposal includes infrastructure with equipment that could "
+            "require an electrical supply, but electrical work is not explicitly described.",
+            "Possible electrical work associated with proposed powered "
+            "infrastructure -- review plans for confirmation.",
+        )
     if assessment := _possible_building_electrical_assessment(
         text,
         primary_text=primary_text,
@@ -923,6 +1141,10 @@ def _has_primary_building_scope(text: str) -> bool:
     return bool(
         _contains_any_phrase(text, _MAJOR_SCOPE_PHRASES)
         or _NEW_RESIDENTIAL_DEVELOPMENT_PATTERN.search(text)
+        or _NEW_SINGLE_DWELLING_PROPOSAL_PATTERN.search(text)
+        or _EXPLICIT_MULTI_UNIT_RESIDENTIAL_PROPOSAL_PATTERN.search(text)
+        or _EXPLICIT_RESIDENTIAL_DEVELOPMENT_PHASE_PATTERN.search(text)
+        or _EXPLICIT_MULTI_DWELLING_CONSTRUCTION_PATTERN.search(text)
         or _NEW_INSTITUTIONAL_BUILDING_PATTERN.search(text)
         or _NON_RESIDENTIAL_BUILDING_CONSTRUCTION_PATTERN.search(text)
     )
@@ -964,7 +1186,10 @@ def _score_project_scope(
         if primary_text.find(phrase) >= 0
     ]
     major_match = _MAJOR_SCOPE_ACTION_PATTERN.search(primary_text)
-    has_major_phrase = _contains_any_phrase(primary_text, _MAJOR_SCOPE_PHRASES)
+    has_major_phrase = bool(
+        _contains_any_phrase(primary_text, _MAJOR_SCOPE_PHRASES)
+        or _EXPLICIT_RESIDENTIAL_DEVELOPMENT_PHASE_PATTERN.search(primary_text)
+    )
     first_meaningful = min(meaningful_positions) if meaningful_positions else None
 
     construction_of_meaningful_work = re.search(

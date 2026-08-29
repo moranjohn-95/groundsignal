@@ -116,6 +116,140 @@ KERRY_2660736_DESCRIPTION = (
     "the plans and particulars submitted"
 )
 
+EVALUATOR_2660515_DESCRIPTION = (
+    "the development consists of a new single storey extension to the side of "
+    "the existing single storey dwelling house and all associated works"
+)
+
+EVALUATOR_2661393_DESCRIPTION = (
+    "for a north west facing 2 storey extension, a south east facing single "
+    "storey extension to existing 2 storey dwelling and detached domestic "
+    "garage including storage area with all associated site works"
+)
+
+EVALUATOR_2666_DESCRIPTION = "to construct a new one-bedroom home on lands at"
+
+EVALUATOR_2660445_DESCRIPTION = (
+    "to restore and extend existing dormer cottage, with single storey "
+    "extensions to side and rear, new entrance, access roadway, effluent "
+    "treatment system &  percolation, associated site works and private jetty "
+    "on Upper Lough Erne"
+)
+
+EVALUATOR_2660548_DESCRIPTION = (
+    "subdivide Existing Two Storey to Form 2 No. Dwellings and (b) Single "
+    "Storey Extension to the Front Southwest Fa\ufffdade and Two Storey Extension "
+    "to the Side Southeast Facade and all associated site works."
+)
+
+EVALUATOR_2661513_DESCRIPTION = (
+    "(1) ERECTION OF A MACHINERY AND HAY STORAGE SHED AND (2) ERECTION OF AN "
+    "EXTENSION TO AN EXISTING AGRICULTURAL SHED"
+)
+
+EVALUATOR_367624_DESCRIPTION = (
+    "A HOUSING DEVELOPMENT OF 7 NO. 2 STOREY HOUSES, CONSISTING OF 2 X 2 "
+    "SEMI-DETATCHED UNITS AND 1 X 3 UNIT TERRACE BLOCK, BOUNDARY WALLS, "
+    "DEVELOPMENT ENTRANCE; AND ALL ASSOCIATED SITE WORKS"
+)
+
+EVALUATOR_429789_DESCRIPTION = (
+    "development which will consist of 115 no. residential units comprising 5 "
+    "no. 3 storey blocks with 14 no. 1 bed apartments, 9 no. 2 bed apartments "
+    "and 24 no. 3 bed duplexes; and 68 no. 2 storey houses (24 no. 2-bed "
+    "houses, 24 no. 3-bed houses and 20 no. 4 bed houses). A 2-storey creche "
+    "(c.208 sqm), 181 no. car parking spaces, 366 no. cycle parking spaces, "
+    "open spaces, bin stores and ESB substations. The proposal includes for a "
+    "new vehicular and pedestrian access and upgrades along the Coleville Road "
+    "(R680). All associated site development works (including site reprofiling), "
+    "landscaping, boundary treatments and services connections"
+)
+
+EVALUATOR_402187_DESCRIPTION = (
+    "The development will consist of amendments to the residential development "
+    "permitted under Reg. Ref. SD25A/0225W comprising: design modifications to "
+    "the dwelling, including elevational changes, an increase in floor area to "
+    "677 sq m, and an increase in height to 9.15 m (ridge level); omission of "
+    "the detached store (12 sq m) to the rear; and all associated site and "
+    "development works above and below ground."
+)
+
+EVALUATOR_503426_DESCRIPTION = (
+    "amendments to the extant planning permission (Refs. WCC 21/1407 / "
+    "ABP-313953-22; WCC 24/60647) for 98 residential units (82 houses, 8 "
+    "apartments, 8 duplexes), the amendments will comprise revisions to the "
+    "elevational treatment and materials of the permitted residential units "
+    "(Unit types A - I) with associated revisions to fenestration and doors, "
+    "no other changes are proposed to the permitted development as granted "
+    "under Refs. WCC 21/1407 / ABP-313953-22 (as amended by Ref. WCC 24/60647) "
+    "and the development will otherwise be carried out and completed in "
+    "accordance with same"
+)
+
+EVALUATOR_315040_DESCRIPTION = (
+    "To erect a 30-metre-high lattice telecommunications support structure "
+    "together with antennae, dishes, associated telecommunications equipment "
+    "and ground-based cabinets, all enclosed by security fencing and to extend "
+    "the existing farm access track."
+)
+
+EVALUATOR_426539_DESCRIPTION = (
+    "new temporary wastewater treatment system and RETENTION PERMISSION of "
+    "existing temporary log cabin facilitating the development granted under "
+    "planning ref. no. 2560816, and all associated works"
+)
+
+EVALUATOR_437643_DESCRIPTION = (
+    "Phase 4 of the Knightswood Estate, comprising 92 no. residential units, "
+    "consisting of: 1 no. four-bedroom semi-detached dwelling, Type A; 1 no. "
+    "four-bedroom semi-detached dwelling, Type B; 6 no. three-bedroom "
+    "semi-detached dwellings, Type C; 8 no. three-bedroom semi-detached "
+    "dwellings, Type J; 4 no. four-bedroom semi-detached dwellings, Type L; "
+    "2 no. three-bedroom semi-detached dwellings, Type F; 2 no. three-bedroom "
+    "semi-detached dwellings, Type G; 16 no. two-bedroom duplex units in 4 no. "
+    "two-storey duplex blocks, each consisting of 4 no. two-bedroom duplex "
+    "units; Apartment Block A, a 4-storey building containing 28 no. apartment "
+    "units; and Apartment Block B, a 4-storey building containing 24 no. "
+    "apartment units. The development will also consist of vehicular and "
+    "pedestrian connections, internal roads and footpaths, public open space, "
+    "site landscaping, parking provision, water connections, and all associated "
+    "site works."
+)
+
+EVALUATOR_279312_DESCRIPTION = (
+    "to demolish an existing dwelling house and outbuildings, and to construct "
+    "5 number dwellings, consisting of 2 number three-bedroom houses and 3 "
+    "number two-bedroom houses, each with a connection to the public utility "
+    "services. Permission is also sought for boundary treatments, surface car "
+    "parking and all ancillary site works to the development"
+)
+
+EVALUATOR_160866_DESCRIPTION = (
+    "CONSTRUCTION OF A FIRST FLOOR EXTENSION INCLUDING DORMERS TO THE REAR, "
+    "WITH INTERNAL ATLERATIONS INCLUDING ALL ASSOCIATED SITE WORKS"
+)
+
+EVALUATOR_159359_DESCRIPTION = (
+    "CONSTRUCTION OF FIRST FLOOR EXTENSION INCLUDING DORMERS TO THE REAR, "
+    "WITH INTERNAL ALTERATIONS INCLUDING ALL ASSOCIATED SITE WORKS"
+)
+
+EVALUATOR_327498_DESCRIPTION = (
+    "EXTENSION OF DURATION OF 21/205 - Permission for development that will "
+    "consist of 12no. 2 bedroom and 8no. 1 bedroom units of social housing "
+    "accommodation with each unit having individual access from a shared deck. "
+    "The accommodation is contained in a single block rising 2 storeys."
+)
+
+EVALUATOR_203851_DESCRIPTION = (
+    "For the development of a three storey, three-bedroom family dwelling "
+    "with a tot"
+)
+
+EVALUATOR_253573_DESCRIPTION = (
+    "Planning permission for: Construction of new single storey rear extens"
+)
+
 
 def _score(**overrides):
     values = {
@@ -696,10 +830,229 @@ def test_real_kerry_building_work_regressions(
 
 
 @pytest.mark.parametrize(
+    (
+        "application_number",
+        "description",
+        "application_type",
+        "category",
+        "expected_evidence",
+        "expected_points",
+    ),
+    [
+        (
+            "2660515",
+            EVALUATOR_2660515_DESCRIPTION,
+            "PERMISSION",
+            "residential",
+            "possible",
+            6,
+        ),
+        (
+            "2661393",
+            EVALUATOR_2661393_DESCRIPTION,
+            "RETENTION",
+            "residential",
+            "possible",
+            6,
+        ),
+        ("2666", EVALUATOR_2666_DESCRIPTION, "PERMISSION", "other", "possible", 6),
+        (
+            "2660445",
+            EVALUATOR_2660445_DESCRIPTION,
+            "PERMISSION",
+            "residential",
+            "possible",
+            6,
+        ),
+        (
+            "2660548",
+            EVALUATOR_2660548_DESCRIPTION,
+            "PERMISSION",
+            "residential",
+            "inferred",
+            10,
+        ),
+        ("2661513", EVALUATOR_2661513_DESCRIPTION, "PERMISSION", "other", "possible", 6),
+    ],
+)
+def test_evaluator_false_negative_regressions(
+    application_number: str,
+    description: str,
+    application_type: str,
+    category: str,
+    expected_evidence: str,
+    expected_points: int,
+) -> None:
+    result = _score(
+        description=description,
+        application_type=application_type,
+        category=category,
+    )
+
+    assert result.electrical_work_brief.evidence_level == expected_evidence, application_number
+    assert result.score_breakdown.electrical_relevance == expected_points, application_number
+
+
+def test_multi_dwelling_conversion_uses_explicit_proposed_count_over_stale_value() -> None:
+    result = _score(
+        description=EVALUATOR_2660548_DESCRIPTION,
+        application_type="PERMISSION",
+        number_residential_units=1,
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "inferred"
+    assert result.score_breakdown.electrical_relevance == 10
+
+
+@pytest.mark.parametrize(
+    (
+        "application_number",
+        "description",
+        "application_type",
+        "category",
+        "expected_evidence",
+        "expected_points",
+    ),
+    [
+        ("2660418", EVALUATOR_367624_DESCRIPTION, "PERMISSION", "residential", "inferred", 12),
+        ("26115", EVALUATOR_429789_DESCRIPTION, "EXTENSION OF DURATION", "residential", "inferred", 15),
+        ("SD26A/0142W", EVALUATOR_402187_DESCRIPTION, "PERMISSION", "residential", "unavailable", 0),
+        ("2660716", EVALUATOR_503426_DESCRIPTION, "PERMISSION", "residential", "unavailable", 0),
+        ("2660196", EVALUATOR_315040_DESCRIPTION, "PERMISSION", "other", "possible", 6),
+        ("2660791", EVALUATOR_426539_DESCRIPTION, "PERMISSION", "infrastructure", "possible", 6),
+        ("2660593", EVALUATOR_437643_DESCRIPTION, "PERMISSION", "residential", "inferred", 15),
+        ("2661372", EVALUATOR_279312_DESCRIPTION, "PERMISSION", "residential", "inferred", 10),
+        ("2661505", EVALUATOR_160866_DESCRIPTION, "PERMISSION", "other", "possible", 6),
+        ("2661487", EVALUATOR_159359_DESCRIPTION, "PERMISSION", "other", "possible", 6),
+        ("2699", EVALUATOR_327498_DESCRIPTION, "EXTENSION OF DURATION", "residential", "unavailable", 0),
+        ("D26A/0589/WEB", EVALUATOR_203851_DESCRIPTION, "PERMISSION", "residential", "possible", 6),
+        ("F26A/0712E", EVALUATOR_253573_DESCRIPTION, "PERMISSION", "other", "possible", 6),
+    ],
+)
+def test_evaluator_proposal_and_infrastructure_regressions(
+    application_number: str,
+    description: str,
+    application_type: str,
+    category: str,
+    expected_evidence: str,
+    expected_points: int,
+) -> None:
+    result = _score(
+        description=description,
+        application_type=application_type,
+        category=category,
+    )
+
+    assert result.electrical_work_brief.evidence_level == expected_evidence, application_number
+    assert result.score_breakdown.electrical_relevance == expected_points, application_number
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_points"),
+    [
+        ("Housing development of 2 houses.", 10),
+        ("Residential development of 6 units.", 12),
+        ("Development comprising 10 dwellings.", 15),
+        ("Development consisting of 4 apartments.", 10),
+        ("Development which will consist of 8 residential units.", 12),
+        ("Phase 2 of the Meadow Estate, comprising 24 residential units.", 15),
+        ("Construction of 5 number dwellings.", 10),
+    ],
+)
+def test_explicit_multi_unit_residential_proposals_infer_electrical_work(
+    description: str,
+    expected_points: int,
+) -> None:
+    result = _score(description=description, category="residential")
+
+    assert result.electrical_work_brief.evidence_level == "inferred"
+    assert result.score_breakdown.electrical_relevance == expected_points
+
+
+def test_family_dwelling_development_is_possible_electrical_work() -> None:
+    result = _score(
+        description="Development of a three-storey family dwelling.",
+        category="residential",
+    )
+
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.score_breakdown.electrical_relevance == 6
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construction of a new single-storey rear extension.",
+        "Proposed two-storey side extension.",
+        "Erection of a first-storey front extension.",
+    ],
+)
+def test_proposed_extensions_with_directional_descriptors_are_possible_electrical_work(
+    description: str,
+) -> None:
+    result = _score(description=description, category="other")
+
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.score_breakdown.electrical_relevance == 6
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Construction of a first-floor extension including dormers to the rear.",
+        "Proposed dormer extension to an existing building.",
+        "Erection of an upper-storey extension with dormers.",
+    ],
+)
+def test_upper_floor_and_dormer_extensions_are_possible_electrical_work(
+    description: str,
+) -> None:
+    result = _score(description=description, category="other")
+
+    assert result.electrical_work_brief.evidence_level == "possible"
+    assert result.score_breakdown.electrical_relevance == 6
+
+
+def test_housing_development_with_described_house_types_uses_textual_unit_count() -> None:
+    result = _score(
+        description=EVALUATOR_367624_DESCRIPTION,
+        category="residential",
+    )
+
+    assert result.score_breakdown.project_scale == 8
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Retention of a housing development of 7 houses.",
+        "As built development comprising 10 dwellings.",
+        "Minor design amendments to development consisting of 8 apartments.",
+        "Administrative planning condition amendment for a development of 12 units.",
+        "Extension of duration of a development consisting of 20 social housing units.",
+        "Phase 4 landscaping works at an existing estate.",
+        "As built construction of a first-floor extension including dormers.",
+        "Minor amendments to a proposed two-storey side extension.",
+        "Development with associated site works.",
+    ],
+)
+def test_multi_unit_proposal_wording_does_not_override_scope_guardrails(
+    description: str,
+) -> None:
+    result = _score(description=description, category="residential")
+
+    assert result.electrical_work_brief.evidence_level == "unavailable"
+    assert result.score_breakdown.electrical_relevance == 0
+
+
+@pytest.mark.parametrize(
     ("description", "category"),
     [
         ("Construction of a new workshop.", "other"),
         ("Construction of a new detached garage.", "residential"),
+        ("Erection of a timber storage shed.", "other"),
+        ("Erection of a new slatted cattle shed.", "other"),
         ("Construction of a new garden room for a home office.", "residential"),
         ("Internal alterations to an existing office.", "commercial"),
         ("Fit-out of an existing retail unit.", "commercial"),
@@ -710,6 +1063,8 @@ def test_real_kerry_building_work_regressions(
             "residential",
         ),
         ("Construction of a utility-room extension to an existing dwelling.", "residential"),
+        ("Construction of a single-storey extension to existing property.", "other"),
+        ("Proposed extension to an existing warehouse building.", "industrial"),
         ("Rebuild an existing porch at a dwelling house.", "residential"),
         ("Construction of a new conservatory at an existing dwelling.", "residential"),
         (
@@ -741,6 +1096,12 @@ def test_substantive_building_work_is_possible_electrical_work(
         ("Retention of an existing garage/storage shed.", "residential"),
         ("Minor internal alterations to an existing dwelling.", "residential"),
         ("Construction of a car park extension at an existing dwelling.", "residential"),
+        ("Retention of a single-storey extension to an existing dwelling house.", "residential"),
+        ("Retention of an existing agricultural shed.", "other"),
+        ("Agricultural land restoration and topsoil spreading.", "other"),
+        ("Demolition of an existing dwelling house.", "residential"),
+        ("Generic site development works.", "other"),
+        ("Construction of an open agricultural yard and hardstanding.", "other"),
     ],
 )
 def test_site_only_retention_or_minor_work_remains_without_electrical_evidence(
