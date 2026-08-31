@@ -339,7 +339,7 @@ describe('OpportunityCard', () => {
         '.electrical-signal-indicator__icon--inactive',
       ),
     ).toHaveLength(1)
-    expect(screen.getByText('Very likely electrical work')).toBeInTheDocument()
+    expect(screen.getByText('Implied electrical work')).toBeInTheDocument()
     expect(
       screen.getByText(/review plans for confirmation/i),
     ).toBeInTheDocument()

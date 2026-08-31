@@ -57,7 +57,7 @@ export function electricalWorkSummary(brief: ElectricalWorkBrief) {
 export function electricalWorkCardHeading(brief: ElectricalWorkBrief) {
   if (brief.evidence_level === 'direct') return 'Confirmed electrical work'
   if (brief.evidence_level === 'possible') return 'Possible electrical work'
-  if (brief.evidence_level === 'inferred') return 'Very likely electrical work'
+  if (brief.evidence_level === 'inferred') return 'Implied electrical work'
   return 'No specific electrical work'
 }
 

@@ -198,7 +198,7 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={20} />)
 
     expect(
-      await screen.findByText('Very likely electrical work'),
+      await screen.findByText('Implied electrical work'),
     ).toBeInTheDocument()
   })
 
