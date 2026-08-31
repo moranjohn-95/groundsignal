@@ -9,12 +9,13 @@ import {
   formatOpportunityDate,
   formatOpportunityDistance,
   formatOpportunityLabel,
-  electricalEvidenceLabel,
   electricalWorkBriefFor,
+  electricalWorkCardHeading,
   electricalWorkSummary,
   officialApplicationUrl,
   scoreCapMessageFor,
 } from './opportunityPresentation'
+import ElectricalSignalIndicator from './ElectricalSignalIndicator'
 
 type DetailState =
   | { status: 'loading' }
@@ -134,6 +135,7 @@ function OpportunityDetailPage({
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
   const applicationUrl = officialApplicationUrl(opportunity)
   const electricalWorkBrief = electricalWorkBriefFor(opportunity)
+  const electricalWorkBriefHeading = electricalWorkCardHeading(electricalWorkBrief)
   const electricalWorkBriefSummary = electricalWorkSummary(electricalWorkBrief)
   const scoreCapMessage = scoreCapMessageFor(opportunity)
   const availableDistance = distanceKm ?? opportunity.distance_km
@@ -144,10 +146,10 @@ function OpportunityDetailPage({
 
       <article
         className={`opportunity-detail opportunity-detail--${opportunityLevelClass}`}
-        aria-labelledby="detail-heading"
+        aria-label={`Opportunity ${opportunity.application_number}`}
       >
         <header className="opportunity-detail__header">
-          <div className="opportunity-card__priority">
+          <div className="opportunity-detail__priority">
             <span className="opportunity-level">
               {opportunityLevel} opportunity
             </span>
@@ -157,25 +159,31 @@ function OpportunityDetailPage({
             </p>
           </div>
 
-          <p className="opportunity-detail__eyebrow">Planning application</p>
-          <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
-            Opportunity {opportunity.application_number}
+          <h2
+            id="detail-heading"
+            className="visually-hidden"
+          ref={headingRef}
+          tabIndex={-1}
+        >
+            Opportunity {opportunity.application_number} details
           </h2>
 
-          <ul className="opportunity-detail__summary" aria-label="Opportunity summary">
-            <li>
-              <span>Category</span>
-              <strong>{formatOpportunityLabel(opportunity.category)}</strong>
-            </li>
+          <dl
+            className={`opportunity-detail__metadata${availableDistance === undefined ? ' opportunity-detail__metadata--without-distance' : ''}`}
+          >
+            <div>
+              <dt>Category</dt>
+              <dd>{formatOpportunityLabel(opportunity.category)}</dd>
+            </div>
             {availableDistance !== undefined && (
-              <li>
-                <span>Distance</span>
-                <strong>{formatOpportunityDistance(availableDistance)}</strong>
-              </li>
+              <div>
+                <dt>Distance</dt>
+                <dd>{formatOpportunityDistance(availableDistance)}</dd>
+              </div>
             )}
-            <li>
-              <span>Received</span>
-              <strong>
+            <div>
+              <dt>Received</dt>
+              <dd>
                 {opportunity.received_date === null ? (
                   'Not provided'
                 ) : (
@@ -183,93 +191,80 @@ function OpportunityDetailPage({
                     {formatOpportunityDate(opportunity.received_date)}
                   </time>
                 )}
-              </strong>
-            </li>
-          </ul>
+              </dd>
+            </div>
+            <div>
+              <dt>Application status</dt>
+              <dd>{opportunity.application_status ?? 'Not provided'}</dd>
+            </div>
+            <div>
+              <dt>Planning authority</dt>
+              <dd>{opportunity.planning_authority}</dd>
+            </div>
+            <div className="opportunity-detail__metadata-reference">
+              <dt>Application reference</dt>
+              <dd>{opportunity.application_number}</dd>
+            </div>
+            <div className="opportunity-detail__metadata-location">
+              <dt>Location</dt>
+              <dd>
+                {opportunity.address === null ? (
+                  'Not provided'
+                ) : (
+                  <address>{opportunity.address}</address>
+                )}
+              </dd>
+            </div>
+          </dl>
         </header>
 
-        <div className="opportunity-detail__body">
-          <section aria-labelledby="planning-description-heading">
-            <h3 id="planning-description-heading">Planning description</h3>
-            <p className="opportunity-detail__description">
-              {opportunity.description ?? 'Not provided'}
-            </p>
-          </section>
+        <section
+          className={`electrical-work-brief electrical-work-brief--${electricalWorkBrief.evidence_level} electrical-work-brief--detail opportunity-detail__electrical`}
+          aria-labelledby="electrical-work-heading"
+        >
+          <ElectricalSignalIndicator
+            evidenceLevel={electricalWorkBrief.evidence_level}
+          />
+          <h3 id="electrical-work-heading">{electricalWorkBriefHeading}</h3>
+          <p>{electricalWorkBriefSummary}</p>
+        </section>
 
-          <section aria-labelledby="application-details-heading">
-            <h3 id="application-details-heading">Application details</h3>
-            <dl className="opportunity-detail__metadata">
-              <div>
-                <dt>Location</dt>
+        <section
+          className="opportunity-detail__section opportunity-detail__section--description"
+          aria-labelledby="planning-description-heading"
+        >
+          <h3 id="planning-description-heading">Planning description</h3>
+          <p className="opportunity-detail__description">
+            {opportunity.description ?? 'Not provided'}
+          </p>
+        </section>
+
+        <section
+          className="opportunity-detail__section opportunity-detail__score-breakdown"
+          aria-labelledby="score-breakdown-heading"
+        >
+          <h3 id="score-breakdown-heading">Score breakdown</h3>
+          <dl className="opportunity-detail__breakdown">
+            {opportunity.opportunity_score_components.map((component) => (
+              <div key={component.name}>
+                <dt>
+                  <span>{formatOpportunityLabel(component.name)}</span>
+                  <strong className="opportunity-detail__component-score">
+                    {component.points_awarded} / {component.maximum_points}
+                  </strong>
+                </dt>
                 <dd>
-                  {opportunity.address === null ? (
-                    'Not provided'
-                  ) : (
-                    <address>{opportunity.address}</address>
-                  )}
+                  <p>{component.explanation}</p>
                 </dd>
               </div>
-              <div>
-                <dt>Planning authority</dt>
-                <dd>{opportunity.planning_authority}</dd>
-              </div>
-              <div>
-                <dt>Application reference</dt>
-                <dd>{opportunity.application_number}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section aria-labelledby="score-breakdown-heading">
-            <h3 id="score-breakdown-heading">Score breakdown</h3>
-            <dl className="opportunity-detail__breakdown">
-              {opportunity.opportunity_score_components.map((component) => (
-                <div key={component.name}>
-                  <dt>{formatOpportunityLabel(component.name)}</dt>
-                  <dd>
-                    <strong className="opportunity-detail__component-score">
-                      {component.points_awarded} / {component.maximum_points}
-                    </strong>
-                    <p>{component.explanation}</p>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            {scoreCapMessage !== null && (
-              <p className="opportunity-detail__score-cap-note">
-                {scoreCapMessage}
-              </p>
-            )}
-          </section>
-
-          <section aria-labelledby="electrical-work-heading">
-            <h3 id="electrical-work-heading">Likely electrical work</h3>
-            <div
-              className={`electrical-work-brief electrical-work-brief--${electricalWorkBrief.evidence_level} electrical-work-brief--detail`}
-            >
-              <span
-                className={`electrical-work-brief__status electrical-work-brief__status--${electricalWorkBrief.evidence_level}`}
-              >
-                {electricalEvidenceLabel(electricalWorkBrief)}
-              </span>
-              <p>{electricalWorkBriefSummary}</p>
-              {electricalWorkBrief.signals.length > 0 && (
-                <ul>
-                  {electricalWorkBrief.signals.map((signal) => (
-                    <li key={`${signal.work_type}-${signal.evidence}`}>
-                      Evidence: {signal.evidence}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {electricalWorkBrief.evidence_level === 'inferred' && (
-                <p className="electrical-work-brief__caveat">
-                  Review the official planning application before pursuing this lead.
-                </p>
-              )}
-            </div>
-          </section>
-        </div>
+            ))}
+          </dl>
+          {scoreCapMessage !== null && (
+            <p className="opportunity-detail__score-cap-note">
+              {scoreCapMessage}
+            </p>
+          )}
+        </section>
 
         <footer className="opportunity-detail__footer">
           {applicationUrl === null ? (

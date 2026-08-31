@@ -205,7 +205,7 @@ describe('App', () => {
       expect(
         within(detail).getByRole('heading', {
           level: 2,
-          name: 'Opportunity 26/1042',
+          name: `Opportunity ${opportunity.application_number} details`,
         }),
       ).toHaveFocus(),
     )
@@ -265,7 +265,7 @@ describe('App', () => {
       expect(
         within(detail).getByRole('heading', {
           level: 2,
-          name: 'Opportunity 26/1042',
+          name: `Opportunity ${opportunity.application_number} details`,
         }),
       ).toHaveFocus(),
     )
@@ -354,7 +354,7 @@ describe('App', () => {
 
     const detailHeading = await screen.findByRole('heading', {
       level: 2,
-      name: 'Opportunity 26/1042',
+      name: `Opportunity ${opportunity.application_number} details`,
     })
     expect(detailHeading).toBeInTheDocument()
     await waitFor(() => expect(detailHeading).toHaveFocus())

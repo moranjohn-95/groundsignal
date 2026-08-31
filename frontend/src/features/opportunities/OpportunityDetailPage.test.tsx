@@ -102,15 +102,13 @@ describe('OpportunityDetailPage', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading opportunity')
 
-    const detail = await screen.findByRole('article', {
-      name: 'Opportunity 0012345',
-    })
+    const detail = await screen.findByRole('article')
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/planning-applications/20')
     expect(
       within(detail).getByRole('heading', {
         level: 2,
-        name: 'Opportunity 0012345',
+        name: 'Opportunity 0012345 details',
       }),
     ).toBeInTheDocument()
     expect(within(detail).getByText('Very high opportunity')).toBeInTheDocument()
@@ -123,17 +121,25 @@ describe('OpportunityDetailPage', () => {
       within(detail).getByText('Manor West Business Park, Tralee, Co. Kerry'),
     ).toBeInTheDocument()
     expect(within(detail).getByText('Kerry County Council')).toBeInTheDocument()
+    expect(within(detail).getByText('Pending')).toBeInTheDocument()
     expect(within(detail).getByText('0012345')).toBeInTheDocument()
     expect(
       within(detail).getByRole('heading', {
         level: 3,
-        name: 'Likely electrical work',
+        name: 'Confirmed electrical work',
       }),
     ).toBeInTheDocument()
-    expect(within(detail).getByText('Confirmed signal')).toBeInTheDocument()
+    const signalIndicator = within(detail).getByRole('img', {
+      name: 'Electrical signal: confirmed',
+    })
     expect(
-      within(detail).getByText('Evidence: electrical infrastructure'),
-    ).toBeInTheDocument()
+      signalIndicator.querySelectorAll(
+        '.electrical-signal-indicator__icon--active',
+      ),
+    ).toHaveLength(3)
+    expect(
+      within(detail).queryByText('Evidence: electrical infrastructure'),
+    ).not.toBeInTheDocument()
 
     const breakdown = within(detail)
       .getByRole('heading', { level: 3, name: 'Score breakdown' })
@@ -191,11 +197,8 @@ describe('OpportunityDetailPage', () => {
     )
     render(<OpportunityDetailPage opportunityId={20} />)
 
-    expect(await screen.findByText('Likely opportunity')).toBeInTheDocument()
     expect(
-      screen.getByText(
-        'Review the official planning application before pursuing this lead.',
-      ),
+      await screen.findByText('Very likely electrical work'),
     ).toBeInTheDocument()
   })
 
@@ -297,7 +300,9 @@ describe('OpportunityDetailPage', () => {
     )
     render(<OpportunityDetailPage opportunityId={20} />)
 
-    expect(await screen.findByText('No specific signal')).toBeInTheDocument()
+    expect(
+      await screen.findByText('No specific electrical work'),
+    ).toBeInTheDocument()
     expect(
       screen.getByText(
         'No specific electrical work identified in the planning description.',
