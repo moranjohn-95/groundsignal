@@ -152,6 +152,9 @@ function OpportunityFilters({
                 Current location selected.
               </p>
             )}
+            <p className="google-maps-attribution">
+              <span translate="no">Google Maps</span>
+            </p>
           </div>
 
           <div className="form-field">

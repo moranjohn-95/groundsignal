@@ -7,9 +7,16 @@ import {
 } from 'react'
 
 import type { Opportunity } from './api/opportunities'
+import {
+  DataSourcesPage,
+  PrivacyPage,
+  TermsPage,
+} from './features/LegalPages'
 import NotFoundPage from './features/NotFoundPage'
 import OpportunityDetailPage from './features/opportunities/OpportunityDetailPage'
 import OpportunitiesPage from './features/opportunities/OpportunitiesPage'
+
+type LegalPage = 'data-sources' | 'privacy' | 'terms'
 
 type AppRoute =
   | { page: 'opportunities' }
@@ -19,6 +26,7 @@ type AppRoute =
       distanceKm?: number
       preservesOpportunities: boolean
     }
+  | { page: LegalPage }
   | { page: 'not-found' }
 
 interface OpportunityHistoryState {
@@ -32,6 +40,16 @@ function routeFromLocation(
 ): AppRoute {
   if (pathname === '/') {
     return { page: 'opportunities' }
+  }
+
+  const legalPages: Record<string, LegalPage> = {
+    '/data-sources': 'data-sources',
+    '/privacy': 'privacy',
+    '/terms': 'terms',
+  }
+  const legalPage = legalPages[pathname]
+  if (legalPage !== undefined) {
+    return { page: legalPage }
   }
 
   const detailMatch = /^\/opportunities\/(\d+)$/.exec(pathname)
@@ -99,9 +117,13 @@ function App() {
     }
   }, [route.page])
 
+  function navigateTo(pathname: string) {
+    window.history.pushState(null, '', pathname)
+    setRoute(routeFromLocation(pathname, null))
+  }
+
   function showOpportunities() {
-    window.history.pushState(null, '', '/')
-    setRoute({ page: 'opportunities' })
+    navigateTo('/')
   }
 
   function showOpportunity(opportunity: Opportunity) {
@@ -151,6 +173,26 @@ function App() {
     showOpportunities()
   }
 
+  function handleInternalNavigation(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return
+    }
+
+    const destination = new URL(event.currentTarget.href)
+    if (destination.origin !== window.location.origin) {
+      return
+    }
+
+    event.preventDefault()
+    navigateTo(destination.pathname)
+  }
+
   return (
     <>
       <header className="site-header">
@@ -174,6 +216,12 @@ function App() {
             />
           )}
 
+          {route.page === 'data-sources' && <DataSourcesPage />}
+
+          {route.page === 'privacy' && <PrivacyPage />}
+
+          {route.page === 'terms' && <TermsPage />}
+
           {route.page === 'not-found' && (
             <NotFoundPage onBackToOpportunities={handleBackToOpportunities} />
           )}
@@ -183,6 +231,17 @@ function App() {
       <footer className="site-footer">
         <div className="app-container site-footer__inner">
           <p>SiteForecaster planning intelligence.</p>
+          <nav className="site-footer__nav" aria-label="Legal">
+            <a href="/data-sources" onClick={handleInternalNavigation}>
+              Data sources
+            </a>
+            <a href="/privacy" onClick={handleInternalNavigation}>
+              Privacy
+            </a>
+            <a href="/terms" onClick={handleInternalNavigation}>
+              Terms
+            </a>
+          </nav>
         </div>
       </footer>
     </>

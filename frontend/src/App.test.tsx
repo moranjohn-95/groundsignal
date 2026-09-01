@@ -171,11 +171,102 @@ describe('App', () => {
     expect(screen.getByRole('banner')).toBeInTheDocument()
     expect(screen.getByRole('main')).toBeInTheDocument()
     expect(screen.getByRole('contentinfo')).toBeInTheDocument()
-    expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+    const legalNavigation = screen.getByRole('navigation', { name: 'Legal' })
+    expect(
+      within(legalNavigation).getByRole('link', { name: 'Data sources' }),
+    ).toHaveAttribute('href', '/data-sources')
+    expect(
+      within(legalNavigation).getByRole('link', { name: 'Privacy' }),
+    ).toHaveAttribute('href', '/privacy')
+    expect(
+      within(legalNavigation).getByRole('link', { name: 'Terms' }),
+    ).toHaveAttribute('href', '/terms')
     expect(
       screen.getByText('Enter an Irish location to find nearby opportunities.'),
     ).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Location' })).toBeRequired()
+    expect(screen.getByText('Google Maps').closest('p')).toHaveClass(
+      'google-maps-attribution',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [
+      '/data-sources',
+      'Data sources',
+      /Contains Irish Public Sector Data licensed under/i,
+    ],
+    [
+      '/privacy',
+      'Privacy Policy',
+      /Google Maps Platform Geocoding services/i,
+    ],
+    [
+      '/terms',
+      'Terms of Use',
+      /opportunity-score assessments are derived by SiteForecaster/i,
+    ],
+  ])('renders the %s page on a direct visit', (pathname, title, content) => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    window.history.replaceState(null, '', pathname)
+
+    render(<App />)
+
+    expect(screen.getByRole('heading', { level: 2, name: title })).toBeInTheDocument()
+    expect(screen.getByText(content)).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('navigates between legal pages from the footer without a page reload', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('link', { name: 'Data sources' }))
+    expect(window.location.pathname).toBe('/data-sources')
+    expect(
+      screen.getByText(/not provided or endorsed by the Irish Government/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', {
+        name: /Creative Commons Attribution 4.0 International/i,
+      }),
+    ).toHaveAttribute('href', 'https://creativecommons.org/licenses/by/4.0/')
+
+    await user.click(screen.getByRole('link', { name: 'Privacy' }))
+    expect(window.location.pathname).toBe('/privacy')
+    expect(
+      screen.getByRole('link', { name: /Google's Privacy Policy/i }),
+    ).toHaveAttribute('href', 'https://policies.google.com/privacy')
+    expect(
+      screen.getByText(/does not intentionally create a user location history/i),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: 'Terms' }))
+    expect(window.location.pathname).toBe('/terms')
+    expect(
+      screen.getByText(/official planning records remain the authoritative source/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', {
+        name: /Google Maps\/Google Earth Additional Terms of Service/i,
+      }),
+    ).toHaveAttribute('href', 'https://maps.google.com/help/terms_maps/')
+
+    act(() => window.history.back())
+    await waitFor(() => expect(window.location.pathname).toBe('/privacy'))
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Privacy Policy' }),
+    ).toBeInTheDocument()
+
+    act(() => window.history.forward())
+    await waitFor(() => expect(window.location.pathname).toBe('/terms'))
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Terms of Use' }),
+    ).toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
