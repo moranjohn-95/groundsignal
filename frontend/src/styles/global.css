@@ -1173,6 +1173,110 @@ summary:focus-visible {
   .opportunity-detail__section {
     padding: 1rem;
   }
+
+  .opportunity-card__header {
+    padding-block: 0.875rem;
+  }
+
+  .opportunity-card__priority {
+    gap: 0.5rem;
+  }
+
+  .opportunity-card__header h3 {
+    margin-block: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.28;
+  }
+
+  .opportunity-summary {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 1.35fr);
+    gap: 0.5rem;
+  }
+
+  .opportunity-summary span,
+  .opportunity-card .opportunity-metadata dt {
+    font-size: 0.6875rem;
+    letter-spacing: 0;
+  }
+
+  .opportunity-summary strong {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  .opportunity-card .opportunity-metadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem 0.75rem;
+    padding-block: 0.75rem;
+  }
+
+  .opportunity-card .opportunity-metadata__location {
+    grid-column: 1 / -1;
+  }
+
+  .opportunity-card .opportunity-metadata > div {
+    gap: 0.125rem;
+  }
+
+  .opportunity-card .opportunity-metadata dd {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  .opportunity-card .opportunity-card__location-value {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .opportunity-card .opportunity-card__location-value > span {
+    display: inline;
+  }
+
+  .opportunity-card .opportunity-card__location-value > span + span::before {
+    content: ", ";
+  }
+
+  .opportunity-card .electrical-work-brief {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.5rem;
+    row-gap: 0.25rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .opportunity-card .electrical-signal-indicator {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    gap: 0.1875rem;
+  }
+
+  .opportunity-card .electrical-signal-indicator__icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .opportunity-card .electrical-work-brief strong {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+
+  .opportunity-card .electrical-work-brief p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  .opportunity-card__footer {
+    padding-block: 0.75rem;
+  }
 }
 
 @media (min-width: 40rem) {

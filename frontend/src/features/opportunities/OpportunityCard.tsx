@@ -120,7 +120,10 @@ function OpportunityCard({
             {locationLines === null ? (
               'Not provided'
             ) : (
-              <address className="opportunity-card__location-value">
+              <address
+                className="opportunity-card__location-value"
+                title={locationLines.join(', ')}
+              >
                 {locationLines.map((line) => (
                   <span key={line}>{line}</span>
                 ))}

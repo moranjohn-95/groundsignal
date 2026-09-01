@@ -176,6 +176,10 @@ describe('OpportunityCard', () => {
 
     const location = screen.getByText('Tonbwee, Castleisland').parentElement
     expect(location).toHaveClass('opportunity-card__location-value')
+    expect(location).toHaveAttribute(
+      'title',
+      'Tonbwee, Castleisland, Co. Kerry',
+    )
     expect(within(location as HTMLElement).getByText('Co. Kerry')).toBeInTheDocument()
   })
 
