@@ -193,11 +193,11 @@ function OpportunityDetailPage({
                 )}
               </dd>
             </div>
-            <div>
+            <div className="opportunity-detail__metadata-status">
               <dt>Application status</dt>
               <dd>{opportunity.application_status ?? 'Not provided'}</dd>
             </div>
-            <div>
+            <div className="opportunity-detail__metadata-authority">
               <dt>Planning authority</dt>
               <dd>{opportunity.planning_authority}</dd>
             </div>
@@ -246,7 +246,14 @@ function OpportunityDetailPage({
           <h3 id="score-breakdown-heading">Score breakdown</h3>
           <dl className="opportunity-detail__breakdown">
             {opportunity.opportunity_score_components.map((component) => (
-              <div key={component.name}>
+              <div
+                key={component.name}
+                className={
+                  component.name === 'category_fit'
+                    ? 'opportunity-detail__breakdown-item--category-fit'
+                    : undefined
+                }
+              >
                 <dt>
                   <span>{formatOpportunityLabel(component.name)}</span>
                   <strong className="opportunity-detail__component-score">
