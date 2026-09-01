@@ -1213,6 +1213,11 @@ summary:focus-visible {
 
   .opportunity-card .opportunity-metadata__location {
     grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .opportunity-card .opportunity-metadata__location dd {
+    min-width: 0;
   }
 
   .opportunity-card .opportunity-metadata > div {
@@ -1226,6 +1231,8 @@ summary:focus-visible {
 
   .opportunity-card .opportunity-card__location-value {
     display: block;
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
