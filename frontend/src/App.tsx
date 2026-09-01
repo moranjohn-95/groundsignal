@@ -7,6 +7,7 @@ import {
 } from 'react'
 
 import type { Opportunity } from './api/opportunities'
+import NotFoundPage from './features/NotFoundPage'
 import OpportunityDetailPage from './features/opportunities/OpportunityDetailPage'
 import OpportunitiesPage from './features/opportunities/OpportunitiesPage'
 
@@ -174,16 +175,7 @@ function App() {
           )}
 
           {route.page === 'not-found' && (
-            <section
-              className="opportunity-detail-state"
-              aria-labelledby="not-found-heading"
-            >
-              <h2 id="not-found-heading">Page not found</h2>
-              <p>The opportunity address is invalid or no longer available.</p>
-              <a href="/" onClick={handleBackToOpportunities}>
-                Back to opportunities
-              </a>
-            </section>
+            <NotFoundPage onBackToOpportunities={handleBackToOpportunities} />
           )}
         </div>
       </main>

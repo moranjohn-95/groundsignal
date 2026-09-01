@@ -374,20 +374,44 @@ describe('App', () => {
     expect(scrollToMock).not.toHaveBeenCalled()
   })
 
-  it('does not request the API for an invalid opportunity route', () => {
+  it.each(['/unknown-route', '/opportunities/not-a-valid-id'])(
+    'renders the dedicated 404 page without requesting the API for %s',
+    (pathname) => {
+      const fetchMock = vi.fn()
+      vi.stubGlobal('fetch', fetchMock)
+      window.history.replaceState(null, '', pathname)
+
+      render(<App />)
+
+      expect(
+        screen.getByRole('heading', { level: 2, name: 'Page not found' }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText("We couldn't find the page you're looking for."),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText('Check the address or return to the main search.'),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('link', { name: 'Back to opportunities' }),
+      ).toHaveAttribute('href', '/')
+      expect(fetchMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it('returns from the 404 page through the existing client-side navigation', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    window.history.replaceState(null, '', '/opportunities/not-a-valid-id')
-
+    window.history.replaceState(null, '', '/unknown-route')
     render(<App />)
 
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('link', { name: 'Back to opportunities' }))
+
+    expect(window.location.pathname).toBe('/')
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Page not found' }),
+      screen.getByText('Enter an Irish location to find nearby opportunities.'),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Back to opportunities' })).toHaveAttribute(
-      'href',
-      '/',
-    )
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
