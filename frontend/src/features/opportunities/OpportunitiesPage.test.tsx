@@ -303,6 +303,38 @@ describe('OpportunitiesPage', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('keeps the search controls in a logical keyboard order', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse(emptyFeed))
+    render(<OpportunitiesPage />)
+
+    const user = userEvent.setup()
+    const location = screen.getByRole('textbox', { name: 'Location' })
+
+    await user.tab()
+    expect(location).toHaveFocus()
+    await user.type(location, 'Tralee')
+
+    await user.tab()
+    expect(
+      screen.getByRole('button', { name: 'Use my current location' }),
+    ).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('combobox', { name: 'Radius' })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('combobox', { name: 'Recent period' })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('combobox', { name: 'Category' })).toHaveFocus()
+    await user.tab()
+    expect(
+      screen.getByRole('button', { name: 'Find opportunities' }),
+    ).toHaveFocus()
+
+    await user.keyboard('{Enter}')
+    expect(await screen.findByText('No opportunities found')).toBeInTheDocument()
+  })
+
   it('requests browser location only after clicking and announces the locating state', async () => {
     render(<OpportunitiesPage />)
 

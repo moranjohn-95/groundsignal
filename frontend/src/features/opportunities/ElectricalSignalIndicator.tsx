@@ -5,10 +5,10 @@ interface ElectricalSignalIndicatorProps {
 }
 
 const signalStates = {
-  direct: { activeIcons: 3, label: 'confirmed' },
-  possible: { activeIcons: 1, label: 'possible' },
-  inferred: { activeIcons: 2, label: 'likely' },
-  unavailable: { activeIcons: 0, label: 'no specific signal' },
+  direct: { activeIcons: 3, label: 'confirmed electrical work' },
+  possible: { activeIcons: 1, label: 'possible electrical work' },
+  inferred: { activeIcons: 2, label: 'implied electrical work' },
+  unavailable: { activeIcons: 0, label: 'no specific electrical work' },
 } as const
 
 function ElectricalSignalIndicator({

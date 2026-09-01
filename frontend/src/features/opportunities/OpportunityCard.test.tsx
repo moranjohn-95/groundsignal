@@ -100,7 +100,7 @@ describe('OpportunityCard', () => {
     expect(within(card).getByText('18.7 km')).toBeInTheDocument()
     expect(within(card).getByText('18 August 2026')).toBeInTheDocument()
     const signalIndicator = within(card).getByRole('img', {
-      name: 'Electrical signal: confirmed',
+      name: 'Electrical signal: confirmed electrical work',
     })
     expect(
       signalIndicator.querySelectorAll(
@@ -113,7 +113,10 @@ describe('OpportunityCard', () => {
       ),
     ).toHaveLength(0)
     expect(
-      within(card).getByText('Confirmed electrical work'),
+      within(card).getByRole('heading', {
+        level: 4,
+        name: 'Confirmed electrical work',
+      }),
     ).toBeInTheDocument()
     expect(
       within(card).getByText(
@@ -121,9 +124,11 @@ describe('OpportunityCard', () => {
       ),
     ).toBeInTheDocument()
     expect(within(card).queryByText(/^Evidence:/)).not.toBeInTheDocument()
-    expect(within(card).getByLabelText('Likely electrical work')).toHaveClass(
-      'electrical-work-brief--direct',
-    )
+    expect(
+      within(card).getByRole('region', {
+        name: 'Confirmed electrical work',
+      }),
+    ).toHaveClass('electrical-work-brief--direct')
     expect(within(card).queryByText(longDescription)).not.toBeInTheDocument()
     expect(
       within(card).queryByText('Planning description'),
@@ -140,6 +145,23 @@ describe('OpportunityCard', () => {
 
     await user.click(viewOpportunityLink)
     expect(onViewOpportunity).toHaveBeenCalledOnce()
+    expect(onViewOpportunity).toHaveBeenCalledWith(opportunity)
+  })
+
+  it('activates the opportunity link with the keyboard', async () => {
+    const onViewOpportunity = vi.fn()
+    render(
+      <OpportunityCard
+        opportunity={opportunity}
+        onViewOpportunity={onViewOpportunity}
+      />,
+    )
+
+    const user = userEvent.setup()
+    await user.tab()
+    expect(screen.getByRole('link', { name: 'View opportunity' })).toHaveFocus()
+
+    await user.keyboard('{Enter}')
     expect(onViewOpportunity).toHaveBeenCalledWith(opportunity)
   })
 
@@ -291,7 +313,7 @@ describe('OpportunityCard', () => {
     )
 
     const signalIndicator = screen.getByRole('img', {
-      name: 'Electrical signal: no specific signal',
+      name: 'Electrical signal: no specific electrical work',
     })
     expect(
       signalIndicator.querySelectorAll(
@@ -309,9 +331,9 @@ describe('OpportunityCard', () => {
         'No specific electrical work identified in the planning description.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText('Likely electrical work')).toHaveClass(
-      'electrical-work-brief--unavailable',
-    )
+    expect(
+      screen.getByRole('region', { name: 'No specific electrical work' }),
+    ).toHaveClass('electrical-work-brief--unavailable')
   })
 
   it('presents inferred work as a likely opportunity without evidence', () => {
@@ -331,7 +353,7 @@ describe('OpportunityCard', () => {
     )
 
     const signalIndicator = screen.getByRole('img', {
-      name: 'Electrical signal: likely',
+      name: 'Electrical signal: implied electrical work',
     })
     expect(
       signalIndicator.querySelectorAll(
@@ -348,9 +370,9 @@ describe('OpportunityCard', () => {
       screen.getByText(/review plans for confirmation/i),
     ).toBeInTheDocument()
     expect(screen.queryByText(/^Evidence:/)).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Likely electrical work')).toHaveClass(
-      'electrical-work-brief--inferred',
-    )
+    expect(
+      screen.getByRole('region', { name: 'Implied electrical work' }),
+    ).toHaveClass('electrical-work-brief--inferred')
   })
 
   it('presents limited electrical work as a possible opportunity', () => {
@@ -370,7 +392,7 @@ describe('OpportunityCard', () => {
     )
 
     const signalIndicator = screen.getByRole('img', {
-      name: 'Electrical signal: possible',
+      name: 'Electrical signal: possible electrical work',
     })
     expect(
       signalIndicator.querySelectorAll(
@@ -388,9 +410,9 @@ describe('OpportunityCard', () => {
         'Possible limited electrical work: replacement of one external light fitting.',
       ),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText('Likely electrical work')).toHaveClass(
-      'electrical-work-brief--possible',
-    )
+    expect(
+      screen.getByRole('region', { name: 'Possible electrical work' }),
+    ).toHaveClass('electrical-work-brief--possible')
   })
 
   it('safely falls back for a malformed electrical work brief', () => {
@@ -410,7 +432,7 @@ describe('OpportunityCard', () => {
 
     expect(
       screen.getByRole('img', {
-        name: 'Electrical signal: no specific signal',
+        name: 'Electrical signal: no specific electrical work',
       }),
     ).toBeInTheDocument()
     expect(

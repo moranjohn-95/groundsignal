@@ -131,7 +131,7 @@ describe('OpportunityDetailPage', () => {
       }),
     ).toBeInTheDocument()
     const signalIndicator = within(detail).getByRole('img', {
-      name: 'Electrical signal: confirmed',
+      name: 'Electrical signal: confirmed electrical work',
     })
     expect(
       signalIndicator.querySelectorAll(
@@ -171,7 +171,7 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={20} />)
 
     const officialApplicationLink = await screen.findByRole('link', {
-      name: 'View official application',
+      name: 'View official application (opens in a new tab)',
     })
     expect(officialApplicationLink).toHaveAttribute(
       'href',
@@ -324,7 +324,7 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={20} />)
 
     const fallbackLink = await screen.findByRole('link', {
-      name: 'View official application',
+      name: 'View official application (opens in a new tab)',
     })
     expect(fallbackLink).toHaveAttribute('href', sourceApplicationUrl)
     expect(fallbackLink).toHaveAttribute('target', '_blank')
@@ -344,7 +344,9 @@ describe('OpportunityDetailPage', () => {
     render(<OpportunityDetailPage opportunityId={20} />)
 
     expect(
-      await screen.findByRole('link', { name: 'View official application' }),
+      await screen.findByRole('link', {
+        name: 'View official application (opens in a new tab)',
+      }),
     ).toHaveAttribute('href', sourceApplicationUrl)
   })
 
@@ -368,7 +370,9 @@ describe('OpportunityDetailPage', () => {
       ),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('link', { name: 'View official application' }),
+      screen.queryByRole('link', {
+        name: 'View official application (opens in a new tab)',
+      }),
     ).not.toBeInTheDocument()
   })
 
@@ -388,7 +392,9 @@ describe('OpportunityDetailPage', () => {
       ),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('link', { name: 'View official application' }),
+      screen.queryByRole('link', {
+        name: 'View official application (opens in a new tab)',
+      }),
     ).not.toBeInTheDocument()
   })
 

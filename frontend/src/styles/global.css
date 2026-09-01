@@ -739,7 +739,8 @@ summary:focus-visible {
   padding-block: 0.75rem;
 }
 
-.electrical-work-brief strong {
+.electrical-work-brief h4 {
+  margin: 0;
   color: var(--color-primary);
   font-size: 0.875rem;
 }
@@ -1467,7 +1468,7 @@ summary:focus-visible {
     height: 1rem;
   }
 
-  .opportunity-card .electrical-work-brief strong {
+  .opportunity-card .electrical-work-brief h4 {
     grid-column: 2;
     grid-row: 1;
     align-self: center;

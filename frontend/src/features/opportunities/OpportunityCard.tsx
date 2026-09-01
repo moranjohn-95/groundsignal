@@ -54,6 +54,7 @@ function OpportunityCard({
   const electricalWorkBrief = electricalWorkBriefFor(opportunity)
   const electricalWorkBriefHeading = electricalWorkCardHeading(electricalWorkBrief)
   const electricalWorkBriefSummary = electricalWorkSummary(electricalWorkBrief)
+  const electricalHeadingId = `opportunity-${opportunity.id}-electrical-heading`
 
   function handleViewOpportunity(event: MouseEvent<HTMLAnchorElement>) {
     if (
@@ -143,12 +144,12 @@ function OpportunityCard({
 
       <section
         className={`electrical-work-brief electrical-work-brief--${electricalWorkBrief.evidence_level}`}
-        aria-label="Likely electrical work"
+        aria-labelledby={electricalHeadingId}
       >
         <ElectricalSignalIndicator
           evidenceLevel={electricalWorkBrief.evidence_level}
         />
-        <strong>{electricalWorkBriefHeading}</strong>
+        <h4 id={electricalHeadingId}>{electricalWorkBriefHeading}</h4>
         <p>{electricalWorkBriefSummary}</p>
       </section>
 

@@ -302,6 +302,7 @@ function OpportunityDetailPage({
               href={applicationUrl}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="View official application (opens in a new tab)"
             >
               View official application
             </a>
