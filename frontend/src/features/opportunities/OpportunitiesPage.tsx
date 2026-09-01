@@ -17,6 +17,7 @@ import type {
   OpportunityFilterValues,
 } from './OpportunityFilters'
 import OpportunityList from './OpportunityList'
+import OpportunityState from './OpportunityState'
 
 const OPPORTUNITY_PAGE_SIZE = 20
 
@@ -34,7 +35,11 @@ type SearchState =
   | { status: 'location-not-found' }
   | { status: 'geolocation-error' }
   | { status: 'geocoding-error' }
-  | { status: 'opportunities-error'; resultLocation: string }
+  | {
+      status: 'opportunities-error'
+      resultLocation: string
+      request: OpportunitySearchRequest
+    }
   | {
       status: 'success'
       resultLocation: string
@@ -102,6 +107,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
         setSearchState({
           status: 'opportunities-error',
           resultLocation: request.resultLocation,
+          request,
         })
       }
     }
@@ -206,6 +212,22 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
     }
   }
 
+  function handleRetry() {
+    if (searchState.status === 'opportunities-error') {
+      void loadOpportunities(searchState.request, 1, sortBy)
+      return
+    }
+
+    if (searchState.status === 'success' && refreshState === 'error') {
+      void loadOpportunities(
+        searchState.request,
+        searchState.response.page,
+        sortBy,
+        true,
+      )
+    }
+  }
+
   return (
     <>
       <section
@@ -246,30 +268,36 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
         )}
 
         {searchState.status === 'loading' && (
-          <p role="status">Searching for opportunities...</p>
+          <OpportunityState variant="loading" title="Finding opportunities...">
+            Searching recent planning applications near you.
+          </OpportunityState>
         )}
 
         {searchState.status === 'locating' && (
-          <p role="status">Getting your current location...</p>
+          <OpportunityState variant="loading" title="Finding your location...">
+            This will only take a moment.
+          </OpportunityState>
         )}
 
         {searchState.status === 'location-not-found' && (
-          <p role="alert">
-            We could not find that location. Check the spelling and try again.
-          </p>
+          <OpportunityState variant="error" title="Location not found">
+            Check the spelling or try another Irish location.
+          </OpportunityState>
         )}
 
         {searchState.status === 'geocoding-error' && (
-          <p role="alert">
-            Location search is unavailable right now. Please try again later.
-          </p>
+          <OpportunityState variant="error" title="Location search unavailable">
+            We could not look up that location right now. Please try again later.
+          </OpportunityState>
         )}
 
         {searchState.status === 'geolocation-error' && (
-          <p role="alert">
-            We could not access your current location. Enter a location instead
-            or try again.
-          </p>
+          <OpportunityState
+            variant="error"
+            title="Current location unavailable"
+          >
+            Enter an Irish location instead, or try again.
+          </OpportunityState>
         )}
 
         {(searchState.status === 'success' ||
@@ -280,14 +308,21 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
         )}
 
         {searchState.status === 'opportunities-error' && (
-          <p role="alert">
-            We could not load opportunities. Please try again.
-          </p>
+          <OpportunityState
+            variant="error"
+            title="We couldn't load opportunities"
+            action={{ label: 'Try again', onClick: handleRetry }}
+          >
+            Check your connection and try the same search again.
+          </OpportunityState>
         )}
 
         {searchState.status === 'success' &&
           searchState.response.items.length === 0 && (
-            <p role="status">No opportunities found for this search.</p>
+            <OpportunityState variant="empty" title="No opportunities found">
+              Try increasing the search radius, widening the recent period, or
+              selecting a different category.
+            </OpportunityState>
           )}
 
         {searchState.status === 'success' &&
@@ -342,10 +377,13 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                 </p>
               </div>
               {refreshState === 'error' && (
-                <p role="alert">
-                  We could not refresh opportunities. Your current results are
-                  still available.
-                </p>
+                <OpportunityState
+                  variant="error"
+                  title="We couldn't refresh opportunities"
+                  action={{ label: 'Try again', onClick: handleRetry }}
+                >
+                  Your current results are still available.
+                </OpportunityState>
               )}
               <OpportunityList
                 isBusy={isRefreshing}

@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { OpportunityDetail } from '../../api/opportunities'
@@ -404,7 +405,11 @@ describe('OpportunityDetailPage', () => {
       }),
     ).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'This opportunity could not be found',
+      'This opportunity may no longer be available',
+    )
+    expect(screen.getByRole('link', { name: 'Back to opportunities' })).toHaveAttribute(
+      'href',
+      '/',
     )
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/planning-applications/999')
   })
@@ -419,5 +424,16 @@ describe('OpportunityDetailPage', () => {
       'We could not load this opportunity',
     )
     expect(screen.queryByText('Internal upstream failure')).not.toBeInTheDocument()
+  })
+
+  it('retries a failed detail request', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 503))
+    render(<OpportunityDetailPage opportunityId={20} />)
+
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByRole('article')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })

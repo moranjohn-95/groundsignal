@@ -16,6 +16,7 @@ import {
   scoreCapMessageFor,
 } from './opportunityPresentation'
 import ElectricalSignalIndicator from './ElectricalSignalIndicator'
+import OpportunityState from './OpportunityState'
 
 type DetailState =
   | { status: 'loading' }
@@ -38,6 +39,7 @@ function OpportunityDetailPage({
   const [detailState, setDetailState] = useState<DetailState>({
     status: 'loading',
   })
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
   useEffect(() => {
     let ignoreResult = false
@@ -60,7 +62,7 @@ function OpportunityDetailPage({
     return () => {
       ignoreResult = true
     }
-  }, [opportunityId])
+  }, [opportunityId, loadAttempt])
 
   useEffect(() => {
     headingRef.current?.focus()
@@ -82,6 +84,11 @@ function OpportunityDetailPage({
     onBack()
   }
 
+  function handleRetry() {
+    setDetailState({ status: 'loading' })
+    setLoadAttempt((attempt) => attempt + 1)
+  }
+
   const backLink = (
     <a className="opportunity-detail__back" href="/" onClick={handleBack}>
       Back to opportunities
@@ -92,10 +99,15 @@ function OpportunityDetailPage({
     return (
       <section className="opportunity-detail-state" aria-labelledby="detail-heading">
         {backLink}
-        <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
-          Opportunity details
-        </h2>
-        <p role="status">Loading opportunity...</p>
+        <OpportunityState
+          variant="loading"
+          title="Loading opportunity..."
+          headingId="detail-heading"
+          headingLevel={2}
+          headingRef={headingRef}
+        >
+          Retrieving the planning application details.
+        </OpportunityState>
       </section>
     )
   }
@@ -104,12 +116,16 @@ function OpportunityDetailPage({
     return (
       <section className="opportunity-detail-state" aria-labelledby="detail-heading">
         {backLink}
-        <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
-          Opportunity not found
-        </h2>
-        <p role="alert">
-          This opportunity could not be found. It may no longer be available.
-        </p>
+        <OpportunityState
+          variant="error"
+          title="Opportunity not found"
+          headingId="detail-heading"
+          headingLevel={2}
+          headingRef={headingRef}
+        >
+          This opportunity may no longer be available. Return to opportunities
+          to continue your search.
+        </OpportunityState>
       </section>
     )
   }
@@ -118,12 +134,16 @@ function OpportunityDetailPage({
     return (
       <section className="opportunity-detail-state" aria-labelledby="detail-heading">
         {backLink}
-        <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
-          Opportunity unavailable
-        </h2>
-        <p role="alert">
-          We could not load this opportunity. Please try again later.
-        </p>
+        <OpportunityState
+          variant="error"
+          title="Opportunity unavailable"
+          action={{ label: 'Try again', onClick: handleRetry }}
+          headingId="detail-heading"
+          headingLevel={2}
+          headingRef={headingRef}
+        >
+          We could not load this opportunity right now. Please try again.
+        </OpportunityState>
       </section>
     )
   }

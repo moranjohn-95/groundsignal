@@ -310,7 +310,7 @@ describe('OpportunitiesPage', () => {
 
     expect(getCurrentPositionMock).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Getting your current location',
+      'Finding your location',
     )
     expect(
       screen.getByRole('button', { name: 'Getting current location...' }),
@@ -346,7 +346,7 @@ describe('OpportunitiesPage', () => {
       recentDays: '60',
     })
 
-    await screen.findByText('No opportunities found for this search.')
+    await screen.findByText('No opportunities found')
     expect(fetchMock).toHaveBeenCalledTimes(1)
 
     const opportunityUrl = new URL(
@@ -387,7 +387,7 @@ describe('OpportunitiesPage', () => {
     expect(fetchMock).not.toHaveBeenCalled()
     await submitCurrentLocationSearch()
 
-    await screen.findByText('No opportunities found for this search.')
+    await screen.findByText('No opportunities found')
     const opportunityUrl = new URL(
       fetchMock.mock.calls[0][0] as string,
       'http://localhost',
@@ -414,7 +414,7 @@ describe('OpportunitiesPage', () => {
       .mockResolvedValueOnce(jsonResponse(emptyFeed))
     await submitSearch()
 
-    await screen.findByText('No opportunities found for this search.')
+    await screen.findByText('No opportunities found')
     expect(screen.queryByText('Current location selected.')).not.toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Location' })).toBeRequired()
     expect(fetchMock.mock.calls[0][0]).toBe(
@@ -434,7 +434,7 @@ describe('OpportunitiesPage', () => {
     })
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'We could not access your current location',
+      'Current location unavailable',
     )
     expect(
       screen.getByRole('button', { name: 'Use my current location' }),
@@ -449,7 +449,7 @@ describe('OpportunitiesPage', () => {
       .mockResolvedValueOnce(jsonResponse(emptyFeed))
     await submitSearch()
 
-    await screen.findByText('No opportunities found for this search.')
+    await screen.findByText('No opportunities found')
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/v1/locations/geocode?query=Tralee',
@@ -469,7 +469,7 @@ describe('OpportunitiesPage', () => {
       recentDays: '60',
     })
 
-    await screen.findByText('No opportunities found for this search.')
+    await screen.findByText('No opportunities found')
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/v1/locations/geocode?query=D%C3%BAn+Laoghaire+%26+Rathdown',
@@ -498,7 +498,7 @@ describe('OpportunitiesPage', () => {
 
     await submitSearch()
 
-    await screen.findByText('No opportunities found for this search.')
+    await screen.findByText('No opportunities found')
     const opportunityUrl = new URL(
       fetchMock.mock.calls[1][0] as string,
       'http://localhost',
@@ -520,7 +520,7 @@ describe('OpportunitiesPage', () => {
     await submitSearch()
 
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Searching for opportunities',
+      'Finding opportunities',
     )
     expect(
       screen.getByRole('button', { name: 'Find opportunities' }),
@@ -530,7 +530,7 @@ describe('OpportunitiesPage', () => {
     await act(async () => {
       resolveGeocoding(jsonResponse(traleeLocation))
     })
-    await screen.findByText('No opportunities found for this search.')
+    await screen.findByText('No opportunities found')
   })
 
   it('renders successful results and the resolved display location', async () => {
@@ -749,6 +749,7 @@ describe('OpportunitiesPage', () => {
       .mockResolvedValueOnce(jsonResponse(traleeLocation))
       .mockResolvedValueOnce(jsonResponse(firstPageFeed))
       .mockResolvedValueOnce(jsonResponse({}, 503))
+      .mockResolvedValueOnce(jsonResponse(secondPageFeed))
     render(<OpportunitiesPage />)
 
     await submitSearch()
@@ -756,13 +757,15 @@ describe('OpportunitiesPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Next' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'could not refresh opportunities',
+      "We couldn't refresh opportunities",
     )
     expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
     expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Sort' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
-    expect(fetchMock).toHaveBeenCalledTimes(3)
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(4)
     expect(getCurrentPositionMock).not.toHaveBeenCalled()
   })
 
@@ -868,8 +871,13 @@ describe('OpportunitiesPage', () => {
     await submitSearch()
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'No opportunities found for this search.',
+      'No opportunities found',
     )
+    expect(
+      screen.getByText(
+        'Try increasing the search radius, widening the recent period, or selecting a different category.',
+      ),
+    ).toBeInTheDocument()
     expect(
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
@@ -885,7 +893,7 @@ describe('OpportunitiesPage', () => {
     await submitSearch({ location: 'Not a real Irish location' })
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'We could not find that location',
+      'Location not found',
     )
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
@@ -901,7 +909,7 @@ describe('OpportunitiesPage', () => {
     await submitSearch()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Location search is unavailable right now',
+      'Location search unavailable',
     )
     expect(screen.queryByText('Network unavailable')).not.toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -916,13 +924,31 @@ describe('OpportunitiesPage', () => {
     await submitSearch()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'We could not load opportunities',
+      "We couldn't load opportunities",
     )
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
     expect(
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('retries a failed opportunity request with the same search parameters', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(traleeLocation))
+      .mockResolvedValueOnce(jsonResponse({}, 503))
+      .mockResolvedValueOnce(jsonResponse(emptyFeed))
+    render(<OpportunitiesPage />)
+
+    await submitSearch()
+
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByText('No opportunities found')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock.mock.calls[2][0]).toBe(fetchMock.mock.calls[1][0])
   })
 
   it('does not request anything when the required location is empty', async () => {
