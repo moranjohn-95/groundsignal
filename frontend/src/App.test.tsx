@@ -192,7 +192,7 @@ describe('App', () => {
       await screen.findByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
     await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Sort by' }),
+      screen.getByRole('combobox', { name: 'Sort' }),
       'nearest',
     )
     await user.click(await screen.findByRole('button', { name: 'Next' }))
@@ -221,7 +221,7 @@ describe('App', () => {
     expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
       'industrial',
     )
-    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue(
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveValue(
       'nearest',
     )
     expect(screen.getByText('Page 2 of 2')).toBeInTheDocument()

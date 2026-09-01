@@ -544,6 +544,7 @@ describe('OpportunitiesPage', () => {
     expect(
       await screen.findByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('1 opportunity')
     const results = screen.getByRole('list', { name: 'Top opportunities' })
     const opportunity = within(results).getByRole('article', {
       name: /industrial manufacturing facility/i,
@@ -582,7 +583,7 @@ describe('OpportunitiesPage', () => {
 
     await submitSearch()
 
-    const sortControl = await screen.findByRole('combobox', { name: 'Sort by' })
+    const sortControl = await screen.findByRole('combobox', { name: 'Sort' })
     expect(sortControl).toHaveValue('best')
     expect(resultOpportunityPaths()).toEqual([
       '/opportunities/20',
@@ -603,7 +604,7 @@ describe('OpportunitiesPage', () => {
     )
 
     await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Sort by' }),
+      screen.getByRole('combobox', { name: 'Sort' }),
       'newest',
     )
     await waitFor(() =>
@@ -701,7 +702,7 @@ describe('OpportunitiesPage', () => {
       'aria-busy',
       'true',
     )
-    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
     expect(
@@ -713,21 +714,21 @@ describe('OpportunitiesPage', () => {
     expect(resultOpportunityPaths()).toEqual(['/opportunities/42'])
 
     await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Sort by' }),
+      screen.getByRole('combobox', { name: 'Sort' }),
       'nearest',
     )
     expect(screen.getByRole('status')).toHaveTextContent(
       'Refreshing opportunities',
     )
     expect(resultOpportunityPaths()).toEqual(['/opportunities/42'])
-    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
 
     await act(async () => resolveSortRequest(jsonResponse(firstPageFeed)))
     expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
     expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
-    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeEnabled()
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeEnabled()
     expect(screen.getByRole('list', { name: 'Top opportunities' })).toHaveAttribute(
       'aria-busy',
       'false',
@@ -759,7 +760,7 @@ describe('OpportunitiesPage', () => {
     )
     expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
     expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: 'Sort by' })).toBeEnabled()
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(getCurrentPositionMock).not.toHaveBeenCalled()
@@ -785,7 +786,7 @@ describe('OpportunitiesPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Next' }))
     expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
     await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Sort by' }),
+      screen.getByRole('combobox', { name: 'Sort' }),
       'nearest',
     )
     expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
@@ -828,7 +829,7 @@ describe('OpportunitiesPage', () => {
     expect(await screen.findByText('Page 2 of 2')).toBeInTheDocument()
 
     await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Sort by' }),
+      screen.getByRole('combobox', { name: 'Sort' }),
       'nearest',
     )
     expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()

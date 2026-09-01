@@ -239,12 +239,10 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
           Top opportunities
         </h2>
 
-        {searchState.status === 'initial' && currentCoordinates === null && (
-          <p>Enter an Irish location to find nearby opportunities.</p>
-        )}
-
-        {searchState.status === 'initial' && currentCoordinates !== null && (
-          <p>Adjust the filters if needed, then find opportunities.</p>
+        {searchState.status === 'initial' && (
+          <p className="opportunity-results__empty-message">
+            Enter an Irish location to find nearby opportunities.
+          </p>
         )}
 
         {searchState.status === 'loading' && (
@@ -276,7 +274,9 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
         {(searchState.status === 'success' ||
           searchState.status === 'opportunities-error') && (
-          <h3>Opportunities near {searchState.resultLocation}</h3>
+          <h3 className="opportunity-results__location">
+            Opportunities near {searchState.resultLocation}
+          </h3>
         )}
 
         {searchState.status === 'opportunities-error' && (
@@ -295,7 +295,19 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
             <>
               <div className="opportunity-results__toolbar">
                 <div className="opportunity-results__sort">
-                  <label htmlFor="opportunity-sort">Sort by</label>
+                  <label htmlFor="opportunity-sort">
+                    <svg
+                      className="opportunity-results__sort-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+                      <circle cx="16" cy="7" r="2" />
+                      <circle cx="8" cy="17" r="2" />
+                    </svg>
+                    Sort
+                  </label>
                   <select
                     id="opportunity-sort"
                     value={sortBy}
@@ -311,22 +323,24 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                     <option value="newest">Newest</option>
                   </select>
                 </div>
+                <p className="opportunity-results__count" role="status">
+                  {isRefreshing ? (
+                    'Refreshing opportunities...'
+                  ) : (
+                    <>
+                      {searchState.response.total}{' '}
+                      {searchState.response.total === 1
+                        ? 'opportunity'
+                        : 'opportunities'}
+                      <span className="visually-hidden">
+                        {' '}
+                        Page {searchState.response.page} of{' '}
+                        {searchState.response.total_pages}.
+                      </span>
+                    </>
+                  )}
+                </p>
               </div>
-              <p role="status">
-                {isRefreshing ? (
-                  'Refreshing opportunities...'
-                ) : (
-                  <>
-                    Showing {searchState.response.items.length} of{' '}
-                    {searchState.response.total} opportunities.
-                    <span className="visually-hidden">
-                      {' '}
-                      Page {searchState.response.page} of{' '}
-                      {searchState.response.total_pages}.
-                    </span>
-                  </>
-                )}
-              </p>
               {refreshState === 'error' && (
                 <p role="alert">
                   We could not refresh opportunities. Your current results are
