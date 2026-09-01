@@ -870,6 +870,7 @@ summary:focus-visible {
 
 .opportunity-detail__metadata-location {
   min-width: 0;
+  grid-column: 1 / -1;
 }
 
 .opportunity-detail__metadata > div {
@@ -976,6 +977,52 @@ summary:focus-visible {
   background: var(--color-primary-hover);
 }
 
+@media (max-width: 39.9375rem) {
+  .site-main {
+    padding-block: 2rem 3rem;
+  }
+
+  .opportunities-intro h2 {
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .opportunities-intro p {
+    margin-top: 0.375rem;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+
+  .opportunity-filters {
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+
+  .opportunity-results {
+    margin-top: 2rem;
+  }
+
+  .opportunity-card__header,
+  .opportunity-metadata {
+    padding: 1rem;
+  }
+
+  .opportunity-card__footer,
+  .opportunity-detail__footer {
+    padding: 0.875rem 1rem;
+  }
+
+  .opportunity-detail__back,
+  .opportunity-detail-state > a {
+    margin-bottom: 1rem;
+  }
+
+  .opportunity-detail__header,
+  .opportunity-detail__section {
+    padding: 1rem;
+  }
+}
+
 @media (min-width: 40rem) {
   .app-container {
     width: min(calc(100% - 3rem), var(--container-max-width));
@@ -1013,14 +1060,6 @@ summary:focus-visible {
 
   .opportunity-metadata {
     grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
-  }
-
-  .opportunity-card .electrical-work-brief {
-    min-height: 8rem;
-  }
-
-  .opportunity-card .electrical-work-brief > p {
-    min-height: 2.9em;
   }
 
   .opportunity-card__action {
@@ -1084,5 +1123,13 @@ summary:focus-visible {
 
   .opportunity-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opportunity-card .electrical-work-brief {
+    min-height: 8rem;
+  }
+
+  .opportunity-card .electrical-work-brief > p {
+    min-height: 2.9em;
   }
 }
