@@ -1,0 +1,10 @@
+[Unit]
+Description=SiteForecaster recent planning data sync
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/groundsignal
+ExecStart=/usr/bin/docker compose exec -T api python -m backend.app.commands.planning_sync --days 7
