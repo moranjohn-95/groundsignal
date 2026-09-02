@@ -1,7 +1,7 @@
 from collections.abc import Iterable
-from datetime import date, datetime, timezone
+from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import PlanningApplication
@@ -9,16 +9,11 @@ from .planning_api import (
     fetch_planning_applications,
     iter_planning_application_pages,
     iter_planning_application_pages_received_since,
-    iter_planning_application_pages_since,
 )
 from .planning_transformer import transform_planning_application
 
 
 DATABASE_MANAGED_FIELDS = {"id", "created_at", "updated_at"}
-
-
-class InitialPlanningImportRequiredError(RuntimeError):
-    """Raised when incremental sync is attempted before an initial import."""
 
 
 def _persist_planning_application_page(
@@ -139,19 +134,13 @@ def ingest_all_planning_applications(
 
 def sync_planning_applications(
     session: Session,
+    *,
+    since: date,
     page_size: int = 500,
     max_pages: int | None = None,
-) -> dict[str, int | datetime]:
+) -> dict[str, int]:
+    """Upsert applications received within an inclusive rolling date window."""
+
     _validate_max_pages(max_pages)
-
-    watermark = session.scalar(select(func.max(PlanningApplication.source_updated_at)))
-    if watermark is None:
-        raise InitialPlanningImportRequiredError(
-            "Incremental planning sync requires an initial import to be completed first."
-        )
-
-    watermark_utc = watermark.astimezone(timezone.utc)
-    pages = iter_planning_application_pages_since(watermark_utc, page_size)
-    totals = _ingest_planning_application_pages(session, pages, max_pages)
-
-    return {"watermark": watermark_utc, **totals}
+    pages = iter_planning_application_pages_received_since(since, page_size)
+    return _ingest_planning_application_pages(session, pages, max_pages)

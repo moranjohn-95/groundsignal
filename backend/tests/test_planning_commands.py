@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date
 from io import StringIO
 from unittest.mock import Mock
 
@@ -6,9 +6,6 @@ import pytest
 from sqlalchemy.orm import Session
 
 from backend.app.commands import planning_import, planning_sync
-from backend.app.services.planning_ingestion import (
-    InitialPlanningImportRequiredError,
-)
 
 
 IMPORT_RESULT = {
@@ -17,9 +14,7 @@ IMPORT_RESULT = {
     "inserted": 1100,
     "updated": 100,
 }
-SYNC_WATERMARK = datetime(2026, 8, 20, 12, 30, tzinfo=timezone.utc)
 SYNC_RESULT = {
-    "watermark": SYNC_WATERMARK,
     "pages_processed": 2,
     "fetched": 125,
     "inserted": 25,
@@ -148,7 +143,14 @@ def test_import_command_failure_returns_nonzero_and_writes_stderr() -> None:
     session.close.assert_called_once_with()
 
 
-def test_sync_command_uses_defaults_and_prints_summary() -> None:
+def test_sync_command_uses_default_window_and_prints_summary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        planning_sync,
+        "_current_utc_date",
+        lambda: date(2026, 9, 2),
+    )
     session = Mock(spec=Session)
     session_factory = Mock(return_value=session)
     sync_service = Mock(return_value=SYNC_RESULT)
@@ -167,23 +169,36 @@ def test_sync_command_uses_defaults_and_prints_summary() -> None:
     session_factory.assert_called_once_with()
     sync_service.assert_called_once_with(
         session,
+        since=date(2026, 8, 26),
         page_size=500,
         max_pages=None,
     )
     session.close.assert_called_once_with()
     assert stdout.getvalue() == (
-        "Planning sync complete: watermark used=2026-08-20T12:30:00+00:00, "
-        "pages processed=2, fetched=125, inserted=25, updated=100\n"
+        "Planning sync complete:\n"
+        "window days=7\n"
+        "since=2026-08-26\n"
+        "pages processed=2\n"
+        "fetched=125\n"
+        "inserted=25\n"
+        "updated=100\n"
     )
     assert stderr.getvalue() == ""
 
 
-def test_sync_command_passes_custom_page_size_and_max_pages() -> None:
+def test_sync_command_passes_explicit_window_page_size_and_max_pages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        planning_sync,
+        "_current_utc_date",
+        lambda: date(2026, 9, 2),
+    )
     session = Mock(spec=Session)
     sync_service = Mock(return_value=SYNC_RESULT)
 
     exit_code = planning_sync.main(
-        ["--page-size", "1000", "--max-pages", "2"],
+        ["--days", "90", "--page-size", "1000", "--max-pages", "2"],
         session_factory=Mock(return_value=session),
         sync_service=sync_service,
         stdout=StringIO(),
@@ -193,6 +208,7 @@ def test_sync_command_passes_custom_page_size_and_max_pages() -> None:
     assert exit_code == 0
     sync_service.assert_called_once_with(
         session,
+        since=date(2026, 6, 4),
         page_size=1000,
         max_pages=2,
     )
@@ -205,6 +221,7 @@ def test_sync_runner_closes_session_and_preserves_failure() -> None:
 
     with pytest.raises(RuntimeError) as exc_info:
         planning_sync.run_sync(
+            days=7,
             page_size=500,
             max_pages=None,
             session_factory=Mock(return_value=session),
@@ -213,29 +230,6 @@ def test_sync_runner_closes_session_and_preserves_failure() -> None:
         )
 
     assert exc_info.value is failure
-    session.close.assert_called_once_with()
-
-
-def test_sync_command_missing_initial_import_returns_clear_error() -> None:
-    session = Mock(spec=Session)
-    stdout = StringIO()
-    stderr = StringIO()
-    failure = InitialPlanningImportRequiredError("No watermark is available.")
-
-    exit_code = planning_sync.main(
-        [],
-        session_factory=Mock(return_value=session),
-        sync_service=Mock(side_effect=failure),
-        stdout=stdout,
-        stderr=stderr,
-    )
-
-    assert exit_code == 1
-    assert stdout.getvalue() == ""
-    error = stderr.getvalue()
-    assert "initial planning import is required" in error
-    assert "python -m backend.app.commands.planning_import" in error
-    assert "No watermark is available." in error
     session.close.assert_called_once_with()
 
 
@@ -285,6 +279,20 @@ def test_command_parsers_reject_invalid_numeric_arguments(
         build_parser().parse_args([option, value])
 
     assert exc_info.value.code == 2
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "true", "1.5"])
+def test_sync_parser_rejects_invalid_window_days(value: str) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        planning_sync.build_parser().parse_args(["--days", value])
+
+    assert exc_info.value.code == 2
+
+
+def test_sync_parser_defaults_window_days_to_seven() -> None:
+    args = planning_sync.build_parser().parse_args([])
+
+    assert args.days == 7
 
 
 @pytest.mark.parametrize("page_size", [1, 2000])

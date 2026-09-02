@@ -535,16 +535,11 @@ def test_initial_import_since_uses_received_date_page_iterator(
     session.rollback.assert_not_called()
 
 
-def test_sync_uses_max_watermark_and_aggregates_page_results(
+def test_sync_uses_received_date_window_and_aggregates_page_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    watermark = datetime(2024, 6, 1, 12, 0, tzinfo=timezone.utc)
-    boundary_feature = {
-        "properties": {
-            "OBJECTID": 1101,
-            "ETL_DATE": int(watermark.timestamp() * 1000),
-        }
-    }
+    since = date(2026, 8, 26)
+    boundary_feature = {"properties": {"OBJECTID": 1101}}
     pages = [
         [boundary_feature, {"properties": {"OBJECTID": 1102}}],
         [{"properties": {"OBJECTID": 1103}}],
@@ -558,10 +553,7 @@ def test_sync_uses_max_watermark_and_aggregates_page_results(
     filtered_iterator = Mock(return_value=iter(pages))
     transform = Mock(
         side_effect=[
-            {
-                **_transformed_application(1101),
-                "source_updated_at": watermark,
-            },
+            _transformed_application(1101),
             {
                 **_transformed_application(1102, "Updated Authority"),
                 "description": "Development of a solar farm.",
@@ -573,7 +565,7 @@ def test_sync_uses_max_watermark_and_aggregates_page_results(
     )
     monkeypatch.setattr(
         planning_ingestion,
-        "iter_planning_application_pages_since",
+        "iter_planning_application_pages_received_since",
         filtered_iterator,
     )
     monkeypatch.setattr(
@@ -582,24 +574,21 @@ def test_sync_uses_max_watermark_and_aggregates_page_results(
         transform,
     )
     session = Mock(spec=Session)
-    session.scalar.side_effect = [watermark, None, existing, None]
+    session.scalar.side_effect = [None, existing, None]
 
     result = planning_ingestion.sync_planning_applications(
         session,
+        since=since,
         page_size=200,
     )
 
     assert result == {
-        "watermark": watermark,
         "pages_processed": 2,
         "fetched": 3,
         "inserted": 2,
         "updated": 1,
     }
-    watermark_statement = session.scalar.call_args_list[0].args[0]
-    compiled_statement = str(watermark_statement.compile()).lower()
-    assert "max(planning_applications.source_updated_at)" in compiled_statement
-    filtered_iterator.assert_called_once_with(watermark, 200)
+    filtered_iterator.assert_called_once_with(since, 200)
     transform.assert_any_call(boundary_feature)
     assert existing.planning_authority == "Updated Authority"
     assert existing.category == "energy"
@@ -612,10 +601,66 @@ def test_sync_uses_max_watermark_and_aggregates_page_results(
     session.rollback.assert_not_called()
 
 
+def test_repeating_sync_window_updates_existing_application_without_duplicates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    since = date(2026, 8, 26)
+    feature = {"properties": {"OBJECTID": 1151}}
+    filtered_iterator = Mock(side_effect=[iter([[feature]]), iter([[feature]])])
+    monkeypatch.setattr(
+        planning_ingestion,
+        "iter_planning_application_pages_received_since",
+        filtered_iterator,
+    )
+    monkeypatch.setattr(
+        planning_ingestion,
+        "transform_planning_application",
+        Mock(return_value=_transformed_application(1151)),
+    )
+    session = Mock(spec=Session)
+    stored_applications: dict[int, PlanningApplication] = {}
+    session.scalar.side_effect = lambda _statement: stored_applications.get(1151)
+    session.add.side_effect = (
+        lambda application: stored_applications.__setitem__(
+            application.source_object_id,
+            application,
+        )
+    )
+
+    first_result = planning_ingestion.sync_planning_applications(
+        session,
+        since=since,
+    )
+    second_result = planning_ingestion.sync_planning_applications(
+        session,
+        since=since,
+    )
+
+    assert first_result == {
+        "pages_processed": 1,
+        "fetched": 1,
+        "inserted": 1,
+        "updated": 0,
+    }
+    assert second_result == {
+        "pages_processed": 1,
+        "fetched": 1,
+        "inserted": 0,
+        "updated": 1,
+    }
+    assert list(stored_applications) == [1151]
+    session.add.assert_called_once()
+    assert session.commit.call_count == 2
+    assert filtered_iterator.call_args_list == [
+        ((since, 500), {}),
+        ((since, 500), {}),
+    ]
+
+
 def test_sync_later_page_failure_rolls_back_current_page(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    watermark = datetime(2024, 6, 1, tzinfo=timezone.utc)
+    since = date(2026, 8, 26)
     pages = [
         [{"properties": {"OBJECTID": 1201}}],
         [{"properties": {"OBJECTID": 1202}}],
@@ -623,7 +668,7 @@ def test_sync_later_page_failure_rolls_back_current_page(
     failure = ValueError("invalid filtered feature")
     monkeypatch.setattr(
         planning_ingestion,
-        "iter_planning_application_pages_since",
+        "iter_planning_application_pages_received_since",
         Mock(return_value=iter(pages)),
     )
     monkeypatch.setattr(
@@ -632,10 +677,10 @@ def test_sync_later_page_failure_rolls_back_current_page(
         Mock(side_effect=[_transformed_application(1201), failure]),
     )
     session = Mock(spec=Session)
-    session.scalar.side_effect = [watermark, None]
+    session.scalar.return_value = None
 
     with pytest.raises(ValueError) as exc_info:
-        planning_ingestion.sync_planning_applications(session)
+        planning_ingestion.sync_planning_applications(session, since=since)
 
     assert exc_info.value is failure
     assert session.commit.call_count == 1
@@ -647,7 +692,7 @@ def test_sync_later_page_failure_rolls_back_current_page(
 def test_sync_max_pages_does_not_consume_another_filtered_page(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    watermark = datetime(2024, 6, 1, tzinfo=timezone.utc)
+    since = date(2026, 8, 26)
     consumed_source_ids = []
 
     def lazy_pages():
@@ -658,7 +703,7 @@ def test_sync_max_pages_does_not_consume_another_filtered_page(
     filtered_iterator = Mock(return_value=lazy_pages())
     monkeypatch.setattr(
         planning_ingestion,
-        "iter_planning_application_pages_since",
+        "iter_planning_application_pages_received_since",
         filtered_iterator,
     )
     monkeypatch.setattr(
@@ -672,15 +717,15 @@ def test_sync_max_pages_does_not_consume_another_filtered_page(
         ),
     )
     session = Mock(spec=Session)
-    session.scalar.side_effect = [watermark, None, None]
+    session.scalar.return_value = None
 
     result = planning_ingestion.sync_planning_applications(
         session,
+        since=since,
         max_pages=2,
     )
 
     assert result == {
-        "watermark": watermark,
         "pages_processed": 2,
         "fetched": 2,
         "inserted": 2,
@@ -688,45 +733,26 @@ def test_sync_max_pages_does_not_consume_another_filtered_page(
     }
     assert consumed_source_ids == [1301, 1302]
     assert session.commit.call_count == 2
-    filtered_iterator.assert_called_once_with(watermark, 500)
+    filtered_iterator.assert_called_once_with(since, 500)
 
 
-def test_sync_without_watermark_requires_initial_import(
+def test_sync_rejects_invalid_max_pages_before_querying_received_window(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    since = date(2026, 8, 26)
     filtered_iterator = Mock()
     monkeypatch.setattr(
         planning_ingestion,
-        "iter_planning_application_pages_since",
-        filtered_iterator,
-    )
-    session = Mock(spec=Session)
-    session.scalar.return_value = None
-
-    with pytest.raises(
-        planning_ingestion.InitialPlanningImportRequiredError,
-        match="initial import",
-    ):
-        planning_ingestion.sync_planning_applications(session)
-
-    filtered_iterator.assert_not_called()
-    session.commit.assert_not_called()
-    session.rollback.assert_not_called()
-
-
-def test_sync_rejects_invalid_max_pages_before_querying_watermark(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    filtered_iterator = Mock()
-    monkeypatch.setattr(
-        planning_ingestion,
-        "iter_planning_application_pages_since",
+        "iter_planning_application_pages_received_since",
         filtered_iterator,
     )
     session = Mock(spec=Session)
 
     with pytest.raises(ValueError, match="positive integer"):
-        planning_ingestion.sync_planning_applications(session, max_pages=0)
+        planning_ingestion.sync_planning_applications(
+            session,
+            since=since,
+            max_pages=0,
+        )
 
-    session.scalar.assert_not_called()
     filtered_iterator.assert_not_called()

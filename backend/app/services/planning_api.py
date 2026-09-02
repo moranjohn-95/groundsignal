@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 import time
 from typing import Any
 
@@ -124,26 +124,6 @@ def iter_planning_application_pages(page_size: int = 500) -> Iterator[list[Any]]
         page_size,
         where="1=1",
         order_by_fields="OBJECTID ASC",
-    )
-
-
-def iter_planning_application_pages_since(
-    since: datetime,
-    page_size: int = 500,
-) -> Iterator[list[Any]]:
-    if not isinstance(since, datetime):
-        raise ValueError("since must be a timezone-aware datetime")
-    if since.tzinfo is None or since.utcoffset() is None:
-        raise ValueError("since must be a timezone-aware datetime")
-
-    since_utc = since.astimezone(timezone.utc)
-    timestamp = since_utc.strftime("%Y-%m-%d %H:%M:%S")
-    where = f"ETL_DATE >= TIMESTAMP '{timestamp}'"
-
-    yield from _iter_planning_application_pages(
-        page_size,
-        where=where,
-        order_by_fields="ETL_DATE ASC, OBJECTID ASC",
     )
 
 
