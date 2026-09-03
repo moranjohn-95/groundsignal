@@ -44,6 +44,7 @@ def _fetch_planning_application_page(
     if order_by_fields is not None:
         params["orderByFields"] = order_by_fields
 
+    # Retry short-lived source outages before failing the import.
     for attempt in range(1, MAX_REQUEST_ATTEMPTS + 1):
         try:
             response = httpx.get(
@@ -131,9 +132,11 @@ def iter_planning_application_pages_received_since(
     since: date,
     page_size: int = 500,
 ) -> Iterator[list[Any]]:
+    """Yield ordered source pages from an inclusive ReceivedDate window."""
     if isinstance(since, datetime) or not isinstance(since, date):
         raise ValueError("since must be a date")
 
+    # Older records can be republished, so ETL_DATE is not a safe sync watermark.
     where = f"ReceivedDate >= DATE '{since.isoformat()}'"
 
     yield from _iter_planning_application_pages(

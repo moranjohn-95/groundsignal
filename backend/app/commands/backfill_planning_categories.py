@@ -110,6 +110,7 @@ def build_batch_statement(
     )
     if after_id is not None:
         statement = statement.where(PlanningApplication.id > after_id)
+    # Lock the batch so concurrent runs cannot categorise the same records.
     return (
         statement.order_by(PlanningApplication.id.asc())
         .limit(batch_size)

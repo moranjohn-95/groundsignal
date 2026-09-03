@@ -1005,6 +1005,7 @@ def _assess_electrical_relevance(
     project_scale: int,
     residential_unit_count: int | None,
 ) -> _ElectricalAssessment:
+    # Direct wording is stronger evidence than contextual inference.
     signals = _direct_electrical_signals(
         text,
         category=category,
@@ -1476,6 +1477,7 @@ def score_planning_application_opportunity(
         raise ValueError(f"Unsupported planning category: {category}")
 
     current_date = _current_utc_date() if current_date is None else current_date
+    # Score the main proposal, but use the full text when looking for evidence.
     primary_text = _primary_scope_text(description, application_type)
     full_text = " ".join(
         text
@@ -1495,6 +1497,7 @@ def score_planning_application_opportunity(
         number_residential_units,
         floor_area,
     )
+    # Prefer structured source data and fall back to an explicit count in the text.
     residential_units = _valid_units(number_residential_units)
     if residential_units is None:
         residential_units = _textual_units(full_text)

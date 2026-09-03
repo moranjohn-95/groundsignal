@@ -7,4 +7,5 @@ Requires=docker.service
 Type=oneshot
 User=ubuntu
 WorkingDirectory=/home/ubuntu/groundsignal
+# Recheck a longer window each day to catch delayed source changes.
 ExecStart=/usr/bin/docker compose exec -T api python -m backend.app.commands.planning_sync --days 90

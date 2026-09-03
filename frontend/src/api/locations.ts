@@ -15,6 +15,7 @@ export class LocationNotFoundError extends Error {
 export async function fetchGeocodedLocation(
   query: string,
 ): Promise<GeocodedLocation> {
+  // Encode typed location text before adding it to the query string.
   const parameters = new URLSearchParams({ query })
   const response = await fetch(
     `/api/v1/locations/geocode?${parameters.toString()}`,

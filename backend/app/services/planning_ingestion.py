@@ -20,6 +20,7 @@ def _persist_planning_application_page(
     session: Session,
     features: list[dict],
 ) -> dict[str, int]:
+    # Reuse duplicate source records within a page instead of querying twice.
     applications_by_source_id: dict[int, PlanningApplication] = {}
     inserted_count = 0
     updated_count = 0
@@ -39,6 +40,8 @@ def _persist_planning_application_page(
                 setattr(application, field_name, value)
             continue
 
+        # OBJECTID identifies the source record, so rolling windows update it
+        # rather than create a duplicate application.
         application = session.scalar(
             select(PlanningApplication).where(
                 PlanningApplication.source_object_id == source_object_id
@@ -102,6 +105,7 @@ def _ingest_planning_application_pages(
     for features in pages:
         try:
             page_result = _persist_planning_application_page(session, features)
+            # Keep long imports restartable without repeating earlier pages.
             session.commit()
         except Exception:
             session.rollback()
@@ -139,7 +143,7 @@ def sync_planning_applications(
     page_size: int = 500,
     max_pages: int | None = None,
 ) -> dict[str, int]:
-    """Upsert applications received within an inclusive rolling date window."""
+    """Upsert an inclusive ReceivedDate window; ETL dates can change for older records."""
 
     _validate_max_pages(max_pages)
     pages = iter_planning_application_pages_received_since(since, page_size)

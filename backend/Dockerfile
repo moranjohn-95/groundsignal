@@ -19,4 +19,5 @@ USER groundsignal
 
 EXPOSE 8000
 
+# Nginx keeps the production access log; avoid copying query strings into Docker logs.
 CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

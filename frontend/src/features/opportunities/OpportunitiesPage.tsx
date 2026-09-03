@@ -75,6 +75,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
     sort: OpportunitySort,
     preserveResults = false,
   ) {
+    // Keep the current cards visible while sorting or changing pages.
     if (preserveResults) {
       setRefreshState('refreshing')
     } else {
@@ -117,6 +118,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
     setRefreshState('idle')
 
     if (filters.location === '' && currentCoordinates !== null) {
+      // Reuse browser coordinates instead of geocoding an empty location field.
       await loadOpportunities(
         {
           filters,
@@ -189,6 +191,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
     setLocationQuery(location)
     setRefreshState('idle')
     if (currentCoordinates !== null) {
+      // Typing a location switches the search away from browser coordinates.
       setCurrentCoordinates(null)
       setSearchState({ status: 'initial' })
     }

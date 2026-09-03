@@ -587,6 +587,7 @@ def classify_planning_application(
         number_residential_units
     )
 
+    # An explicit change-of-use destination is stronger than historic wording.
     proposed_use_destination = _extract_proposed_use_destination(
         description_text
     )

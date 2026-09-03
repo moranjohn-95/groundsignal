@@ -64,6 +64,7 @@ export function electricalWorkCardHeading(brief: ElectricalWorkBrief) {
 export function electricalWorkBriefFor(
   opportunity: Pick<Opportunity, 'electrical_work_brief'>,
 ) {
+  // Keep cards usable while older API responses are still missing this field.
   const brief: unknown = opportunity.electrical_work_brief
   return isElectricalWorkBrief(brief) ? brief : unavailableElectricalWorkBrief
 }
@@ -182,6 +183,7 @@ export function normalizeOpportunityDescription(description: string | null) {
 export function officialApplicationUrl(
   opportunity: OfficialApplicationOpportunity,
 ) {
+  // Kerry application references have a stable official ePlanning URL.
   if (
     opportunity.planning_authority === KERRY_PLANNING_AUTHORITY &&
     opportunity.application_number.trim() !== ''

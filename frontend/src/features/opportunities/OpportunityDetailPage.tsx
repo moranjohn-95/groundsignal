@@ -44,6 +44,7 @@ function OpportunityDetailPage({
   useEffect(() => {
     let ignoreResult = false
 
+    // Ignore a response that arrives after navigation or a newer retry.
     void fetchOpportunity(opportunityId)
       .then((opportunity) => {
         if (!ignoreResult) {

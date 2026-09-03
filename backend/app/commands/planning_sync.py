@@ -61,6 +61,7 @@ def run_sync(
     output = sys.stdout if output is None else output
     session_factory = SessionLocal if session_factory is None else session_factory
     sync_service = sync_planning_applications if sync_service is None else sync_service
+    # Re-read an inclusive ReceivedDate window; upserts make the overlap safe.
     since = _current_utc_date() - timedelta(days=days)
     session = session_factory()
     try:

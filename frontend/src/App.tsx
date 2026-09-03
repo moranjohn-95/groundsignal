@@ -95,6 +95,7 @@ function App() {
   }, [])
 
   useLayoutEffect(() => {
+    // Restore list context when a visitor returns from an opportunity detail page.
     if (
       route.page === 'opportunities' &&
       opportunitiesScrollPosition.current !== null
@@ -151,6 +152,7 @@ function App() {
       route.page === 'opportunity-detail' &&
       route.preservesOpportunities
     ) {
+      // Return through browser history only when the current list is still there.
       window.history.back()
       return
     }

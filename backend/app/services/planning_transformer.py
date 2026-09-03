@@ -93,6 +93,7 @@ def _transform_geometry(geometry: Any) -> WKTElement | None:
             "Point geometry must contain exactly two coordinates."
         )
 
+    # GeoJSON and WKT both store a point as longitude, then latitude.
     longitude, latitude = coordinates
     if (
         isinstance(longitude, bool)
@@ -124,6 +125,7 @@ def _transform_geometry(geometry: Any) -> WKTElement | None:
 
 
 def transform_planning_application(feature: dict) -> dict:
+    """Validate one source feature and map it to planning application fields."""
     if not isinstance(feature, dict):
         raise PlanningApplicationTransformationError("Feature must be a dictionary.")
 

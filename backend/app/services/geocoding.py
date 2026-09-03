@@ -89,10 +89,12 @@ def _location_from_result(result: Any) -> GeocodedLocation:
 
 
 def geocode_location(query: str) -> GeocodedLocation | None:
+    """Look up an Irish location without sending the provider key to the browser."""
     normalized_query = query.strip()
     if not normalized_query:
         raise ValueError("query must not be empty")
 
+    # The provider request stays on the server because it needs the API key.
     params = {
         "address": normalized_query,
         "components": "country:IE",

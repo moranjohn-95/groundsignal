@@ -30,6 +30,7 @@ def geocode(
             detail="Location query must not be empty.",
         )
 
+    # Check the limit before calling the paid geocoding service.
     enforce_rate_limit(
         request,
         limiter=geocoding_rate_limiter,

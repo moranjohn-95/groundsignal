@@ -1,3 +1,5 @@
+/* Base styles and shared site layout */
+
 :root {
   --color-primary: #172a3a;
   --color-primary-hover: #0f1f2c;
@@ -153,6 +155,8 @@ p {
   margin-block: 0;
   line-height: 1.6;
 }
+
+/* Search and result controls */
 
 .opportunities-intro {
   max-width: 46rem;
@@ -441,6 +445,8 @@ summary:focus-visible {
 .opportunity-results__count {
   white-space: nowrap;
 }
+
+/* Result states and opportunity cards */
 
 .opportunity-state {
   width: min(100%, 42rem);
@@ -885,6 +891,8 @@ summary:focus-visible {
   background: var(--color-primary-hover);
 }
 
+/* Detail, legal and fallback pages */
+
 .opportunity-detail-page,
 .opportunity-detail-state {
   max-width: 58rem;
@@ -1242,6 +1250,8 @@ summary:focus-visible {
   border-color: var(--color-primary-hover);
   background: var(--color-primary-hover);
 }
+
+/* Small-screen layout */
 
 @media (max-width: 39.9375rem) {
   .site-main {

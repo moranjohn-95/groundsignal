@@ -7,4 +7,5 @@ Requires=docker.service
 Type=oneshot
 User=ubuntu
 WorkingDirectory=/home/ubuntu/groundsignal
+# Re-read recent ReceivedDate records; database upserts make overlap safe.
 ExecStart=/usr/bin/docker compose exec -T api python -m backend.app.commands.planning_sync --days 7
