@@ -67,6 +67,51 @@ Planning intelligence platform for discovering local construction opportunities 
 30. [Credits & Data Sources](#30-credits--data-sources)
 31. [Acknowledgements](#31-acknowledgements)
 
+## 2. Project Aims
+
+The main aim of SiteForecaster is to help electrical contractors find relevant local construction opportunities without having to manually search through large volumes of planning application data.
+
+Planning data is publicly available, but it can be difficult and time-consuming to work through. SiteForecaster takes this information and presents it in a more useful way by allowing users to search by location, review nearby planning applications, and quickly identify projects that may involve electrical work.
+
+The project aims to:
+
+- make Irish planning data easier to search and understand.
+- help electrical contractors find potential work opportunities in their area.
+- rank opportunities using a clear and consistent scoring system.
+- highlight planning applications where electrical work is confirmed, likely, possible, or not specifically identified.
+- provide enough information for users to decide which opportunities are worth investigating further.
+- keep planning data reasonably up to date through automated background syncing.
+- provide a responsive and accessible interface that works across desktop, tablet, and mobile devices.
+
+From a development point of view, the project was also built to demonstrate how a modern full-stack application can be designed, tested, deployed, and maintained in a production environment.
+
+## 3. Problem Statement
+
+Irish planning application data contains useful information about upcoming construction and development projects. For tradespeople such as electricians, this can provide an early indication of where future work may become available.
+
+The problem is that the raw planning data is not designed specifically for contractors looking for work. A large number of applications may need to be reviewed before finding one that is relevant, and important details can be spread across descriptions, development types, locations, and other fields.
+
+For a small electrical contractor, manually searching this information regularly would take time and still make it easy to miss useful opportunities.
+
+SiteForecaster addresses this by processing planning applications and presenting them through a contractor-focused interface. Applications can be searched by location and are given an opportunity score based on factors such as project scope, scale, timing, category, and signs of electrical work.
+
+The aim is not to guarantee that a planning application will become a paid job. Instead, SiteForecaster helps reduce the amount of planning data a contractor needs to review and gives them a more focused starting point for finding potential opportunities.
+
+## 4. Target Audience
+
+The current version of SiteForecaster is aimed primarily at electrical contractors and electricians working in Ireland.
+
+This includes:
+
+- self-employed electricians looking for new local work.
+- small electrical contracting businesses that want to identify upcoming projects.
+- contractors who want to spend less time manually searching planning records.
+- businesses interested in finding residential, commercial, industrial, public, or mixed-use developments that may require electrical work.
+
+The platform is particularly useful for smaller contractors who may not have dedicated sales or business-development staff but still want an organised way to identify potential work in their area.
+
+SiteForecaster is currently focused on electricians, but the underlying planning-data and opportunity-scoring approach could later be adapted for other construction trades if there is a clear business case.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
