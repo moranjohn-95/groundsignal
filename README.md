@@ -112,6 +112,59 @@ The platform is particularly useful for smaller contractors who may not have ded
 
 SiteForecaster is currently focused on electricians, but the underlying planning-data and opportunity-scoring approach could later be adapted for other construction trades if there is a clear business case.
 
+## 5. User Goals
+
+SiteForecaster is designed to help users find relevant planning opportunities quickly and with less manual searching.
+
+The main user goals are to:
+
+- search for planning opportunities near a chosen location.
+- quickly understand which applications are most relevant.
+- identify projects that may involve electrical work.
+- compare opportunities using a clear scoring system.
+- review useful project details without opening every planning record individually.
+- sort and filter results so the strongest opportunities can be reviewed first.
+- open the original planning application when more detail is needed.
+- use the platform easily across desktop, tablet, and mobile devices.
+
+The overall goal is to reduce the time spent searching through planning data and help users focus their attention on the applications most likely to be worth investigating.
+
+## 6. Product Value
+
+The value of SiteForecaster is not that it creates new planning data. The value comes from making existing public planning information easier to use for a specific type of contractor.
+
+Instead of treating every planning application equally, SiteForecaster adds an extra layer of analysis. Applications are scored and ranked based on factors such as project scale, timing, category, scope, and signs of electrical work.
+
+This helps users:
+
+- spend less time reviewing low-value or irrelevant applications.
+- spot stronger opportunities earlier.
+- understand why one project may be more relevant than another.
+- work from a more focused list of potential leads.
+- use public planning information in a way that is more practical for business development.
+
+SiteForecaster is intended to support decision-making rather than replace it. A high-scoring opportunity is not a guaranteed job, and users are still expected to review the original planning application before taking any further action.
+
+## 7. User Experience
+
+The user experience was designed around one main idea: finding useful planning opportunities should be quick and easy to understand.
+
+A user can enter a location, choose a search radius, and view nearby planning applications without needing to understand the structure of the underlying planning dataset. Results are presented as opportunity cards with the most useful information shown first.
+
+The interface gives particular attention to:
+
+- clear opportunity scores and labels.
+- simple electrical-work indicators.
+- readable project descriptions and addresses.
+- sorting options that help users prioritise stronger opportunities.
+- clear loading, empty, error, and retry states.
+- responsive layouts across desktop, tablet, and mobile devices.
+- accessible headings, labels, focus states, and interactive controls.
+
+The opportunity detail view provides more information when needed without overloading the main results page. Users can also follow the official planning application link if they want to verify the source information or investigate the project further.
+
+The design avoids unnecessary complexity. The aim is to help a contractor understand the value of a planning application quickly, rather than forcing them to interpret technical planning data themselves.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
