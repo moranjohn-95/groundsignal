@@ -216,7 +216,7 @@ User stories were prioritised using **Must-have**, **Should-have** and **Could-h
 
 All Must-have stories listed below have been completed.
 
-| User Story | Outcome |
+| Must-have User Story | Outcome |
 | --- | --- |
 | Search & Geocode a Location | Users can search for an Irish location and receive usable coordinates. |
 | Store & Query Planning Applications | Planning application data is stored and available through the API. |
@@ -240,7 +240,7 @@ All Must-have stories listed below have been completed.
 
 The following Should-have stories were also completed as part of the MVP.
 
-| User Story | Outcome |
+| Should-have User Story | Outcome |
 | --- | --- |
 | Filter & Sort Opportunities | Users can sort and filter results to focus on relevant opportunities. |
 | UI Design System, Accessibility & User Feedback | The interface includes consistent styling, accessible controls and clear application states. |
