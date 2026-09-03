@@ -200,42 +200,50 @@ The work was grouped into epics to keep development organised and make the main 
 
 ### User Story Progress
 
-User stories were prioritised with must-have, should-have and could-have labels so the core user value could be delivered first.
+User stories were prioritised using **Must-have**, **Should-have** and **Could-have** labels. Core MVP functionality was completed first, while lower-priority features were left for future development.
 
-#### Implemented MVP User Stories
+#### Must-have User Stories
 
-| User Story                                              | Priority    | Outcome                                                                              | Status   |
-| ------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------ | -------- |
-| Search & Geocode a Location                             | Must-have   | Users can search for an Irish location and receive usable coordinates.               | Complete |
-| Store & Query Planning Applications                     | Must-have   | Planning application data is stored and made available through the API.              | Complete |
-| Find Nearby Planning Applications                       | Must-have   | Users can find planning applications near a selected location.                       | Complete |
-| Classify Planning Applications by Opportunity Type      | Must-have   | Applications are grouped by opportunity type to make results easier to review.       | Complete |
-| Score & Rank Commercial Opportunities                   | Must-have   | Opportunities are scored and ranked to help users focus on stronger leads.           | Complete |
-| Run GroundSignal with PostgreSQL & Database Migrations  | Must-have   | The application runs with PostgreSQL/PostGIS and managed schema migrations.          | Complete |
-| Automated Test Suite for Core Backend Features          | Must-have   | Core backend behaviour is covered by automated tests.                                | Complete |
-| Containerise GroundSignal with Docker                   | Must-have   | The application can run in Docker containers.                                        | Complete |
-| Continuous Integration with GitHub Actions              | Must-have   | Automated checks run for backend and frontend changes.                               | Complete |
-| Deploy GroundSignal to AWS                              | Must-have   | The MVP has an AWS EC2 deployment workflow.                                          | Complete |
-| Tradesperson Opportunity Dashboard                      | Not labelled | Dashboard work for tradespeople was completed as part of the MVP.                    | Complete |
-| Frontend Foundation & Application Structure             | Must-have   | The React application structure and core routes were added.                          | Complete |
-| Location Search Experience                              | Must-have   | Users can search by location or use their current location.                          | Complete |
-| Opportunity Results Dashboard                           | Must-have   | Users can view ranked nearby opportunities in a clear results layout.                | Complete |
-| Opportunity Detail View & Score Explanation             | Must-have   | Users can review details and understand the opportunity score.                       | Complete |
-| Filter & Sort Opportunities                             | Should-have | Users can filter and sort results to review opportunities in a useful order.         | Complete |
-| Responsive Design & Mobile Usability                    | Must-have   | The interface works across desktop, tablet and mobile devices.                       | Complete |
-| UI Design System, Accessibility & User Feedback         | Should-have | The UI includes accessible controls and clear feedback states.                       | Complete |
-| Frontend Testing & Core User Journey Validation         | Should-have | Key frontend journeys are covered by tests and validation.                           | Complete |
-| Automated Planning Data Ingestion & Refresh             | Must-have   | Planning data can be imported and kept up to date.                                   | Complete |
-| Production Security & Configuration Hardening           | Must-have   | Production configuration, dependency checks and privacy controls were reviewed.      | Complete |
-| Production Health Monitoring & Operational Error Handling | Should-have | Health checks and basic operational guidance were added.                            | Complete |
+All Must-have stories listed below have been completed.
+
+| User Story | Outcome |
+| --- | --- |
+| Search & Geocode a Location | Users can search for an Irish location and receive usable coordinates. |
+| Store & Query Planning Applications | Planning application data is stored and available through the API. |
+| Find Nearby Planning Applications | Users can find planning applications near a selected location. |
+| Classify Planning Applications by Opportunity Type | Applications are grouped by opportunity type to make results easier to review. |
+| Score & Rank Commercial Opportunities | Opportunities are scored and ranked to help users focus on stronger leads. |
+| Run GroundSignal with PostgreSQL & Database Migrations | The application uses PostgreSQL/PostGIS with managed schema migrations. |
+| Automated Test Suite for Core Backend Features | Core backend behaviour is covered by automated tests. |
+| Containerise GroundSignal with Docker | The backend and database can run in Docker containers. |
+| Continuous Integration with GitHub Actions | Automated backend and frontend checks run through GitHub Actions. |
+| Deploy GroundSignal to AWS | The application is deployed to AWS EC2. |
+| Frontend Foundation & Application Structure | The React application has a structured component, routing and API setup. |
+| Location Search Experience | Users can search by location or use their current location. |
+| Opportunity Results Dashboard | Users can view ranked nearby opportunities in a clear results layout. |
+| Opportunity Detail View & Score Explanation | Users can review project details and understand the opportunity score. |
+| Responsive Design & Mobile Usability | The interface works across desktop, tablet and mobile devices. |
+| Automated Planning Data Ingestion & Refresh | Planning data is imported and refreshed automatically. |
+| Production Security & Configuration Hardening | Production configuration, dependency checks and privacy controls were reviewed and hardened. |
+
+#### Should-have User Stories
+
+The following Should-have stories were also completed as part of the MVP.
+
+| User Story | Outcome |
+| --- | --- |
+| Filter & Sort Opportunities | Users can sort and filter results to focus on relevant opportunities. |
+| UI Design System, Accessibility & User Feedback | The interface includes consistent styling, accessible controls and clear application states. |
+| Frontend Testing & Core User Journey Validation | Important frontend journeys are covered by automated tests. |
+| Production Health Monitoring & Operational Error Handling | A dedicated health check and production-safe operational monitoring approach were added. |
 
 #### Remaining / Future User Stories
 
-| User Story | Priority | Reason still open | Status |
+| User Story | Priority | Status | Reason |
 | --- | --- | --- | --- |
-| User Accounts & Secure Authentication | Should-have | Useful future feature, but not required for the initial MVP. | Future work |
-| Save & Manage Opportunity Shortlist | Could-have | Useful for returning users, but outside the MVP scope. | Future work |
-| Project README, API Documentation & Architecture Guide | Must-have | Documentation is being finalised after the core product development. | In progress |
+| Project README, API Documentation & Architecture Guide | Must-have | In progress | Final project documentation is currently being completed. |
+| User Accounts & Secure Authentication | Should-have | Future development | Authentication is useful but not required for the initial MVP. |
+| Save & Manage Opportunity Shortlist | Could-have | Future development | Saving opportunities depends on user accounts and is outside the current MVP scope. |
 
 #### Agile Workflow and Prioritisation
 
