@@ -204,30 +204,30 @@ User stories were prioritised with must-have, should-have and could-have labels 
 
 #### Implemented MVP User Stories
 
-| User Story | Priority | Outcome | Status |
-| --- | --- | --- |
-| Search & Geocode a Location | Must-have | Users can search for an Irish location and receive usable coordinates. | Complete |
-| Store & Query Planning Applications | Must-have | Planning application data is stored and made available through the API. | Complete |
-| Find Nearby Planning Applications | Must-have | Users can find planning applications near a selected location. | Complete |
-| Classify Planning Applications by Opportunity Type | Must-have | Applications are grouped by opportunity type to make results easier to review. | Complete |
-| Score & Rank Commercial Opportunities | Must-have | Opportunities are scored and ranked to help users focus on stronger leads. | Complete |
-| Run GroundSignal with PostgreSQL & Database Migrations | Must-have | The application runs with PostgreSQL/PostGIS and managed schema migrations. | Complete |
-| Automated Test Suite for Core Backend Features | Must-have | Core backend behaviour is covered by automated tests. | Complete |
-| Containerise GroundSignal with Docker | Must-have | The application can run in Docker containers. | Complete |
-| Continuous Integration with GitHub Actions | Must-have | Automated checks run for backend and frontend changes. | Complete |
-| Deploy GroundSignal to AWS | Must-have | The MVP has an AWS EC2 deployment workflow. | Complete |
-| Tradesperson Opportunity Dashboard | Not labelled | Dashboard work for tradespeople was completed as part of the MVP. | Complete |
-| Frontend Foundation & Application Structure | Must-have | The React application structure and core routes were added. | Complete |
-| Location Search Experience | Must-have | Users can search by location or use their current location. | Complete |
-| Opportunity Results Dashboard | Must-have | Users can view ranked nearby opportunities in a clear results layout. | Complete |
-| Opportunity Detail View & Score Explanation | Must-have | Users can review details and understand the opportunity score. | Complete |
-| Filter & Sort Opportunities | Should-have | Users can filter and sort results to review opportunities in a useful order. | Complete |
-| Responsive Design & Mobile Usability | Must-have | The interface works across desktop, tablet and mobile devices. | Complete |
-| UI Design System, Accessibility & User Feedback | Should-have | The UI includes accessible controls and clear feedback states. | Complete |
-| Frontend Testing & Core User Journey Validation | Should-have | Key frontend journeys are covered by tests and validation. | Complete |
-| Automated Planning Data Ingestion & Refresh | Must-have | Planning data can be imported and kept up to date. | Complete |
-| Production Security & Configuration Hardening | Must-have | Production configuration, dependency checks and privacy controls were reviewed. | Complete |
-| Production Health Monitoring & Operational Error Handling | Should-have | Health checks and basic operational guidance were added. | Complete |
+| User Story                                              | Priority    | Outcome                                                                              | Status   |
+| ------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------ | -------- |
+| Search & Geocode a Location                             | Must-have   | Users can search for an Irish location and receive usable coordinates.               | Complete |
+| Store & Query Planning Applications                     | Must-have   | Planning application data is stored and made available through the API.              | Complete |
+| Find Nearby Planning Applications                       | Must-have   | Users can find planning applications near a selected location.                       | Complete |
+| Classify Planning Applications by Opportunity Type      | Must-have   | Applications are grouped by opportunity type to make results easier to review.       | Complete |
+| Score & Rank Commercial Opportunities                   | Must-have   | Opportunities are scored and ranked to help users focus on stronger leads.           | Complete |
+| Run GroundSignal with PostgreSQL & Database Migrations  | Must-have   | The application runs with PostgreSQL/PostGIS and managed schema migrations.          | Complete |
+| Automated Test Suite for Core Backend Features          | Must-have   | Core backend behaviour is covered by automated tests.                                | Complete |
+| Containerise GroundSignal with Docker                   | Must-have   | The application can run in Docker containers.                                        | Complete |
+| Continuous Integration with GitHub Actions              | Must-have   | Automated checks run for backend and frontend changes.                               | Complete |
+| Deploy GroundSignal to AWS                              | Must-have   | The MVP has an AWS EC2 deployment workflow.                                          | Complete |
+| Tradesperson Opportunity Dashboard                      | Not labelled | Dashboard work for tradespeople was completed as part of the MVP.                    | Complete |
+| Frontend Foundation & Application Structure             | Must-have   | The React application structure and core routes were added.                          | Complete |
+| Location Search Experience                              | Must-have   | Users can search by location or use their current location.                          | Complete |
+| Opportunity Results Dashboard                           | Must-have   | Users can view ranked nearby opportunities in a clear results layout.                | Complete |
+| Opportunity Detail View & Score Explanation             | Must-have   | Users can review details and understand the opportunity score.                       | Complete |
+| Filter & Sort Opportunities                             | Should-have | Users can filter and sort results to review opportunities in a useful order.         | Complete |
+| Responsive Design & Mobile Usability                    | Must-have   | The interface works across desktop, tablet and mobile devices.                       | Complete |
+| UI Design System, Accessibility & User Feedback         | Should-have | The UI includes accessible controls and clear feedback states.                       | Complete |
+| Frontend Testing & Core User Journey Validation         | Should-have | Key frontend journeys are covered by tests and validation.                           | Complete |
+| Automated Planning Data Ingestion & Refresh             | Must-have   | Planning data can be imported and kept up to date.                                   | Complete |
+| Production Security & Configuration Hardening           | Must-have   | Production configuration, dependency checks and privacy controls were reviewed.      | Complete |
+| Production Health Monitoring & Operational Error Handling | Should-have | Health checks and basic operational guidance were added.                            | Complete |
 
 #### Remaining / Future User Stories
 
