@@ -194,6 +194,10 @@ The current board shows the result of that process. The main MVP engineering wor
 
 This progression provides a clear record of the project moving from planned epics and active development to a completed working MVP, while keeping future development separate from the functionality required for the initial release.
 
+#### Agile Workflow and Prioritisation
+
+The board used a simple workflow: Todo, In Progress, Testing / In Review and Done. Work was prioritised so the core user value was delivered first. Must-have stories were completed before lower-priority future features, which kept the MVP focused and realistic.
+
 ### Epic Summary
 
 The work was grouped into epics to keep development organised and make the main areas of the MVP clear.
@@ -254,10 +258,6 @@ The following Should-have stories were also completed as part of the MVP.
 | Project README, API Documentation & Architecture Guide | Must-have | In progress | Final project documentation is currently being completed. |
 | User Accounts & Secure Authentication | Should-have | Future development | Authentication is useful but not required for the initial MVP. |
 | Save & Manage Opportunity Shortlist | Could-have | Future development | Saving opportunities depends on user accounts and is outside the current MVP scope. |
-
-#### Agile Workflow and Prioritisation
-
-The board used a simple workflow: Todo, In Progress, Testing / In Review and Done. Work was prioritised so the core user value was delivered first. Must-have stories were completed before lower-priority future features, which kept the MVP focused and realistic.
 
 ### Development Outcome
 
