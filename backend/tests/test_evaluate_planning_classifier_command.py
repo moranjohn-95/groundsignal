@@ -330,3 +330,57 @@ def test_empty_database_result_prints_zero_distribution() -> None:
     assert "(none)" in output.getvalue()
     classifier.assert_not_called()
     session.close.assert_called_once_with()
+
+
+def test_benchmark_reports_accuracy_and_category_breakdown() -> None:
+    evaluation = command.evaluate_benchmark()
+    output = StringIO()
+
+    command.print_benchmark_evaluation(evaluation, output)
+
+    assert evaluation.total_evaluated == 34
+    assert evaluation.correct_classifications == 34
+    assert evaluation.incorrect_classifications == 0
+    assert evaluation.category_totals == {
+        "residential": 4,
+        "commercial": 4,
+        "industrial": 5,
+        "energy": 4,
+        "infrastructure": 4,
+        "mixed_use": 4,
+        "other": 9,
+    }
+    assert evaluation.category_correct == evaluation.category_totals
+    assert evaluation.misclassifications == []
+    assert "Overall accuracy: 100.0%" in output.getvalue()
+    assert "industrial: 5/5 correct (100.0%)" in output.getvalue()
+
+
+def test_benchmark_reports_misclassifications() -> None:
+    evaluation = command.evaluate_benchmark(
+        classifier=Mock(return_value="other")
+    )
+    output = StringIO()
+
+    command.print_benchmark_evaluation(evaluation, output)
+
+    assert evaluation.correct_classifications == 9
+    assert evaluation.incorrect_classifications == 25
+    assert len(evaluation.misclassifications) == 25
+    assert "new dwelling: expected=residential actual=other" in output.getvalue()
+
+
+def test_benchmark_command_does_not_open_a_database_session() -> None:
+    session_factory = Mock()
+    stdout = StringIO()
+
+    exit_code = command.main(
+        ["--benchmark"],
+        session_factory=session_factory,
+        stdout=stdout,
+        stderr=StringIO(),
+    )
+
+    assert exit_code == 0
+    session_factory.assert_not_called()
+    assert "Total evaluated: 34" in stdout.getvalue()

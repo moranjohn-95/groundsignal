@@ -80,6 +80,8 @@ _CATEGORY_KEYWORDS: dict[PlanningApplicationCategory, tuple[str, ...]] = {
     "industrial": (
         "warehouse",
         "warehouses",
+        "workshop",
+        "workshops",
         "factory",
         "factories",
         "manufacturing",
@@ -100,10 +102,6 @@ _CATEGORY_KEYWORDS: dict[PlanningApplicationCategory, tuple[str, ...]] = {
         "renewable energy",
     ),
     "infrastructure": (
-        "road",
-        "roads",
-        "bridge",
-        "bridges",
         "cycleway",
         "cycleways",
         "water infrastructure",
@@ -151,8 +149,6 @@ _PRIMARY_ENERGY_PHRASES = (
 )
 
 _PRIMARY_INFRASTRUCTURE_PHRASES = (
-    "public road",
-    "public roads",
     "public cycleway",
     "public cycleways",
     "transport infrastructure",
@@ -289,6 +285,25 @@ _NON_COMMERCIAL_OFFICE_PATTERN = re.compile(
     r"\b(?:home|domestic|ancillary)\s+offices?\b"
 )
 
+_CONTEXTUAL_ROAD_OR_BRIDGE_PATTERN = re.compile(
+    r"\b(?:construct(?:ion)?|develop(?:ment)?|improve(?:ment)?|"
+    r"provide|provision|upgrade)\b"
+    r"(?:\s+\w+){0,5}\s+(?:access\s+)?(?:roads?|bridges?)\b"
+)
+
+_ROOF_SOLAR_PATTERN = re.compile(
+    r"\b(?:roof(?:\s+\w+){0,8}\s+(?:solar|photovoltaic)|"
+    r"(?:solar|photovoltaic)(?:\s+\w+){0,8}\s+roof)\b"
+)
+
+_GENERIC_APPROVED_DEVELOPMENT_AMENDMENT_PATTERN = re.compile(
+    r"\b(?:minor\s+)?(?:amendments?|alterations?|modifications?|variations?)\b"
+    r"(?:\s+\w+){0,8}?\s+(?:approved|permitted)\b"
+    r"(?:\s+(?!(?:electrical|electricity|esb|solar|photovoltaic|wind|"
+    r"battery|renewable|substation)\b)\w+){0,4}"
+    r"\s+(?:planning\s+(?:permission|application)|development|scheme|proposal)\b"
+)
+
 
 def _normalize_text(value: str | None) -> str:
     if not isinstance(value, str):
@@ -334,6 +349,19 @@ def _first_evidence_position(
         position = _first_phrase_position(text, phrases)
         if position is not None:
             positions.append((text_index, position))
+
+    return min(positions) if positions else None
+
+
+def _first_pattern_position(
+    texts: tuple[str, ...],
+    pattern: re.Pattern[str],
+) -> tuple[int, int] | None:
+    positions = []
+    for text_index, text in enumerate(texts):
+        match = pattern.search(text)
+        if match is not None:
+            positions.append((text_index, match.start()))
 
     return min(positions) if positions else None
 
@@ -424,6 +452,10 @@ def _mask_non_commercial_office_uses(text: str) -> str:
     return _NON_COMMERCIAL_OFFICE_PATTERN.sub("domestic workspace", text)
 
 
+def _mask_ancillary_energy_references(text: str) -> str:
+    return _ROOF_SOLAR_PATTERN.sub("roof work", text)
+
+
 def _has_category_evidence(
     texts: tuple[str, ...],
     category: PlanningApplicationCategory,
@@ -432,6 +464,14 @@ def _has_category_evidence(
         texts = tuple(_mask_non_residential_house_uses(text) for text in texts)
     elif category == "commercial":
         texts = tuple(_mask_non_commercial_office_uses(text) for text in texts)
+    elif category == "energy":
+        texts = tuple(_mask_ancillary_energy_references(text) for text in texts)
+    elif category == "infrastructure":
+        return any(
+            _contains_any_phrase(text, _CATEGORY_KEYWORDS[category])
+            or _CONTEXTUAL_ROAD_OR_BRIDGE_PATTERN.search(text) is not None
+            for text in texts
+        )
     keywords = _CATEGORY_KEYWORDS[category]
     return any(_contains_any_phrase(text, keywords) for text in texts)
 
@@ -444,6 +484,8 @@ def _first_category_evidence_position(
         texts = tuple(_mask_non_residential_house_uses(text) for text in texts)
     elif category == "commercial":
         texts = tuple(_mask_non_commercial_office_uses(text) for text in texts)
+    elif category == "energy":
+        texts = tuple(_mask_ancillary_energy_references(text) for text in texts)
     return _first_evidence_position(texts, _CATEGORY_KEYWORDS[category])
 
 
@@ -511,18 +553,23 @@ def _classify_primary_use(
         _PRIMARY_OTHER_PHRASES,
     )
     ancillary_addition_boundary = _first_ancillary_addition_boundary(texts)
-    if ancillary_addition_boundary is not None:
-        # A building/development stated before an explicit request for
-        # additional works is the primary proposal when it has no more specific
-        # category. Specialist evidence before this boundary can still win.
-        primary_other_position = min(
-            position
-            for position in (
-                primary_other_position,
-                ancillary_addition_boundary,
-            )
-            if position is not None
+    approved_development_amendment_position = _first_pattern_position(
+        texts,
+        _GENERIC_APPROVED_DEVELOPMENT_AMENDMENT_PATTERN,
+    )
+    primary_other_candidates = [
+        position
+        for position in (
+            primary_other_position,
+            ancillary_addition_boundary,
+            approved_development_amendment_position,
         )
+        if position is not None
+    ]
+    if primary_other_candidates:
+        # Additional work and amendments to approved generic proposals should
+        # not let a later specialist term set the primary category.
+        primary_other_position = min(primary_other_candidates)
 
     primary_specialist_evidence = []
     for specialist_priority, (category, phrases) in enumerate(
@@ -531,7 +578,12 @@ def _classify_primary_use(
             ("infrastructure", _PRIMARY_INFRASTRUCTURE_PHRASES),
         )
     ):
-        position = _first_evidence_position(texts, phrases)
+        specialist_texts = (
+            tuple(_mask_ancillary_energy_references(text) for text in texts)
+            if category == "energy"
+            else texts
+        )
+        position = _first_evidence_position(specialist_texts, phrases)
         if position is not None:
             primary_specialist_evidence.append(
                 (position, specialist_priority, category)

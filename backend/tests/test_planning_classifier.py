@@ -740,3 +740,103 @@ def test_unclassified_application_returns_other() -> None:
     )
 
     assert result == "other"
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        (
+            "Construction of a single-storey workshop for a haulage business "
+            "with a new entrance from the public road.",
+            "industrial",
+        ),
+        (
+            "Retention of a conversion of attic space at Blackrock Road, Cork.",
+            "other",
+        ),
+        (
+            "Construction of an extension and internal alterations at "
+            "Carleton Road, Dublin.",
+            "other",
+        ),
+        (
+            "Refurbishment of a protected mews building with roof lights and "
+            "photovoltaic panels.",
+            "other",
+        ),
+        (
+            "Minor alterations to a previously approved sports-pitch "
+            "development, including an ESB substation.",
+            "other",
+        ),
+        (
+            "Permission to construct an agricultural slatted shed and a new "
+            "farmyard entrance from the public road.",
+            "other",
+        ),
+    ],
+)
+def test_context_does_not_promote_ancillary_infrastructure_or_energy_terms(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        (
+            "Minor alterations to a previously approved development, "
+            "including changes near an ESB substation.",
+            "other",
+        ),
+        (
+            "Amendments to an approved development involving minor changes "
+            "around the existing substation.",
+            "other",
+        ),
+        (
+            "Construction of a standalone ESB substation and switch room.",
+            "energy",
+        ),
+        (
+            "Development of a solar farm with a new electrical substation.",
+            "energy",
+        ),
+        (
+            "Amendments to an approved solar farm development, including an "
+            "ESB substation.",
+            "energy",
+        ),
+        (
+            "Amendments to an approved residential development, including "
+            "changes around an ESB substation.",
+            "residential",
+        ),
+    ],
+)
+def test_approved_development_amendments_keep_the_primary_category(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category
+
+
+@pytest.mark.parametrize(
+    ("description", "expected_category"),
+    [
+        ("Construction of a vehicle repair workshop.", "industrial"),
+        ("Internal alterations at Bridge Street, Cork.", "other"),
+        (
+            "Construction of a dwelling with a new entrance from the public "
+            "road.",
+            "residential",
+        ),
+    ],
+)
+def test_general_term_refinements_apply_outside_the_benchmark(
+    description: str,
+    expected_category: str,
+) -> None:
+    assert classify_planning_application(description) == expected_category

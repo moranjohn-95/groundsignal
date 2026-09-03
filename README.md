@@ -242,3 +242,30 @@ For a manual recent sync, the default window is 7 days:
 docker compose exec -T api python -m backend.app.commands.planning_sync
 docker compose exec -T api python -m backend.app.commands.planning_sync --days 90
 ```
+
+### Classifier evaluation
+
+The planning classifier assigns each application an opportunity type used by
+the application. It is deterministic and rule-based, not a machine-learning
+model.
+
+Run the curated labelled regression benchmark with:
+
+```bash
+docker compose exec -T api python -m backend.app.commands.evaluate_planning_classifier --benchmark
+```
+
+The current benchmark contains 34 representative labelled cases across the
+seven categories. It produced 34 correct classifications, 0 incorrect
+classifications, and 100.0% accuracy. This is a regression benchmark, not an
+independent random sample of production data. Planning descriptions can be
+incomplete or ambiguous, so users should review the original application before
+acting on an opportunity.
+
+The default command samples database records for category distribution and
+manual review, but cannot report accuracy because those source records do not
+have human-assigned expected categories:
+
+```bash
+docker compose exec -T api python -m backend.app.commands.evaluate_planning_classifier --sample-size 500
+```
