@@ -171,18 +171,28 @@ SiteForecaster was planned and tracked using a GitHub Agile board. The work was 
 
 ### Agile Board Progression
 
-One screenshot shows the board during active development, while the second shows its current state. Most MVP stories are now complete. The remaining open items are documentation and future features.
+GitHub Projects was used throughout development to track epics, user stories and their current status. The board used the workflow **Todo → In Progress → Testing / In Review → Done**, which made it easy to see what had been planned, what was actively being developed and what had been completed.
 
 | Board Stage | Summary |
 | --- | --- |
 | During development | Board shows active work across Epics, Todo, In Progress and Done, reflecting the build-out of the MVP. |
 | Current state | Board is now mostly complete, with the remaining open items focused on the README/documentation and future features such as authentication and shortlist saving. |
 
-**Agile board during development**
-[Insert screenshot here]
+The earlier board below shows SiteForecaster during active MVP development. At this point, all seven main epics were still visible, several Must-have stories were waiting to be started, and core work such as planning classification, database migrations and automated testing was still in progress.
 
-**Agile board current state**
-[Insert screenshot here]
+#### Agile Board During Development
+
+![Agile board during development](docs/images/agile/agile-board-development.png)
+
+As development progressed, completed stories and epics were moved into **Done**. Work was prioritised around the Must-have functionality needed for the MVP before moving on to lower-priority improvements.
+
+The current board shows the result of that process. The main MVP engineering work is complete, with 28 items in **Done**. The remaining open stories are the README/documentation work currently being completed and two future features: user authentication and saved opportunity shortlists.
+
+#### Current Agile Board
+
+![Current Agile board](docs/images/agile/agile-board-current.png)
+
+This progression provides a clear record of the project moving from planned epics and active development to a completed working MVP, while keeping future development separate from the functionality required for the initial release.
 
 ### Epic Summary
 
