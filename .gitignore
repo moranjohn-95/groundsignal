@@ -153,6 +153,8 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/
@@ -160,6 +162,13 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Local credentials and TLS material
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
 
 # Spyder project settings
 .spyderproject
