@@ -13,8 +13,9 @@ Planning intelligence platform for discovering local construction opportunities 
 8. [User Stories & Agile Development](#8-user-stories--agile-development)
 9. [Design](#9-design)
     - [Visual Design](#91-visual-design)
-    - [Responsive Design](#92-responsive-design)
-    - [Accessibility](#93-accessibility)
+    - [Wireframes & Layout Planning](#92-wireframes--layout-planning)
+    - [Responsive Design](#93-responsive-design)
+    - [Accessibility](#94-accessibility)
 10. [Features](#10-features)
     - [Location Search](#101-location-search)
     - [Planning Opportunity Discovery](#102-planning-opportunity-discovery)
@@ -262,6 +263,84 @@ The following Should-have stories were also completed as part of the MVP.
 ### Development Outcome
 
 The board shows clear progress from planning to delivery. The MVP is now largely complete, with documentation and future enhancements left open.
+
+## 9. Design
+
+The design of SiteForecaster was kept simple and practical. The main aim was to make planning information easy to scan while keeping the interface suitable for contractors using the application on desktop, tablet or mobile devices.
+
+### 9.1 Visual Design
+
+#### Colour Scheme
+
+SiteForecaster uses a small colour palette built around dark navy, light neutral backgrounds and an orange accent.
+
+The main colours are:
+
+- `#F6F7F8` — main page background.
+- `#FFFFFF` — cards, panels and form controls.
+- `#172A3A` — primary dark colour used for headings, navigation and important text.
+- `#D9DEE5` — borders, dividers and subtle interface structure.
+- `#F59E0B` — primary accent colour used for buttons, highlights and opportunity indicators.
+
+The dark navy and orange provide clear contrast for important actions, while the light background and white surfaces keep the results area easy to scan.
+
+The colour palette was reviewed using Coolors to provide a simple visual reference.
+
+![SiteForecaster colour palette](docs/images/design/colour-palette.png)
+
+#### Typography
+
+SiteForecaster uses `Inter` as the preferred typeface, followed by a system UI font stack:
+
+`Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+
+Inter was chosen because it was designed for screen-based interfaces and provides good readability at smaller sizes. Its tall x-height helps lowercase text remain clear, which is useful for an application containing planning descriptions, addresses, labels and numerical information.
+
+The interface uses heavier font weights for headings, scores and important labels, while standard and muted text styles are used for supporting information. This creates a clear hierarchy without introducing multiple typefaces.
+
+Inter is the preferred font but is not bundled or loaded externally by the project. Where it is not installed, the browser uses the system UI fallback fonts. Google Maps attribution uses Roboto separately where required by its attribution styling; it is not a main SiteForecaster interface font.
+
+### 9.2 Wireframes & Layout Planning
+
+Wireframes were created for mobile and tablet layouts before finalising the responsive interface.
+
+The smaller-screen layouts were the main focus because they required the most thought around stacking form controls, keeping search actions usable and presenting opportunity cards without overcrowding the screen.
+
+The mobile wireframe explored a single-column layout where search controls and opportunity results stack vertically.
+
+The tablet wireframe explored how more horizontal space could be used while still keeping the interface simple and touch-friendly.
+
+A separate desktop wireframe was not created. Once the mobile and tablet layouts were understood, the larger desktop layout was relatively straightforward for this type of application because the additional width allowed search controls and results to use wider grid-based layouts.
+
+### 9.3 Responsive Design
+
+SiteForecaster was designed mobile-first in the sense that smaller screen usability was treated as a key constraint during development.
+
+The interface adapts across screen sizes by:
+
+- stacking search controls vertically on narrow screens.
+- allowing controls to use more horizontal space on tablets and desktops.
+- changing opportunity layouts to use available width without horizontal scrolling.
+- maintaining readable spacing and text sizes.
+- keeping buttons and interactive controls suitable for touch input.
+- allowing result cards and detail content to reflow rather than relying on fixed widths.
+
+Responsive behaviour was tested across mobile, tablet and desktop viewport sizes during development.
+
+### 9.4 Accessibility
+
+Accessibility was considered throughout the interface rather than added only at the end.
+
+The implemented work includes:
+
+- semantic headings and labelled form controls.
+- visible keyboard focus states.
+- keyboard-accessible interactive elements.
+- readable colour contrast.
+- loading, empty, success and error feedback.
+- responsive text and controls that remain usable at smaller screen sizes.
+- reduced-motion handling for the loading spinner.
+- descriptive text for controls rather than relying only on icons.
 
 ## Production Nginx and privacy-safe logging
 
