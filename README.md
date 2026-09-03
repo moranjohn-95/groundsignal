@@ -1,6 +1,36 @@
 # groundsignal
 Planning intelligence platform for discovering local construction opportunities from Irish planning data.
 
+## Production Nginx and privacy-safe logging
+
+Nginx is the production reverse proxy and static frontend server on EC2. Its
+version-controlled configuration is in `deploy/nginx/`. The custom
+`siteforecaster_safe` access-log format records the request method and `$uri`
+path, but intentionally excludes query strings and referrers. This minimises
+retention of user-entered location searches and coordinates. Uvicorn access
+logging is disabled separately; Nginx error logging remains available.
+
+### Install or update the Nginx configuration
+
+From `/home/ubuntu/groundsignal` after deploying this repository revision:
+
+```bash
+sudo install -D -m 0644 deploy/nginx/siteforecaster-safe-logging.conf \
+  /etc/nginx/conf.d/siteforecaster-safe-logging.conf
+sudo install -D -m 0644 deploy/nginx/siteforecaster.conf \
+  /etc/nginx/sites-available/siteforecaster
+sudo ln -sfn /etc/nginx/sites-available/siteforecaster \
+  /etc/nginx/sites-enabled/siteforecaster
+
+sudo nginx -t
+# Reload only after nginx -t succeeds.
+sudo systemctl reload nginx
+```
+
+The live SSL certificate and private-key files referenced by this configuration
+are managed separately. Never commit certificate or key material to this
+repository.
+
 ## Production planning-data sync
 
 Planning applications are stored locally in PostgreSQL. The initial full import
