@@ -195,6 +195,35 @@ The live SSL certificate and private-key files referenced by this configuration
 are managed separately. Never commit certificate or key material to this
 repository.
 
+## 26. Monitoring & Production Operations
+
+`GET /health` returns `{"status": "ok"}` when the FastAPI process can serve
+HTTP requests. It is a liveness check only: it does not query the database or
+expose configuration, credentials, or infrastructure details. Docker Compose
+uses this endpoint for the API container healthcheck, and Nginx proxies the
+same exact path for external uptime checks.
+
+On the EC2 host, check the application manually with:
+
+```bash
+curl -fsS https://siteforecaster.com/health
+docker compose ps
+docker compose logs --tail=100 api
+sudo tail -n 100 /var/log/nginx/error.log
+```
+
+Docker health status, Nginx error logs, Docker API logs, and the existing
+systemd planning-sync timer logs provide the MVP operational view. Privacy-safe
+Nginx access logging and disabled Uvicorn access logging remain unchanged.
+
+No external uptime alert is configured by this repository. As an optional
+AWS-native manual step, create a CloudWatch alarm for the EC2 instance's
+`StatusCheckFailed` metric: trigger when it is at least `1` for one five-minute
+period, and send the notification to an SNS email topic with a confirmed
+subscription. This monitors EC2 availability, not the application endpoint;
+an external HTTP monitor can use `/health` if one is chosen later. Confirm AWS
+account pricing and limits before enabling any alarm.
+
 ## Production planning-data sync
 
 Planning applications are stored locally in PostgreSQL. The initial full import

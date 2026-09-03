@@ -11,6 +11,11 @@ app.include_router(opportunities_router)
 app.include_router(planning_applications_router)
 
 
+@app.get("/health")
+def read_health():
+    return {"status": "ok"}
+
+
 @app.get("/")
 def read_root():
     return {"message": "GroundSignal API"}
