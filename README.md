@@ -165,6 +165,86 @@ The opportunity detail view provides more information when needed without overlo
 
 The design avoids unnecessary complexity. The aim is to help a contractor understand the value of a planning application quickly, rather than forcing them to interpret technical planning data themselves.
 
+## 8. User Stories & Agile Development
+
+SiteForecaster was planned and tracked using a GitHub Agile board. The work was grouped into epics and user stories, which helped track progress from early development through to the current MVP stage.
+
+### Agile Board Progression
+
+One screenshot shows the board during active development, while the second shows its current state. Most MVP stories are now complete. The remaining open items are documentation and future features.
+
+| Board Stage | Summary |
+| --- | --- |
+| During development | Board shows active work across Epics, Todo, In Progress and Done, reflecting the build-out of the MVP. |
+| Current state | Board is now mostly complete, with the remaining open items focused on the README/documentation and future features such as authentication and shortlist saving. |
+
+**Agile board during development**
+[Insert screenshot here]
+
+**Agile board current state**
+[Insert screenshot here]
+
+### Epic Summary
+
+The work was grouped into epics to keep development organised and make the main areas of the MVP clear.
+
+| Epic | Purpose | Status |
+| --- | --- | --- |
+| API Foundation & Application Architecture | Built the FastAPI backend structure and core application setup. | Complete |
+| Location Search & Geocoding | Added location search, geocoding and current-location support. | Complete |
+| Planning Data & Opportunity Discovery | Connected planning data and enabled discovery of nearby applications. | Complete |
+| Opportunity Scoring & Prioritisation | Added opportunity scoring and ranking. | Complete |
+| Database & Data Persistence | Added PostgreSQL/PostGIS persistence and database migrations. | Complete |
+| Testing, CI/CD, Docker & AWS Deployment | Added containerisation, testing, CI and the deployment workflow. | Complete |
+| User Experience & Tradesperson Dashboard | Delivered the dashboard, responsive UI, accessibility and production polish. | Complete |
+
+### User Story Progress
+
+User stories were prioritised with must-have, should-have and could-have labels so the core user value could be delivered first.
+
+#### Implemented MVP User Stories
+
+| User Story | Priority | Outcome | Status |
+| --- | --- | --- |
+| Search & Geocode a Location | Must-have | Users can search for an Irish location and receive usable coordinates. | Complete |
+| Store & Query Planning Applications | Must-have | Planning application data is stored and made available through the API. | Complete |
+| Find Nearby Planning Applications | Must-have | Users can find planning applications near a selected location. | Complete |
+| Classify Planning Applications by Opportunity Type | Must-have | Applications are grouped by opportunity type to make results easier to review. | Complete |
+| Score & Rank Commercial Opportunities | Must-have | Opportunities are scored and ranked to help users focus on stronger leads. | Complete |
+| Run GroundSignal with PostgreSQL & Database Migrations | Must-have | The application runs with PostgreSQL/PostGIS and managed schema migrations. | Complete |
+| Automated Test Suite for Core Backend Features | Must-have | Core backend behaviour is covered by automated tests. | Complete |
+| Containerise GroundSignal with Docker | Must-have | The application can run in Docker containers. | Complete |
+| Continuous Integration with GitHub Actions | Must-have | Automated checks run for backend and frontend changes. | Complete |
+| Deploy GroundSignal to AWS | Must-have | The MVP has an AWS EC2 deployment workflow. | Complete |
+| Tradesperson Opportunity Dashboard | Not labelled | Dashboard work for tradespeople was completed as part of the MVP. | Complete |
+| Frontend Foundation & Application Structure | Must-have | The React application structure and core routes were added. | Complete |
+| Location Search Experience | Must-have | Users can search by location or use their current location. | Complete |
+| Opportunity Results Dashboard | Must-have | Users can view ranked nearby opportunities in a clear results layout. | Complete |
+| Opportunity Detail View & Score Explanation | Must-have | Users can review details and understand the opportunity score. | Complete |
+| Filter & Sort Opportunities | Should-have | Users can filter and sort results to review opportunities in a useful order. | Complete |
+| Responsive Design & Mobile Usability | Must-have | The interface works across desktop, tablet and mobile devices. | Complete |
+| UI Design System, Accessibility & User Feedback | Should-have | The UI includes accessible controls and clear feedback states. | Complete |
+| Frontend Testing & Core User Journey Validation | Should-have | Key frontend journeys are covered by tests and validation. | Complete |
+| Automated Planning Data Ingestion & Refresh | Must-have | Planning data can be imported and kept up to date. | Complete |
+| Production Security & Configuration Hardening | Must-have | Production configuration, dependency checks and privacy controls were reviewed. | Complete |
+| Production Health Monitoring & Operational Error Handling | Should-have | Health checks and basic operational guidance were added. | Complete |
+
+#### Remaining / Future User Stories
+
+| User Story | Priority | Reason still open | Status |
+| --- | --- | --- | --- |
+| User Accounts & Secure Authentication | Should-have | Useful future feature, but not required for the initial MVP. | Future work |
+| Save & Manage Opportunity Shortlist | Could-have | Useful for returning users, but outside the MVP scope. | Future work |
+| Project README, API Documentation & Architecture Guide | Must-have | Documentation is being finalised after the core product development. | In progress |
+
+#### Agile Workflow and Prioritisation
+
+The board used a simple workflow: Todo, In Progress, Testing / In Review and Done. Work was prioritised so the core user value was delivered first. Must-have stories were completed before lower-priority future features, which kept the MVP focused and realistic.
+
+### Development Outcome
+
+The board shows clear progress from planning to delivery. The MVP is now largely complete, with documentation and future enhancements left open.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
