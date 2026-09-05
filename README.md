@@ -310,13 +310,13 @@ The smaller-screen layouts were the main focus because they required the most th
 
 The mobile wireframe was used to explore a narrow single-column layout where the search controls and opportunity results stack vertically. The main aim was to keep the interface easy to use on smaller screens without overcrowding the page.
 
-<img src="docs/images/wireframes/mobile-wireframe.png" alt="SiteForecaster mobile wireframe" width="280">
+<img src="docs/images/wireframes/mobile-wireframe.png" alt="SiteForecaster mobile wireframe" width="220">
 
 #### Tablet Wireframe
 
 The tablet wireframe was used to explore how the additional horizontal space could be used while keeping controls large enough for touch input and keeping opportunity results easy to scan.
 
-<img src="docs/images/wireframes/tablet-wireframe.png" alt="SiteForecaster tablet wireframe" width="500">
+<img src="docs/images/wireframes/tablet-wireframe.png" alt="SiteForecaster tablet wireframe" width="400">
 
 The mobile and tablet wireframes helped guide the larger-screen layout, where the additional width allowed search controls and results to use wider grid-based layouts.
 
