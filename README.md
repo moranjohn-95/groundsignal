@@ -352,14 +352,14 @@ The screenshots below show the completed SiteForecaster interface running on a r
 
 | Mobile search | Mobile results |
 | --- | --- |
-| <img src="docs/images/responsive/mobile-top-home.png" alt="SiteForecaster mobile search interface" width="280"> | <img src="docs/images/responsive/mobile-middle-home.png" alt="SiteForecaster mobile opportunity results" width="280"> |
+| <img src="docs/images/responsive/mobile-top-home.png" alt="SiteForecaster mobile search interface" width="220"> | <img src="docs/images/responsive/mobile-middle-home.png" alt="SiteForecaster mobile opportunity results" width="220"> |
 | SiteForecaster header, search criteria form and primary search action. | Ranked opportunity results and responsive opportunity cards. |
 
 **Mobile Opportunity Detail**
 
 | Opportunity overview | Opportunity breakdown |
 | --- | --- |
-| <img src="docs/images/responsive/mobile-op-top.png" alt="SiteForecaster mobile opportunity detail overview" width="280"> | <img src="docs/images/responsive/mobile-op-bottom.png" alt="SiteForecaster mobile score breakdown and footer" width="280"> |
+| <img src="docs/images/responsive/mobile-op-top.png" alt="SiteForecaster mobile opportunity detail overview" width="220"> | <img src="docs/images/responsive/mobile-op-bottom.png" alt="SiteForecaster mobile score breakdown and footer" width="220"> |
 | Opportunity score, project information and electrical-work signal. | Score breakdown, official application action and responsive footer. |
 
 ### 9.4 Accessibility
