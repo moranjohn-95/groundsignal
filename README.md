@@ -2,9 +2,9 @@
 
 > **Naming note:** This project originally started under the name **GroundSignal**. I made the slightly painful but useful mistake of choosing the project name before checking whether the matching domain was available.
 >
-> The public-facing product was later renamed **SiteForecaster**, which is the name used on the live site. I have kept the GitHub repository name as `groundsignal` for now because several recent job applications already link directly to this repository.
+> The public facing product was later renamed **SiteForecaster**, which is the name used on the live site. I have kept the GitHub repository name as `groundsignal` for now because recently sent CV's already link directly to this repository.
 >
-> Lesson learned: check the domain before getting attached to the name. 🙂
+> Lesson learned: check domain availability before getting attached to a name. 🙂
 
 Planning intelligence platform for discovering local construction opportunities from Irish planning data.
 
