@@ -1,5 +1,14 @@
-# groundsignal
+# SiteForecaster
+
+> **Naming note:** This project originally started under the name **GroundSignal**. I made the slightly painful but useful mistake of choosing the project name before checking whether the matching domain was available.
+>
+> The public-facing product was later renamed **SiteForecaster**, which is the name used on the live site. I have kept the GitHub repository name as `groundsignal` for now because several recent job applications already link directly to this repository.
+>
+> Lesson learned: check the domain before getting attached to the name. 🙂
+
 Planning intelligence platform for discovering local construction opportunities from Irish planning data.
+
+**Live site:** [https://siteforecaster.com](https://siteforecaster.com)
 
 ## Table of Contents
 
