@@ -310,19 +310,19 @@ The smaller-screen layouts were the main focus because they required the most th
 
 The mobile wireframe was used to explore a narrow single-column layout where the search controls and opportunity results stack vertically. The main aim was to keep the interface easy to use on smaller screens without overcrowding the page.
 
-![SiteForecaster mobile wireframe](docs/images/wireframes/mobile-wireframe.png)
+<img src="docs/images/wireframes/mobile-wireframe.png" alt="SiteForecaster mobile wireframe" width="280">
 
 #### Tablet Wireframe
 
 The tablet wireframe was used to explore how the additional horizontal space could be used while keeping controls large enough for touch input and keeping opportunity results easy to scan.
 
-![SiteForecaster tablet wireframe](docs/images/wireframes/tablet-wireframe.png)
+<img src="docs/images/wireframes/tablet-wireframe.png" alt="SiteForecaster tablet wireframe" width="500">
 
-A separate desktop wireframe was not created. Once the mobile and tablet layouts were understood, the larger desktop layout was relatively straightforward for this type of application because the additional width allowed search controls and results to use wider grid-based layouts.
+The mobile and tablet wireframes helped guide the larger-screen layout, where the additional width allowed search controls and results to use wider grid-based layouts.
 
 ### 9.3 Responsive Design
 
-SiteForecaster was designed mobile-first in the sense that smaller screen usability was treated as a key constraint during development.
+Responsive behaviour was refined throughout development so that the interface remained usable across mobile, tablet and desktop screen sizes. Smaller screens required the most layout adjustment, particularly around search controls, opportunity cards and spacing.
 
 The interface adapts across screen sizes by:
 
