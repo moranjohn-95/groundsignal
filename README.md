@@ -344,20 +344,41 @@ The interface adapts across screen sizes by:
 
 Responsive behaviour was tested across mobile, tablet and desktop viewport sizes during development.
 
+#### Mobile Implementation
+
+The screenshots below show the completed SiteForecaster interface running on a real mobile browser, demonstrating how the search, results and opportunity detail layouts adapt to a narrow screen.
+
+**Mobile Homepage**
+
+| Mobile search | Mobile results |
+| --- | --- |
+| <img src="docs/images/responsive/mobile-top-home.png" alt="SiteForecaster mobile search interface" width="280"> | <img src="docs/images/responsive/mobile-middle-home.png" alt="SiteForecaster mobile opportunity results" width="280"> |
+| SiteForecaster header, search criteria form and primary search action. | Ranked opportunity results and responsive opportunity cards. |
+
+**Mobile Opportunity Detail**
+
+| Opportunity overview | Opportunity breakdown |
+| --- | --- |
+| <img src="docs/images/responsive/mobile-op-top.png" alt="SiteForecaster mobile opportunity detail overview" width="280"> | <img src="docs/images/responsive/mobile-op-bottom.png" alt="SiteForecaster mobile score breakdown and footer" width="280"> |
+| Opportunity score, project information and electrical-work signal. | Score breakdown, official application action and responsive footer. |
+
 ### 9.4 Accessibility
 
-Accessibility was considered throughout the interface rather than added only at the end.
+Accessibility was considered throughout the interface, particularly around navigation, forms and the presentation of planning results.
 
-The implemented work includes:
+The implemented accessibility work includes:
 
-- semantic headings and labelled form controls.
-- visible keyboard focus states.
-- keyboard-accessible interactive elements.
-- readable colour contrast.
-- loading, empty, success and error feedback.
-- responsive text and controls that remain usable at smaller screen sizes.
-- reduced-motion handling for the loading spinner.
-- descriptive text for controls rather than relying only on icons.
+- semantic page structure and logical heading levels.
+- clear labels for form controls and search inputs.
+- visible keyboard focus states for links, buttons and interactive controls.
+- keyboard-accessible navigation and actions.
+- colour choices designed to maintain readable contrast between text, backgrounds and controls.
+- clear loading, empty, success and error states rather than relying on colour alone.
+- touch-friendly controls and responsive layouts for smaller screens.
+- reduced-motion support for the loading spinner.
+- descriptive text and labels so important actions do not rely only on icons.
+
+Accessibility was also reviewed during frontend testing. More detailed validation and test results are documented in the [Accessibility Testing](#204-accessibility-testing) section.
 
 ## Production Nginx and privacy-safe logging
 
