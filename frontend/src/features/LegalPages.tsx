@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type MouseEventHandler, type ReactNode } from 'react'
 
 const PLANNING_DATASET_URL =
   'https://data.gov.ie/dataset/national-planning-applications?package_type=dataset'
@@ -7,7 +7,11 @@ const GOOGLE_PRIVACY_URL = 'https://policies.google.com/privacy'
 const GOOGLE_MAPS_ADDITIONAL_TERMS_URL =
   'https://maps.google.com/help/terms_maps/'
 
-interface LegalPageProps {
+interface HomeNavigationProps {
+  onBackHome: MouseEventHandler<HTMLAnchorElement>
+}
+
+interface LegalPageProps extends HomeNavigationProps {
   title: string
   children: ReactNode
 }
@@ -30,7 +34,7 @@ function ExternalLink({ href, children }: ExternalLinkProps) {
   )
 }
 
-function LegalPage({ title, children }: LegalPageProps) {
+function LegalPage({ title, children, onBackHome }: LegalPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
@@ -39,6 +43,9 @@ function LegalPage({ title, children }: LegalPageProps) {
 
   return (
     <article className="legal-page" aria-labelledby="legal-page-heading">
+      <a className="legal-page__back" href="/" onClick={onBackHome}>
+        Back to SiteForecaster
+      </a>
       <h2 id="legal-page-heading" ref={headingRef} tabIndex={-1}>
         {title}
       </h2>
@@ -47,9 +54,9 @@ function LegalPage({ title, children }: LegalPageProps) {
   )
 }
 
-export function DataSourcesPage() {
+export function DataSourcesPage({ onBackHome }: HomeNavigationProps) {
   return (
-    <LegalPage title="Data sources">
+    <LegalPage title="Data sources" onBackHome={onBackHome}>
       <section aria-labelledby="planning-data-heading">
         <h3 id="planning-data-heading">Planning data</h3>
         <p>
@@ -94,9 +101,9 @@ export function DataSourcesPage() {
   )
 }
 
-export function PrivacyPage() {
+export function PrivacyPage({ onBackHome }: HomeNavigationProps) {
   return (
-    <LegalPage title="Privacy Policy">
+    <LegalPage title="Privacy Policy" onBackHome={onBackHome}>
       <section aria-labelledby="location-searches-heading">
         <h3 id="location-searches-heading">Location searches</h3>
         <p>
@@ -147,9 +154,9 @@ export function PrivacyPage() {
   )
 }
 
-export function TermsPage() {
+export function TermsPage({ onBackHome }: HomeNavigationProps) {
   return (
-    <LegalPage title="Terms of Use">
+    <LegalPage title="Terms of Use" onBackHome={onBackHome}>
       <section aria-labelledby="purpose-heading">
         <h3 id="purpose-heading">Purpose</h3>
         <p>

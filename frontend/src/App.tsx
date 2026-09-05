@@ -79,6 +79,7 @@ function routeFromLocation(
 }
 
 function App() {
+  const [searchVersion, setSearchVersion] = useState(0)
   const opportunitiesScrollPosition = useRef<number | null>(null)
   const opportunityFocusTarget = useRef<number | null>(null)
   const [route, setRoute] = useState(() =>
@@ -192,6 +193,13 @@ function App() {
     }
 
     event.preventDefault()
+    if (destination.pathname === '/') {
+      // Remount the search and its filters, including when already at home.
+      setSearchVersion((version) => version + 1)
+      opportunitiesScrollPosition.current = null
+      opportunityFocusTarget.current = null
+      window.scrollTo(0, 0)
+    }
     navigateTo(destination.pathname)
   }
 
@@ -199,14 +207,21 @@ function App() {
     <>
       <header className="site-header">
         <div className="app-container site-header__inner">
-          <h1 className="site-brand">SiteForecaster</h1>
+          <h1 className="site-brand">
+            <a href="/" onClick={handleInternalNavigation}>
+              SiteForecaster
+            </a>
+          </h1>
         </div>
       </header>
 
       <main className="site-main">
         <div className="app-container">
           <div hidden={route.page !== 'opportunities'}>
-            <OpportunitiesPage onViewOpportunity={showOpportunity} />
+            <OpportunitiesPage
+              key={searchVersion}
+              onViewOpportunity={showOpportunity}
+            />
           </div>
 
           {route.page === 'opportunity-detail' && (
@@ -218,11 +233,17 @@ function App() {
             />
           )}
 
-          {route.page === 'data-sources' && <DataSourcesPage />}
+          {route.page === 'data-sources' && (
+            <DataSourcesPage onBackHome={handleInternalNavigation} />
+          )}
 
-          {route.page === 'privacy' && <PrivacyPage />}
+          {route.page === 'privacy' && (
+            <PrivacyPage onBackHome={handleInternalNavigation} />
+          )}
 
-          {route.page === 'terms' && <TermsPage />}
+          {route.page === 'terms' && (
+            <TermsPage onBackHome={handleInternalNavigation} />
+          )}
 
           {route.page === 'not-found' && (
             <NotFoundPage onBackToOpportunities={handleBackToOpportunities} />

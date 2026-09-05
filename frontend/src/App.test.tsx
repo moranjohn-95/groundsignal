@@ -219,6 +219,71 @@ describe('App', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it.each(['home', 'detail', 'privacy'])(
+    'the brand returns home with a fresh search from %s',
+    async (from) => {
+      const fetchMock = mockManualSearchRequests()
+      render(<App />)
+      const user = await submitManualSearch()
+      await screen.findByRole('link', { name: 'View opportunity' })
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Sort' }), 'nearest')
+      await user.click(await screen.findByRole('button', { name: 'Next' }))
+      await screen.findByText('Page 2 of 2')
+      if (from === 'detail') await openOpportunity(user)
+      if (from === 'privacy') await user.click(screen.getByRole('link', { name: 'Privacy' }))
+
+      const requestCount = fetchMock.mock.calls.length
+      const brand = screen.getByRole('link', { name: 'SiteForecaster' })
+      expect(brand).toHaveAttribute('href', '/')
+      await user.click(brand)
+
+      expect(window.location.pathname).toBe('/')
+      expect(screen.getByRole('textbox', { name: 'Location' })).toHaveValue('')
+      expect(screen.getByRole('textbox', { name: 'Location' })).toBeRequired()
+      expect(screen.getByRole('combobox', { name: 'Radius' })).toHaveValue('25')
+      expect(screen.getByRole('combobox', { name: 'Recent period' })).toHaveValue('30')
+      expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue('')
+      expect(screen.getByText('Enter an Irish location to find nearby opportunities.')).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'View opportunity' })).not.toBeInTheDocument()
+      expect(fetchMock).toHaveBeenCalledTimes(requestCount)
+      expect(scrollToMock).toHaveBeenLastCalledWith(0, 0)
+
+      await submitManualSearch()
+      expect(await screen.findByRole('combobox', { name: 'Sort' })).toHaveValue('best')
+      expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
+    },
+  )
+
+  it.each(['/data-sources', '/privacy', '/terms'])(
+    'returns home using the keyboard-accessible back link on %s',
+    async (pathname) => {
+      const fetchMock = vi.fn()
+      vi.stubGlobal('fetch', fetchMock)
+      window.history.replaceState(null, '', pathname)
+      render(<App />)
+      const user = userEvent.setup()
+      // Legal pages focus their heading on entry; Shift+Tab reaches the back link.
+      await user.tab({ shift: true })
+      const backLink = screen.getByRole('link', { name: 'Back to SiteForecaster' })
+      expect(backLink).toHaveAttribute('href', '/')
+      expect(backLink).toHaveFocus()
+      await user.keyboard('{Enter}')
+      expect(window.location.pathname).toBe('/')
+      expect(screen.getByText('Enter an Irish location to find nearby opportunities.')).toBeInTheDocument()
+      expect(fetchMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it('supports keyboard activation of the brand link', async () => {
+    render(<App />)
+    const user = userEvent.setup()
+    await user.tab()
+    expect(screen.getByRole('link', { name: 'SiteForecaster' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(window.location.pathname).toBe('/')
+    expect(screen.getByRole('textbox', { name: 'Location' })).toHaveValue('')
+  })
+
   it('navigates between legal pages from the footer without a page reload', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

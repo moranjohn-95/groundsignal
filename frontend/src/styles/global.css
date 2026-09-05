@@ -86,6 +86,11 @@ body {
 }
 
 .site-brand {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.site-brand a {
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -95,9 +100,10 @@ body {
   font-weight: 750;
   letter-spacing: -0.025em;
   line-height: 1;
+  text-decoration: none;
 }
 
-.site-brand::before {
+.site-brand a::before {
   width: 0.45rem;
   height: 1.65rem;
   border-radius: 0.125rem;
@@ -993,6 +999,7 @@ summary:focus-visible {
   text-underline-offset: 0.2em;
 }
 
+.legal-page__back,
 .opportunity-detail__back,
 .opportunity-detail-state > a {
   display: inline-flex;
