@@ -7,7 +7,8 @@
   --color-accent-hover: #d97706;
   --color-accent-active: #b45309;
   --color-opportunity-very-high: #2f7d4a;
-  --color-opportunity-medium: #3278ad;
+  --color-electrical-inferred: #7a5b1a;
+  --color-opportunity-medium: var(--color-electrical-inferred);
   --color-background: #f6f7f8;
   --color-surface: #ffffff;
   --color-text: #17202a;
@@ -627,6 +628,10 @@ summary:focus-visible {
   border-top-color: var(--color-opportunity-medium);
 }
 
+.opportunity-card--low {
+  border-top-color: var(--color-text-muted);
+}
+
 .opportunity-card__header {
   padding: 1.25rem;
   border-bottom: 1px solid var(--color-border);
@@ -667,6 +672,10 @@ summary:focus-visible {
 .opportunity-card--medium .opportunity-level {
   background: var(--color-opportunity-medium);
   color: var(--color-surface);
+}
+
+.opportunity-card--low .opportunity-level {
+  background: var(--color-text-muted);
 }
 
 .opportunity-score {
@@ -783,8 +792,13 @@ summary:focus-visible {
 }
 
 .electrical-work-brief--inferred {
-  border-left-color: #7a5b1a;
+  border-left-color: var(--color-electrical-inferred);
   background: #fff9ec;
+}
+
+.electrical-work-brief--possible {
+  border-left-color: var(--color-text-muted);
+  background: var(--color-background);
 }
 
 .electrical-work-brief--unavailable {
@@ -853,7 +867,7 @@ summary:focus-visible {
 }
 
 .electrical-work-brief__status--inferred {
-  background: #7a5b1a;
+  background: var(--color-electrical-inferred);
 }
 
 .electrical-work-brief__status--unavailable {
