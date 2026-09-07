@@ -1047,15 +1047,15 @@ Production deployment remains manual; the current GitHub Actions workflow does n
 
 The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
 
-| Area | What is tested |
-| --- | --- |
-| API | Routes, required parameters, response fields and validation |
-| Scoring | Component points, level thresholds, breakdowns, raw scores and evidence ceilings |
-| Classification | Planning descriptions mapped to expected categories, including ambiguous and ancillary wording |
-| Search behaviour | Filters, sort order, pagination, distance responses and PostGIS query construction |
-| Electrical signals | Direct, inferred, possible and unavailable evidence, including contextual and negated references |
-| Error handling | Invalid input, missing records, geocoding failures, upstream timeouts and rate limits |
-| Database behaviour | Connection configuration, model constraints, migration operations, ingestion updates and rollback handling |
+| Area | What is tested | Result |
+| --- | --- | --- |
+| API | Routes, required parameters, response fields and validation | Pass |
+| Scoring | Component points, level thresholds, breakdowns, raw scores and evidence ceilings | Pass |
+| Classification | Planning descriptions mapped to expected categories, including ambiguous and ancillary wording | Pass |
+| Search behaviour | Filters, sort order, pagination, distance responses and PostGIS query construction | Pass |
+| Electrical signals | Direct, inferred, possible and unavailable evidence, including contextual and negated references | Pass |
+| Error handling | Invalid input, missing records, geocoding failures, upstream timeouts and rate limits | Pass |
+| Database behaviour | Connection configuration, model constraints, migration operations, ingestion updates and rollback handling | Pass |
 
 Regression cases preserve previously corrected scoring and classification behaviour, such as distinguishing a project's main purpose from ancillary works and sorting by the evidence-capped score. The repository also includes a curated classifier benchmark that compares descriptions with expected categories. It is a regression check, not a measure of production accuracy or a trained model's performance.
 
