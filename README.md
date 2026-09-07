@@ -463,13 +463,13 @@ The scoring system is a prioritisation aid, not a guarantee of commercial value 
 The screenshots below show the opportunity detail page and the complete score breakdown.
 
 <div align="center">
-  <img src="docs/images/features/opportunity-scoring/opportunity-page(1).png" alt="SiteForecaster opportunity detail view showing overall score and project information" width="820">
+  <img src="docs/images/features/opportunity-scoring/opportunity-page.png" alt="SiteForecaster opportunity detail view showing overall score and project information" width="820">
 </div>
 
 <p align="center">Opportunity detail view showing the final score, project information and electrical-work signal.</p>
 
 <div align="center">
-  <img src="docs/images/features/opportunity-scoring/opportunity-page-bottom(1).png" alt="SiteForecaster score breakdown showing the individual scoring factors" width="820">
+  <img src="docs/images/features/opportunity-scoring/opportunity-page-bottom.png" alt="SiteForecaster score breakdown showing the individual scoring factors" width="820">
 </div>
 
 <p align="center">Score breakdown showing how points are awarded across the five scoring dimensions.</p>
