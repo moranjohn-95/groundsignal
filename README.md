@@ -713,6 +713,103 @@ Later searches query the local PostgreSQL/PostGIS database; they do not call the
 
 Keeping these flows separate means normal user searches rely on the local database, while external planning data is refreshed independently. This reduces the application's dependence on the upstream planning service during each search.
 
+## 14. API Endpoints
+
+SiteForecaster exposes a REST API through FastAPI. The frontend uses it for backend geocoding, planning application details and ranked opportunity searches. Responses are JSON. All endpoints below use GET; inputs are query parameters unless shown as a path parameter, and no request body is required.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/locations/geocode` | Resolve a place name to coordinates |
+| GET | `/api/v1/opportunities` | Return a sorted page of nearby opportunities |
+| GET | `/api/v1/planning-applications/nearby` | Find planning applications by distance |
+| GET | `/api/v1/planning-applications` | List and filter planning applications |
+| GET | `/api/v1/planning-applications/categories/summary` | Count applications by category |
+| GET | `/api/v1/planning-applications/{application_id}` | Retrieve one application's details |
+| GET | `/health` | Check API liveness |
+| GET | `/` | Return the API identification message |
+
+### Geocode location
+
+`GET /api/v1/locations/geocode` requires `query`, a string of 1–200 characters that must not be blank after trimming. It returns `query`, `display_name`, `latitude` and `longitude`. FastAPI calls Google geocoding on the frontend's behalf; the returned coordinates are then used for the opportunity search.
+
+A location with no match returns 404. Invalid input returns 422; service configuration, upstream failure and timeout errors return 503, 502 and 504 respectively. Rate limiting can return 429.
+
+### Opportunities
+
+`GET /api/v1/opportunities` requires `latitude` (−90 to 90) and `longitude` (−180 to 180). Optional query parameters are:
+
+- `radius_km`: greater than 0 and at most 50; default `25`.
+- `recent_days`: integer from 1 to 365; default `30`. Filters received dates from the current UTC date minus this number of days, inclusively.
+- `category`: `residential`, `commercial`, `industrial`, `energy`, `infrastructure`, `mixed_use` or `other`; omitted means no category filter.
+- `sort`: `best` (default), `nearest` or `newest`, ordering by effective opportunity score, distance or received date respectively.
+- `page`: integer of at least 1; default `1`.
+- `page_size`: integer from 1 to 100; default `20`.
+
+The response contains `items`, `page`, `page_size`, `total` and `total_pages`. Each item includes planning identifiers and project information, `distance_km`, `category`, `opportunity_score`, `raw_opportunity_score`, `opportunity_level`, `opportunity_breakdown`, `opportunity_score_components` and `electrical_work_brief`. The backend generates the scoring and electrical-work information described in Section 11.
+
+The feed excludes applications with the statuses `Invalid - Case Closed`, `Application Invalid`, `INCOMPLETED APPLICATION` and `WITHDRAWN`.
+
+### Nearby planning applications
+
+`GET /api/v1/planning-applications/nearby` requires `latitude` (−90 to 90), `longitude` (−180 to 180) and `radius_km` (greater than 0, at most 50; no default). Pagination uses `limit` (1–100, default `20`) and `offset` (at least 0, default `0`).
+
+Optional filters are `received_from`, `received_to` (dates in `YYYY-MM-DD` format), `application_status`, `decision`, `category` and `recent_days` (1–365). They default to no filter. Category values are the same as for opportunities. Date bounds are inclusive; `recent_days` cannot be combined with `received_from` and returns 422 if both are supplied.
+
+The response contains `items`, `limit`, `offset` and `total`. Items expose the fuller planning record plus `distance_km`, classification, scores and electrical-work information. Unlike the opportunities feed, this endpoint always orders by ascending distance, then ascending ID, uses limit/offset pagination and does not apply the opportunity feed's status exclusions. It has no `sort` parameter; both endpoints include scoring.
+
+### Other planning endpoints
+
+`GET /api/v1/planning-applications` uses the same optional filters and limit/offset defaults as the nearby endpoint, with an additional `planning_authority` filter and no coordinate or radius inputs. It returns `items`, `limit`, `offset` and `total`, ordered by descending received date and ID. Items include scores and electrical-work information but no search-relative distance.
+
+`GET /api/v1/planning-applications/categories/summary` accepts optional `planning_authority`, `application_status`, `decision`, `received_from`, `received_to` and `recent_days` filters. The same date rules apply. It returns `total` and a `categories` object mapping the seven category names to counts; there is no pagination.
+
+`GET /api/v1/planning-applications/{application_id}` takes a positive integer path parameter. It returns one planning record with classification, scoring components and electrical-work information, or 404 if the record does not exist. The frontend uses this endpoint for its detail view. Database-backed routes are rate-limited and may return 429; invalid parameters return 422.
+
+### Health check
+
+`GET /health` takes no parameters and returns:
+
+```json
+{"status": "ok"}
+```
+
+This is a lightweight liveness check confirming that FastAPI is responding. It does not check database readiness or other dependencies.
+
+The FastAPI root endpoint, `GET /`, returns `{"message": "GroundSignal API"}`. In production, Nginx serves the React frontend at `/` instead. FastAPI's default Swagger UI, ReDoc and OpenAPI schema routes are enabled at `/docs`, `/redoc` and `/openapi.json` on the API service; the production Nginx configuration does not proxy those paths.
+
+### Example opportunity request
+
+```http
+GET /api/v1/opportunities?latitude=53.3498&longitude=-6.2603&radius_km=25&recent_days=30&category=industrial&sort=best&page=1&page_size=20
+```
+
+Illustrative response excerpt, with other item fields omitted. The score shown assumes the industrial proposal was received 20 days before assessment:
+
+```json
+{
+  "items": [
+    {
+      "id": 20,
+      "application_number": "26/1042",
+      "description": "Construction of a new industrial facility.",
+      "distance_km": 4.25,
+      "opportunity_score": 60,
+      "raw_opportunity_score": 60,
+      "opportunity_level": "high",
+      "electrical_work_brief": {
+        "evidence_level": "inferred",
+        "summary": "Potential electrical package associated with a substantial industrial development -- review plans for confirmation.",
+        "signals": []
+      }
+    }
+  ],
+  "page": 1,
+  "page_size": 20,
+  "total": 1,
+  "total_pages": 1
+}
+```
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
