@@ -1099,6 +1099,51 @@ The frontend package scripts and GitHub Actions workflow provide lint, build and
 
 The backend run passed with a pytest cache-write permission warning. No separate backend formatter, linter or type-checking command is configured. Together, the configured checks help catch syntax, type, lint, behavioural and build issues before deployment.
 
+### 20.4 Accessibility Testing
+
+The live SiteForecaster pages were checked using the WAVE Web Accessibility Evaluation Tool to look for accessibility errors, contrast issues, structural concerns and ARIA-related problems.
+
+| Page | WAVE result | Status |
+| --- | --- | --- |
+| Homepage / search | 0 errors, 0 contrast errors, 0 alerts | Pass |
+| Opportunity detail | 0 errors, 0 contrast errors, 0 alerts | Pass |
+| Data Sources | 0 errors, 0 contrast errors, 0 alerts | Pass |
+| Privacy Policy | 0 errors, 0 contrast errors, 0 alerts | Pass |
+| Terms of Use | 0 errors, 0 contrast errors, 1 advisory alert for a redundant link | Pass with advisory |
+
+WAVE reported one redundant-link advisory on the Terms of Use page, with no accessibility errors or contrast failures. The page still received WAVE's AIM score of 10/10; the advisory is recorded here rather than presenting the result as completely clean.
+
+Automated tools cannot detect every accessibility issue, so manual testing is also required; these results do not establish full accessibility compliance.
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/wave-homepage.png" alt="WAVE results for the SiteForecaster homepage showing no errors, contrast errors or alerts" width="410">
+      <p>WAVE check of the main search page.</p>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/wave-opportunity-page.png" alt="WAVE results for a SiteForecaster opportunity detail page showing no errors, contrast errors or alerts" width="410">
+      <p>WAVE check of an opportunity detail page.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/wave-data-sources.png" alt="WAVE results for the SiteForecaster Data Sources page showing no errors, contrast errors or alerts" width="410">
+      <p>WAVE check of the Data Sources page.</p>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/wave-privacy-policy.png" alt="WAVE results for the SiteForecaster Privacy Policy page showing no errors, contrast errors or alerts" width="410">
+      <p>WAVE check of the Privacy Policy page.</p>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/wave-terms-of-use.png" alt="WAVE results for the SiteForecaster Terms of Use page showing one redundant-link advisory and an AIM score of 10 out of 10" width="620">
+      <p>WAVE check of the Terms of Use page, showing one redundant-link advisory.</p>
+    </td>
+  </tr>
+</table>
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
