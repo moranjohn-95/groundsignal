@@ -969,6 +969,80 @@ SiteForecaster is an independent planning-opportunity tool and is not affiliated
 
 This section describes the project's current data-use approach and is not legal advice.
 
+## 19. Technologies Used
+
+SiteForecaster uses a straightforward stack suited to the current MVP, keeping the browser interface, API and database separate without adding infrastructure the application does not need.
+
+### Backend
+
+| Technology | Purpose |
+| --- | --- |
+| Python | Implements API logic, scoring and data-processing commands. |
+| FastAPI | Defines the API routes and request handling. |
+| Pydantic | Validates API data and defines response schemas. |
+| Uvicorn | Runs the FastAPI application. |
+| SQLAlchemy | Builds database queries and maps Python models to tables. |
+| GeoAlchemy2 | Provides PostGIS types and spatial integration with SQLAlchemy. |
+| Alembic | Tracks and applies database schema migrations. |
+| Psycopg | Connects the backend to PostgreSQL. |
+| HTTPX | Sends requests to the planning source and geocoding service. |
+| python-dotenv | Loads local environment configuration. |
+
+### Frontend
+
+| Technology | Purpose |
+| --- | --- |
+| React | Renders the interactive browser interface. |
+| TypeScript | Adds type checking to frontend code. |
+| Vite | Runs the development server and builds production static assets. |
+| HTML | Provides page structure and semantic interface elements. |
+| CSS | Defines layout, responsive styling and visual states. |
+| Node.js / npm | Run frontend build, test and package tooling, not the backend. |
+
+### Database
+
+| Technology | Purpose |
+| --- | --- |
+| PostgreSQL | Stores planning application records. |
+| PostGIS | Supports geographic points and nearby-distance queries. |
+
+### Testing
+
+| Technology | Purpose |
+| --- | --- |
+| pytest | Runs backend API, scoring and data-processing tests. |
+| FastAPI TestClient | Exercises API routes in backend tests. |
+| Vitest | Runs frontend tests. |
+| React Testing Library | Tests rendered components through their visible interface. |
+| Testing Library user-event | Simulates typing, clicks and keyboard interaction. |
+| Testing Library jest-dom | Adds DOM assertions to the Vitest tests. |
+| jsdom | Supplies the browser-like DOM environment for frontend tests. |
+| ESLint / typescript-eslint | Check frontend code with TypeScript, React Hooks and React Refresh rules. |
+| pip-audit / npm audit | Check dependencies for known vulnerabilities in CI. |
+
+### DevOps & Deployment
+
+| Technology | Purpose |
+| --- | --- |
+| Docker | Packages the API and runs the database container. |
+| Docker Compose | Configures the API and database services together. |
+| Git | Tracks source and configuration changes. |
+| GitHub | Hosts the repository and project board. |
+| GitHub Actions | Runs CI tests, audits, lint and builds, then uploads the frontend build artifact. |
+| AWS EC2 | Hosts the production application. |
+| Ubuntu Linux | Provides the production host operating system. |
+| Nginx | Serves static frontend assets and proxies API requests. |
+| systemd | Schedules and runs planning sync and reconciliation commands. |
+
+Production deployment remains manual; the current GitHub Actions workflow does not deploy to EC2.
+
+### External Services
+
+| Technology | Purpose |
+| --- | --- |
+| Irish Planning ArcGIS source | Supplies planning application data for imports and syncs. |
+| Google Maps Platform Geocoding | Resolves typed place names through the backend. |
+
 ### 20.1 Backend Testing
 
 The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
