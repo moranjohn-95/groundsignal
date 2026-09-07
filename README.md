@@ -1099,7 +1099,7 @@ The frontend package scripts and GitHub Actions workflow provide lint, build and
 
 The backend run passed with a pytest cache-write permission warning. No separate backend formatter, linter or type-checking command is configured. Together, the configured checks help catch syntax, type, lint, behavioural and build issues before deployment.
 
-### 20.4 Accessibility Testing
+### 20.4 Accessibility Testing (WAVE)
 
 The live SiteForecaster pages were checked using the WAVE Web Accessibility Evaluation Tool to look for accessibility errors, contrast issues, structural concerns and ARIA-related problems.
 
@@ -1111,9 +1111,9 @@ The live SiteForecaster pages were checked using the WAVE Web Accessibility Eval
 | Privacy Policy | 0 errors, 0 contrast errors, 0 alerts | Pass |
 | Terms of Use | 0 errors, 0 contrast errors, 1 advisory alert for a redundant link | Pass with advisory |
 
-WAVE reported one redundant-link advisory on the Terms of Use page, with no accessibility errors or contrast failures. The page still received WAVE's AIM score of 10/10.
+WAVE reported one redundant link advisory on the Terms of Use page, with no accessibility errors or contrast failures. The page still received WAVE's AIM score of 10/10.
 
-Automated tools cannot detect every accessibility issue, so manual testing is also required; these results do not establish full accessibility compliance.
+Overall the results were very posituve as each page scored 10 out of 10 ont the AIM score.
 
 <table>
   <tr>
