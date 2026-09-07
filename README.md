@@ -474,6 +474,43 @@ The screenshots below show the opportunity detail page and the complete score br
 
 <p align="center">Score breakdown showing how points are awarded across the five scoring dimensions.</p>
 
+### 10.4 Electrical Work Signals
+
+Alongside the overall opportunity score, SiteForecaster assigns a separate electrical-work signal to each planning application. This gives electrical contractors a quick indication of how strongly the available planning description suggests that electrical work may be involved.
+
+The signal uses four levels, ranging from direct evidence to no specific electrical indication. Each state combines a bolt indicator, a distinct visual treatment and a short plain-English explanation so users can understand the reasoning without opening the full planning record.
+
+**Confirmed electrical work** means the planning description contains direct evidence of electrical work. **Implied electrical work** means the project type or scale strongly suggests an electrical package is likely. **Possible electrical work** indicates that some project characteristics may involve electrical work, but the evidence is weaker. **No specific electrical work** means the description does not provide enough evidence to identify electrical work.
+
+These evidence and inference levels help users prioritise planning applications. They are not guarantees that electrical work will become available and should be considered alongside the full planning details and opportunity score.
+
+<table>
+  <tr>
+    <th width="50%" align="center" valign="top">Confirmed electrical work</th>
+    <th width="50%" align="center" valign="top">Implied electrical work</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/electrical-signals/confirmed-electrical-signal.png" alt="Confirmed electrical work signal" width="360">
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/electrical-signals/implied-electrical-signal.png" alt="Implied electrical work signal" width="360">
+    </td>
+  </tr>
+  <tr>
+    <th width="50%" align="center" valign="top">Possible electrical work</th>
+    <th width="50%" align="center" valign="top">No specific electrical work</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/electrical-signals/possible-electrical-signal.png" alt="Possible electrical work signal" width="360">
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/electrical-signals/no-electrical-signal.png" alt="No specific electrical work signal" width="360">
+    </td>
+  </tr>
+</table>
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
