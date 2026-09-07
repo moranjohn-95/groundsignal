@@ -380,6 +380,22 @@ The implemented accessibility work includes:
 
 Accessibility was also reviewed during frontend testing. More detailed validation and test results are documented in the [Accessibility Testing](#204-accessibility-testing) section.
 
+## 10. Features
+
+### 10.1 Location Search
+
+Users can enter an Irish location manually or use their current location, then choose a radius, recent period and category. Selecting **Find opportunities** runs the search for nearby planning opportunities.
+
+| Initial search | Location entered |
+| --- | --- |
+| <img src="docs/images/features/location-search/location-search-loaded.png" alt="SiteForecaster initial location search interface" width="420"> | <img src="docs/images/features/location-search/location-search-dublin.png" alt="SiteForecaster search with Dublin entered" width="420"> |
+| The default search interface before a location is selected. | A manually entered location, resolved through geocoding when the search runs. |
+
+| Current location | Search results |
+| --- | --- |
+| <img src="docs/images/features/location-search/location-search-current.png" alt="SiteForecaster search with current location selected" width="420"> | <img src="docs/images/features/location-search/location-search-desktop.png" alt="SiteForecaster completed search results" width="420"> |
+| The current-location option selected. | The completed search with result count, sorting and ranked opportunity cards. |
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
