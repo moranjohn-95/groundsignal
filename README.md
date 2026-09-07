@@ -810,7 +810,52 @@ Illustrative response excerpt, with other item fields omitted. The score shown a
 }
 ```
 
-### 15.1 Backend Testing
+## 15. Database & Data Models
+
+### Database choice
+
+PostgreSQL is the main application database, with PostGIS providing geographic support for searches within a chosen radius of coordinates. In production, it runs as a separate Docker Compose service, with its data persisted in a named volume.
+
+### Planning application model
+
+The `PlanningApplication` SQLAlchemy model maps to the `planning_applications` table. It keeps the source record's identifiers, project details and location together with its planning status and update metadata. Fields such as description, dates, category and project scale can be absent when the source does not provide them.
+
+| Data area | Examples |
+| --- | --- |
+| Identification | Internal `id`, `application_number`, `source_object_id`, `planning_authority` |
+| Project | `description`, `category`, `application_type`, `application_url` |
+| Location | `address`, `postcode`, geographic point in `location` |
+| Planning status | `application_status`, `decision`, `received_date`, `decision_date`, `grant_date` |
+| Project scale | `number_residential_units`, `floor_area` where available |
+| Source tracking | `source_object_id`, `source_updated_at`, local `created_at` and `updated_at` timestamps |
+
+The source identifier is unique. Planning authority and application number are indexed together but are not a unique pair, so distinct upstream records can share that reference. The stored category is constrained to the supported classification values or null.
+
+### Spatial data
+
+The `location` column uses GeoAlchemy2's `Geography(geometry_type="POINT", srid=4326)`, with a PostGIS GiST spatial index. Coordinates are stored as a geographic point rather than separate latitude and longitude columns.
+
+Nearby queries construct a search point from longitude and latitude, use `ST_DWithin` to filter within the requested radius, and use `ST_Distance` to calculate distance. The API converts the radius from kilometres to metres for these geography operations and returns distances in kilometres.
+
+### SQLAlchemy
+
+SQLAlchemy provides the data-access layer between FastAPI and PostgreSQL. Python models represent tables, and backend queries use SQLAlchemy expressions and sessions for filtering, ordering, reading and updating records. PostGIS functions are called through those expressions rather than manually assembling SQL strings for normal searches.
+
+### Alembic migrations
+
+Version-controlled Alembic migrations in `backend/alembic/versions/` track schema changes so they can be applied consistently in development and production. The initial migration created the planning table and spatial index; a later migration added the category column, its allowed-value constraint and index. Another replaced the authority/reference uniqueness constraint with a non-unique index to allow distinct source records with the same planning reference.
+
+### Data persistence and updates
+
+Import and sync commands store records from the Irish Planning ArcGIS source locally. Ingestion uses the upstream `OBJECTID`, stored as `source_object_id`, to recognise existing records: new identifiers are inserted and existing records are updated. Repeated identifiers within an import page reuse the same record, and the database's unique source index prevents duplicate source identifiers.
+
+Scheduled sync commands refresh this stored data separately from user searches. The transformer also assigns the stored planning category during ingestion.
+
+### Scoring data
+
+Opportunity scores are calculated when API results are requested; they are not stored in the planning table. The backend generates the raw and effective scores, opportunity level, component breakdown and electrical-work assessment from the application data and assessment date. This is separate from the category, which has a stored database column.
+
+### 20.1 Backend Testing
 
 The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
 
