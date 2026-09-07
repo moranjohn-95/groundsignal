@@ -894,6 +894,45 @@ Provider failures, invalid provider responses, missing configuration and timeout
 
 Typed place names are sent to the backend and Google for geocoding. Current-location coordinates are sent to the backend for the planning search, so precise location can be processed. The current search state is held in React memory; these search and geocoding paths do not persist a user location history in the database. Privacy-safe logging is covered separately in Section 17.
 
+## 17. Security & Privacy
+
+### 17.1 API & Secret Management
+
+Database credentials and the Google geocoding key are supplied through environment configuration rather than hard-coded production values in application source. Docker Compose passes the configured credentials to the relevant services. Google geocoding runs through the backend, so its key is not included in frontend source or location responses.
+
+`.gitignore` excludes `.env` files and their variants, apart from `.env.example`, along with common private-key and certificate file types. These exclusions help prevent accidental additions; secrets must never be committed and should be rotated if exposed.
+
+CI runs `pip-audit` against the backend requirements and `npm audit --omit=dev --audit-level=high` for frontend production dependencies. These checks flag known dependency vulnerabilities; they are not a full security assessment.
+
+### 17.2 Rate Limiting
+
+The geocoding endpoint allows 20 requests per client IP in a rolling 60-second window. The opportunities and planning-applications routes share a separate limit of 60 requests per client IP over 60 seconds. These limits reduce repeated calls to the paid geocoding provider and database-intensive endpoints. Excess requests receive HTTP 429 with a `Retry-After` header.
+
+The limiters keep their state in memory within one API process; they are not shared across multiple processes or retained after restart. They do not cover `/health` or the API root route. Forwarded client addresses are accepted only from the configured trusted proxy networks, and Nginx replaces incoming forwarding headers with the address it observes.
+
+### 17.3 Privacy-Safe Logging
+
+The production Docker command starts Uvicorn with `--no-access-log`, avoiding a second access log containing request query strings. Nginx uses the `siteforecaster_safe` format, which records the request method and `$uri` path rather than the full request URL. Query strings and Referer headers are omitted from this access log, which matters because search parameters can contain place names and coordinates.
+
+This reduces logged request details; it does not mean no logs are collected. Nginx access logs still include the client address, timestamp, protocol, status, response size and user agent. Error logging remains available, and the access-log format does not control what error logs may contain.
+
+### 17.4 Security Headers
+
+The repository's Nginx HTTPS server configuration sets the following headers with `always`, including on error responses. These are configuration-backed controls, not a claim that a live security audit has been performed.
+
+| Header | Configured purpose |
+| --- | --- |
+| `X-Content-Type-Options: nosniff` | Prevent browsers from guessing a different content type |
+| `X-Frame-Options: DENY` | Prevent the site from being embedded in a frame |
+| `Referrer-Policy: strict-origin-when-cross-origin` | Limit cross-origin referrer information to the origin and omit it on HTTPS-to-HTTP requests |
+| `Permissions-Policy: geolocation=(self), camera=(), microphone=()` | Allow same-origin geolocation while disabling camera and microphone access |
+| `Strict-Transport-Security: max-age=86400` | Tell browsers to use HTTPS for this host for one day after receiving the header over HTTPS |
+| `Content-Security-Policy` | Restrict scripts, styles, connections, fonts and form submissions to the same origin; allow same-origin and data-URL images; block objects, framing and base-URL changes |
+
+FastAPI/Pydantic validates API inputs, and normal database queries use SQLAlchemy expressions. The API is published only on the EC2 host's loopback interface and reached through Nginx; the database runs as a separate Compose service without a published host port.
+
+The current MVP has no user accounts or private user-data features, so its public search API does not require authentication. Authentication is planned and would be needed before adding accounts, saved shortlists or other user-specific data. The measures described here do not amount to a claim that the application is fully secure or penetration-tested.
+
 ### 20.1 Backend Testing
 
 The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
