@@ -534,6 +534,35 @@ The screenshots below show the sorting options and the compact pagination contro
 
 <p align="center">Compact pagination controls showing the current page and navigation between result pages.</p>
 
+### 10.6 Application States & Error Handling
+
+SiteForecaster distinguishes between a successful search that returns no matching opportunities and a technical failure while loading results.
+
+When a search completes successfully but no opportunities match the selected criteria, the interface shows a neutral empty-state message and suggests broadening the search radius, recent period or category.
+
+If opportunities cannot be loaded because of a connection, API or backend problem, the interface shows a separate error state with a **Try again** action to retry the same request. This makes it clear that something went wrong technically rather than simply finding no matching planning applications. Retrying may help, but does not guarantee that the request will succeed.
+
+The screenshots below show these two states side by side.
+
+<table>
+  <tr>
+    <th width="50%" align="center" valign="top">No opportunities found</th>
+    <th width="50%" align="center" valign="top">Load error</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/application-states/failed-search-state.png" alt="SiteForecaster empty search state showing no opportunities found" width="430">
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/application-states/failed-load-state.png" alt="SiteForecaster load error state with Try again action" width="430">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">A successful search with no matching opportunities.</td>
+    <td width="50%" align="center" valign="top">A technical load failure with a retry option.</td>
+  </tr>
+</table>
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
