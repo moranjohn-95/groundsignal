@@ -450,6 +450,30 @@ The screenshots below show the discovery results at different ranking levels. Th
 
 <p align="center">High and medium opportunities showing implied and possible electrical-work signals.</p>
 
+### 10.3 Opportunity Scoring
+
+Each SiteForecaster opportunity receives a numerical score to help contractors prioritise which planning applications to review first. The score is converted into an opportunity level: Very High, High, Medium, Low or Very Low. Scoring is deterministic and explainable rather than a black-box prediction, so users can understand the factors behind an application's final ranking.
+
+The detailed opportunity view shows the overall score alongside the project category, distance, received date, planning authority, application reference and electrical-work signal. Beneath this, the score breakdown explains how points were awarded across five factors: Project scope, Electrical relevance, Project scale, Lead timing and Category fit.
+
+Each scoring factor displays both the points awarded and a short plain-English explanation. This makes the ranking easier to interpret and lets users judge whether the score reflects the project's characteristics. The electrical-work signal is displayed separately but is closely related to the electrical relevance portion of the score.
+
+The scoring system is a prioritisation aid, not a guarantee of commercial value or paid work. A high score indicates that an application appears more relevant under the current contractor-focused rules. Users should still review the original planning application before taking further action.
+
+The screenshots below show the opportunity detail page and the complete score breakdown.
+
+<div align="center">
+  <img src="docs/images/features/opportunity-scoring/opportunity-page(1).png" alt="SiteForecaster opportunity detail view showing overall score and project information" width="820">
+</div>
+
+<p align="center">Opportunity detail view showing the final score, project information and electrical-work signal.</p>
+
+<div align="center">
+  <img src="docs/images/features/opportunity-scoring/opportunity-page-bottom(1).png" alt="SiteForecaster score breakdown showing the individual scoring factors" width="820">
+</div>
+
+<p align="center">Score breakdown showing how points are awarded across the five scoring dimensions.</p>
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
