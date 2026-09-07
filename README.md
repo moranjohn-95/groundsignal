@@ -639,6 +639,47 @@ The current MVP uses rules rather than machine learning so that the same inputs,
 
 **Best opportunity** sorts by the effective `opportunity_score` in descending order, not the raw uncapped total. Ties are resolved by newer received date, then higher application ID; missing received dates sort after known dates within the same score.
 
+## 12. Application Architecture
+
+SiteForecaster has a browser frontend, a single FastAPI application and a PostgreSQL/PostGIS database. Nginx serves the frontend and forwards API requests to the backend in production.
+
+### 12.1 Frontend
+
+The frontend is built with React and TypeScript using Vite. It runs in the browser and handles the search form, results, sorting, pagination, detail views and user-facing loading, empty and error states. It requests data from the backend API rather than connecting directly to the database or planning-data source.
+
+For production, Vite builds static assets that Nginx serves from `/var/www/siteforecaster` on the EC2 host.
+
+### 12.2 Backend
+
+The backend is a single FastAPI application running in Docker in production. Its Python code handles location lookup and geocoding, planning opportunity queries, classification, opportunity scoring and electrical-work assessment. Planning data ingestion and sync are implemented as separate commands in the same backend codebase.
+
+SQLAlchemy provides database access, while Alembic manages schema migrations.
+
+### 12.3 API Layer
+
+The API is the boundary between the browser interface and the backend logic and data. The frontend calls FastAPI REST endpoints for location lookup, opportunity results and planning application details. These calls send search criteria and other request values as URL query parameters or path values and receive JSON responses.
+
+In production, Nginx proxies `/api/` traffic to the FastAPI container through the host's loopback port `8000`. The separate `/health` endpoint is also proxied and is used by the API container's health check. Section 14 documents the endpoints in more detail.
+
+### 12.4 Database
+
+PostgreSQL stores the planning applications locally, and PostGIS provides geographic querying support. Nearby searches use spatial queries against these stored records rather than calling the external planning service for every user search. SQLAlchemy models map application data to database tables, and Alembic tracks schema changes.
+
+Docker Compose runs the database and API as separate services on EC2, with database files kept in a named volume. The database health check uses `pg_isready`, and Compose waits for it to pass before starting the API.
+
+In production, a user loads the React frontend through Nginx. When the frontend needs data, requests to `/api/` are proxied to the FastAPI container. For opportunity searches, FastAPI reads from PostgreSQL/PostGIS and applies the relevant search, scoring and business logic. The result is returned as JSON and rendered in the browser.
+
+Irish planning data is retrieved from the external ArcGIS planning source by import and sync commands and stored in PostgreSQL. Scheduled sync commands are run through systemd timers on the host, separately from user requests. When a typed location needs to be resolved, the backend calls Google geocoding; the browser does not connect directly to either external source.
+
+| Layer | Main technology | Responsibility |
+| --- | --- | --- |
+| Browser UI | React, TypeScript, Vite | Search, results and interaction |
+| Web server | Nginx | Static frontend serving and reverse proxy |
+| API | FastAPI | Business logic and REST endpoints |
+| Data access | SQLAlchemy / Alembic | ORM and schema migrations |
+| Database | PostgreSQL + PostGIS | Planning data and spatial queries |
+| External data | Irish Planning ArcGIS + Google geocoding | Planning feed and location lookup |
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
