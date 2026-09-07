@@ -563,6 +563,82 @@ The screenshots below show these two states side by side.
   </tr>
 </table>
 
+## 11. Opportunity Scoring Logic
+
+SiteForecaster uses deterministic rules to score planning opportunities. The implementation in `backend/app/services/opportunity_scorer.py` combines five components:
+
+| Component | Maximum points |
+| --- | ---: |
+| Project scope | 30 |
+| Electrical relevance | 30 |
+| Project scale | 20 |
+| Lead timing | 10 |
+| Category fit | 10 |
+| Total | 100 |
+
+**Project scope** represents the type of work proposed. The rules distinguish major development (30 points), meaningful extensions, refurbishment, conversion or fit-out (20), smaller alterations or upgrades (10), and recognised minor, retention or site-only work (5). Unrecognised scope receives 0. Scope is assessed from the main proposal and application type; text after recognised ancillary-work markers is excluded from this component, while the full text remains available for size and electrical evidence.
+
+**Electrical relevance** represents the strength of electrical evidence. Recognised direct evidence is checked first: EV charging, battery storage, substations or explicit electrical works receive 30 points; renewable installations receive 25; significant lighting receives 20; and qualifying electrical plant or equipment receives 15. These indicators are not added together: the strongest qualifying direct indicator determines the component score. Phrase checks exclude references preceded by specified negation, existing-work or removal terms, and general plant terms require substantial non-residential scope.
+
+Without direct evidence, contextual rules can award 10, 12 or 15 points for inferred electrical work, depending on the proposal, category and scale. Qualifying possible work receives 6 points, or 5 for replacement of one external light fitting; unavailable evidence receives 0. These are specific proposal checks, not an assumption that every building needs electrical work: residential, institutional, building-work and powered-infrastructure rules include scope and context checks.
+
+**Project scale** uses valid residential unit counts or floor area, preferring structured values and falling back to recognised values in the text. Unit counts of 1, 2–9, 10–19, 20–49 and 50 or more receive 4, 8, 12, 16 and 20 points respectively. Positive floor areas below 100, from 100 to below 500, from 500 to below 2,000, from 2,000 to below 5,000, and 5,000 square metres or more receive the same point bands. If both measures are available, only the higher score is used; without either, this component receives 0.
+
+**Lead timing** measures recency against the assessment date, which defaults to the current UTC date. Applications received 0–14 days ago receive 10 points; 15–30 days receive 8; 31–60 days receive 5; and 61–90 days receive 2. Older, missing or future received dates receive 0.
+
+**Category fit** assigns a fixed weighting to the classified project category using the values below.
+
+### Raw and displayed scores
+
+The five component scores are added together to produce `raw_opportunity_score`. The application retains this arithmetic total separately from `opportunity_score`, the effective score shown to the user after the electrical-evidence ceiling is applied:
+
+`opportunity_score = min(raw_opportunity_score, electrical_evidence_ceiling)`
+
+| Electrical evidence | Maximum displayed score |
+| --- | ---: |
+| No specific evidence / unavailable | 39 |
+| Possible | 59 |
+| Implied / inferred | 79 |
+| Confirmed / direct | 100 |
+
+This prevents a project with weak or no electrical evidence from receiving a very high displayed score just because its other characteristics score well. The ceiling does not change the individual component points or the retained raw total.
+
+### Opportunity levels
+
+The opportunity level is based on the effective `opportunity_score`, not the uncapped raw score.
+
+| Opportunity level | Displayed score |
+| --- | ---: |
+| Very High | 80–100 |
+| High | 60–79 |
+| Medium | 40–59 |
+| Low | 20–39 |
+| Very Low | 0–19 |
+
+### Category fit
+
+| Category | Points |
+| --- | ---: |
+| Industrial | 10 |
+| Commercial | 10 |
+| Energy | 10 |
+| Mixed use | 9 |
+| Residential | 7 |
+| Infrastructure | 7 |
+| Other | 3 |
+
+### Worked example
+
+An application described as “Construction of a new industrial facility”, classified as industrial, received 20 days before assessment and with no unit count or floor area, scores 30/30 for project scope, 12/30 for electrical relevance, 0/20 for project scale, 8/10 for lead timing and 10/10 for category fit. The raw total is **60**; its inferred electrical evidence has a ceiling of **79**, so the displayed score remains **60**, giving it a **High** opportunity level.
+
+### Why rule-based scoring
+
+The current MVP uses rules rather than machine learning so that the same inputs, including the assessment date, produce the same result. Each component can be explained and the rules can be tested directly. This supports reviewing and adjusting the current scoring criteria; it does not make the score a guarantee of commercial value or paid work.
+
+### Sorting
+
+**Best opportunity** sorts by the effective `opportunity_score` in descending order, not the raw uncapped total. Ties are resolved by newer received date, then higher application ID; missing received dates sort after known dates within the same score.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
