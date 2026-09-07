@@ -340,9 +340,7 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                       aria-hidden="true"
                       focusable="false"
                     >
-                      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
-                      <circle cx="16" cy="7" r="2" />
-                      <circle cx="8" cy="17" r="2" />
+                      <path d="m3 7 4-4 4 4M7 3v18m6-4 4 4 4-4M17 21V3" />
                     </svg>
                     Sort
                   </label>
