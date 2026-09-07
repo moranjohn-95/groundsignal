@@ -511,6 +511,28 @@ These evidence and inference levels help users prioritise planning applications.
   </tr>
 </table>
 
+### 10.5 Sorting & Pagination
+
+SiteForecaster includes sorting and pagination controls to make larger result sets easier to review. After a search is completed, users can see how many opportunities were returned and choose how those results should be ordered.
+
+The sort control supports **Best opportunity**, **Nearest** and **Newest**. Best opportunity uses the SiteForecaster opportunity score to prioritise stronger matches, Nearest orders applications by distance from the selected location, and Newest prioritises applications by received date.
+
+Pagination keeps larger result sets manageable by splitting them into smaller pages rather than one excessively long page. Users can move backwards and forwards using the **Previous** and **Next** controls while keeping their existing search criteria and sort selection. The current page and total page count are displayed between the controls. The compact layout is designed to remain usable across desktop, tablet and mobile screen sizes.
+
+The screenshots below show the sorting options and the compact pagination controls used in the results interface.
+
+<div align="center">
+  <img src="docs/images/features/sorting-pagination/sort-options.png" alt="SiteForecaster sorting options showing Best opportunity, Nearest and Newest" width="300">
+</div>
+
+<p align="center">Sort options for prioritising results by opportunity strength, distance or recency.</p>
+
+<div align="center">
+  <img src="docs/images/features/sorting-pagination/pagination-feature.png" alt="SiteForecaster pagination controls showing Previous, current page and Next" width="320">
+</div>
+
+<p align="center">Compact pagination controls showing the current page and navigation between result pages.</p>
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
