@@ -38,11 +38,10 @@ Planning intelligence platform for discovering local construction opportunities 
     - [Backend](#122-backend)
     - [API Layer](#123-api-layer)
     - [Database](#124-database)
-13. [Planning Data & Data Pipeline](#13-planning-data--data-pipeline)
-    - [Data Source](#131-data-source)
-    - [Initial Import](#132-initial-import)
-    - [Incremental Sync](#133-incremental-sync)
-    - [Daily Reconciliation](#134-daily-reconciliation)
+13. [Data Flow](#13-data-flow)
+    - [User search flow](#user-search-flow)
+    - [Location lookup flow](#location-lookup-flow)
+    - [Planning data sync flow](#planning-data-sync-flow)
 14. [API Endpoints](#14-api-endpoints)
 15. [Database & Data Models](#15-database--data-models)
 16. [Geocoding & Location Handling](#16-geocoding--location-handling)
@@ -679,6 +678,40 @@ Irish planning data is retrieved from the external ArcGIS planning source by imp
 | Data access | SQLAlchemy / Alembic | ORM and schema migrations |
 | Database | PostgreSQL + PostGIS | Planning data and spatial queries |
 | External data | Irish Planning ArcGIS + Google geocoding | Planning feed and location lookup |
+
+## 13. Data Flow
+
+### User search flow
+
+1. The user selects a location and search criteria in the React frontend.
+2. Once coordinates are available, the browser sends them and the criteria through Nginx to FastAPI in production.
+3. FastAPI queries PostgreSQL/PostGIS using the coordinates, radius and other filters.
+4. Matching planning applications are returned to the backend.
+5. The backend applies opportunity scoring and the selected sort order to prepare the requested results page.
+6. FastAPI returns the results as JSON.
+7. React renders the results in the browser.
+
+### Location lookup flow
+
+When the user searches with a place name, the frontend first sends it to the backend. FastAPI calls the configured Google geocoding service and returns the resolved coordinates, which the frontend uses for the nearby planning search. The browser does not call Google directly.
+
+The current-location option obtains coordinates from the browser instead. Those coordinates are used for the same nearby search flow without a place-name lookup.
+
+### Planning data sync flow
+
+Planning data is imported from the Irish Planning ArcGIS source by backend import and sync commands, separately from user searches. The backend processes the records and upserts them into PostgreSQL, inserting new records and updating existing ones. Scheduled syncs run in the background through the host's systemd timers.
+
+Later searches query the local PostgreSQL/PostGIS database; they do not call the external planning source each time a user searches.
+
+| Flow | Source | Destination | Purpose |
+| --- | --- | --- | --- |
+| User search | React frontend | FastAPI API | Submit search criteria |
+| Spatial query | FastAPI | PostgreSQL/PostGIS | Find nearby planning applications |
+| Geocoding | FastAPI | Google geocoding | Convert place names to coordinates |
+| Planning sync | Irish Planning ArcGIS | PostgreSQL | Keep local planning data up to date |
+| Results | FastAPI | React frontend | Return ranked opportunities as JSON |
+
+Keeping these flows separate means normal user searches rely on the local database, while external planning data is refreshed independently. This reduces the application's dependence on the upstream planning service during each search.
 
 ## Production Nginx and privacy-safe logging
 
