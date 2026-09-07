@@ -428,6 +428,28 @@ The screenshots below show the main stages of this flow: entering a location man
   </tr>
 </table>
 
+### 10.2 Planning Opportunity Discovery
+
+After a search is completed, SiteForecaster presents the matching planning applications as ranked opportunity cards rather than raw planning records. Each card highlights the information most useful to an electrical contractor: the opportunity level, numerical score, project description, category, distance, received date, location, planning authority, planning reference and electrical-work signal.
+
+By default, the cards are ordered by opportunity strength so that stronger opportunities can be reviewed first. Colour-coded opportunity levels help users distinguish stronger and weaker opportunities at a glance. The electrical-work signal adds context by indicating whether electrical work is confirmed, implied, possible, or not specifically identified.
+
+This combination of ranking and summarised project information reduces the amount of raw planning data a contractor needs to review before deciding which applications to open in more detail. The ranking is a decision-support tool, not a guarantee that a project will become paid work. It gives contractors a more focused starting point for deciding which projects are worth investigating further.
+
+The screenshots below show the discovery results at different ranking levels. The first view contains the strongest opportunities, including confirmed electrical-work signals, while the second view shows high and medium opportunities alongside implied and possible electrical-work signals.
+
+<div align="center">
+  <img src="docs/images/features/opportunity-discovery/opportunity-discovery-top.png" alt="SiteForecaster ranked opportunity discovery results showing very high and high opportunities" width="820">
+</div>
+
+<p align="center">Highest-ranked opportunities with confirmed electrical-work signals.</p>
+
+<div align="center">
+  <img src="docs/images/features/opportunity-discovery/opportunity-discovery-bottom.png" alt="SiteForecaster opportunity discovery results showing high and medium opportunities" width="820">
+</div>
+
+<p align="center">High and medium opportunities showing implied and possible electrical-work signals.</p>
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
