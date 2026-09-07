@@ -392,12 +392,12 @@ The screenshots below show the main stages of this flow: entering a location man
 
 | Location entered | Current location |
 | :---: | :---: |
-| <img src="docs/images/features/location-search/location-search-dublin.png" alt="SiteForecaster search with Dublin entered" width="400"> | <img src="docs/images/features/location-search/location-search-current.png" alt="SiteForecaster search with current location selected" width="400"> |
+| <div align="center"><img src="docs/images/features/location-search/location-search-dublin.png" alt="SiteForecaster search with Dublin entered" width="400"></div> | <div align="center"><img src="docs/images/features/location-search/location-search-current.png" alt="SiteForecaster search with current location selected" width="400"></div> |
 | A manually entered Irish location ready to be used for the search. | The browser current-location option selected, allowing SiteForecaster to search around the user's device location. |
 
 | Initial search | Search results |
 | :---: | :---: |
-| <img src="docs/images/features/location-search/location-search-loaded.png" alt="SiteForecaster initial location search interface" width="400"> | <img src="docs/images/features/location-search/location-search-desktop.png" alt="SiteForecaster completed search results" width="400"> |
+| <div align="center"><img src="docs/images/features/location-search/location-search-desktop.png" alt="SiteForecaster initial location search interface" width="400"></div> | <div align="center"><img src="docs/images/features/location-search/location-search-loaded.png" alt="SiteForecaster completed search results" width="400"></div> |
 | The default search interface before a location or search criteria have been entered. | A completed search showing the result count, sort control and ranked opportunity cards. |
 
 ## Production Nginx and privacy-safe logging
