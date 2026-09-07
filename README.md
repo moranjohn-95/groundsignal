@@ -810,6 +810,24 @@ Illustrative response excerpt, with other item fields omitted. The score shown a
 }
 ```
 
+### 15.1 Backend Testing
+
+The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
+
+| Area | What is tested |
+| --- | --- |
+| API | Routes, required parameters, response fields and validation |
+| Scoring | Component points, level thresholds, breakdowns, raw scores and evidence ceilings |
+| Classification | Planning descriptions mapped to expected categories, including ambiguous and ancillary wording |
+| Search behaviour | Filters, sort order, pagination, distance responses and PostGIS query construction |
+| Electrical signals | Direct, inferred, possible and unavailable evidence, including contextual and negated references |
+| Error handling | Invalid input, missing records, geocoding failures, upstream timeouts and rate limits |
+| Database behaviour | Connection configuration, model constraints, migration operations, ingestion updates and rollback handling |
+
+Regression cases preserve previously corrected scoring and classification behaviour, such as distinguishing a project's main purpose from ancillary works and sorting by the evidence-capped score. The repository also includes a curated classifier benchmark that compares descriptions with expected categories. It is a regression check, not a measure of production accuracy or a trained model's performance.
+
+These tests allow scoring-rule changes to be checked without relying only on manual testing and keep API behaviour verifiable across changes. They help catch edge cases and regressions before deployment; database query and session tests do not replace checks against a running PostgreSQL/PostGIS instance.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
