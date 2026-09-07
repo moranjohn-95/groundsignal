@@ -564,8 +564,9 @@ summary:focus-visible {
 }
 
 .opportunity-pagination {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 0.75rem;
   margin-top: 1.5rem;
@@ -584,14 +585,6 @@ summary:focus-visible {
   min-width: 0;
   padding-inline: 0.75rem;
   white-space: nowrap;
-}
-
-.opportunity-pagination .button:first-child {
-  justify-self: start;
-}
-
-.opportunity-pagination .button:last-child {
-  justify-self: end;
 }
 
 .opportunity-card {
