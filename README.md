@@ -384,17 +384,21 @@ Accessibility was also reviewed during frontend testing. More detailed validatio
 
 ### 10.1 Location Search
 
-Users can enter an Irish location manually or use their current location, then choose a radius, recent period and category. Selecting **Find opportunities** runs the search for nearby planning opportunities.
+SiteForecaster gives users two ways to choose where they want to search. They can enter an Irish location manually, which is resolved through geocoding when the search runs, or they can use the browser's current-location option to search around their device location.
 
-| Initial search | Location entered |
-| --- | --- |
-| <img src="docs/images/features/location-search/location-search-loaded.png" alt="SiteForecaster initial location search interface" width="420"> | <img src="docs/images/features/location-search/location-search-dublin.png" alt="SiteForecaster search with Dublin entered" width="420"> |
-| The default search interface before a location is selected. | A manually entered location, resolved through geocoding when the search runs. |
+Once a location has been selected, the search can be refined using the radius, recent-period and category controls. Selecting **Find opportunities** sends the chosen criteria to the backend and returns nearby planning applications that match the search.
 
-| Current location | Search results |
-| --- | --- |
-| <img src="docs/images/features/location-search/location-search-current.png" alt="SiteForecaster search with current location selected" width="420"> | <img src="docs/images/features/location-search/location-search-desktop.png" alt="SiteForecaster completed search results" width="420"> |
-| The current-location option selected. | The completed search with result count, sorting and ranked opportunity cards. |
+The screenshots below show the main stages of this flow: entering a location manually, using the current-location option, viewing the default search state, and running a completed search that returns ranked opportunities.
+
+| Location entered | Current location |
+| :---: | :---: |
+| <img src="docs/images/features/location-search/location-search-dublin.png" alt="SiteForecaster search with Dublin entered" width="400"> | <img src="docs/images/features/location-search/location-search-current.png" alt="SiteForecaster search with current location selected" width="400"> |
+| A manually entered Irish location ready to be used for the search. | The browser current-location option selected, allowing SiteForecaster to search around the user's device location. |
+
+| Initial search | Search results |
+| :---: | :---: |
+| <img src="docs/images/features/location-search/location-search-loaded.png" alt="SiteForecaster initial location search interface" width="400"> | <img src="docs/images/features/location-search/location-search-desktop.png" alt="SiteForecaster completed search results" width="400"> |
+| The default search interface before a location or search criteria have been entered. | A completed search showing the result count, sort control and ranked opportunity cards. |
 
 ## Production Nginx and privacy-safe logging
 
