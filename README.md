@@ -390,15 +390,43 @@ Once a location has been selected, the search can be refined using the radius, r
 
 The screenshots below show the main stages of this flow: entering a location manually, using the current-location option, viewing the default search state, and running a completed search that returns ranked opportunities.
 
-| Location entered | Current location |
-| :---: | :---: |
-| <div align="center"><img src="docs/images/features/location-search/location-search-dublin.png" alt="SiteForecaster search with Dublin entered" width="400"></div> | <div align="center"><img src="docs/images/features/location-search/location-search-current.png" alt="SiteForecaster search with current location selected" width="400"></div> |
-| A manually entered Irish location ready to be used for the search. | The browser current-location option selected, allowing SiteForecaster to search around the user's device location. |
+<table>
+  <tr>
+    <th width="50%" align="center">Location entered</th>
+    <th width="50%" align="center">Current location</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/location-search/location-search-dublin.png" alt="SiteForecaster search with Dublin entered" width="400">
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/location-search/location-search-current.png" alt="SiteForecaster search with current location selected" width="400">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">A manually entered Irish location ready to be used for the search.</td>
+    <td width="50%" align="center">The browser current-location option selected, allowing SiteForecaster to search around the user's device location.</td>
+  </tr>
+</table>
 
-| Initial search | Search results |
-| :---: | :---: |
-| <div align="center"><img src="docs/images/features/location-search/location-search-desktop.png" alt="SiteForecaster initial location search interface" width="400"></div> | <div align="center"><img src="docs/images/features/location-search/location-search-loaded.png" alt="SiteForecaster completed search results" width="400"></div> |
-| The default search interface before a location or search criteria have been entered. | A completed search showing the result count, sort control and ranked opportunity cards. |
+<table>
+  <tr>
+    <th width="50%" align="center">Initial search</th>
+    <th width="50%" align="center">Search results</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/location-search/location-search-desktop.png" alt="SiteForecaster initial location search interface" width="400">
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/features/location-search/location-search-loaded.png" alt="SiteForecaster completed search results" width="400">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">The default search interface before a location or search criteria have been entered.</td>
+    <td width="50%" align="center">A completed search showing the result count, sort control and ranked opportunity cards.</td>
+  </tr>
+</table>
 
 ## Production Nginx and privacy-safe logging
 
