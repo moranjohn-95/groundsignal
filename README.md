@@ -1061,6 +1061,29 @@ Regression cases preserve previously corrected scoring and classification behavi
 
 These tests allow scoring-rule changes to be checked without relying only on manual testing and keep API behaviour verifiable across changes. They help catch edge cases and regressions before deployment; database query and session tests do not replace checks against a running PostgreSQL/PostGIS instance.
 
+### 20.2 Frontend Testing
+
+Frontend tests use Vitest with React Testing Library, user-event and jest-dom assertions in a jsdom environment. They check important component behaviour and user interactions to catch regressions when the frontend changes. API responses and browser geolocation are mocked so success and failure cases can be checked consistently.
+
+| Area | What is tested | Result |
+| ---- | -------------- | ------ |
+| Search | Manual geocoding and current-location searches send the selected filters. | Pass |
+| Results rendering | Contextual headings, result counts, card metadata and electrical signals render from responses. | Pass |
+| Sorting | Best opportunity, Nearest and Newest request the selected order without repeating location lookup. | Pass |
+| Pagination | Previous/Next requests, disabled boundaries and page resets after sort or search changes. | Pass |
+| Loading state | Loading is announced, repeat submissions are blocked and existing cards remain during refreshes. | Pass |
+| Empty results | No opportunities found retains the resolved location and omits the redundant static heading. | Pass |
+| Error state | Location, geocoding, opportunity and detail failures show the appropriate message without raw error details. | Pass |
+| Retry behaviour | Failed opportunity requests reuse search parameters, and failed detail requests can be retried. | Pass |
+| Opportunity detail navigation | Detail and browser back navigation restore search results, filters, scroll and focus. | Pass |
+| Home/reset navigation | Brand navigation resets the search; all three legal-page back links return home. | Pass |
+| Form/input behaviour | Required location validation, default filters and switching between typed and browser location. | Pass |
+| Accessibility-related behaviour | Keyboard order and activation, semantic landmarks, accessible names and navigation focus. | Pass |
+
+Regression coverage distinguishes returning to previous results from deliberately starting a fresh search through the brand link. It also checks that failed page refreshes retain existing results and that empty searches remain distinct from technical failures.
+
+Verified with `npm run test:run` from `frontend/`: **84 tests passed across 5 test files**. These component and interaction tests do not constitute a full browser or accessibility audit.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
