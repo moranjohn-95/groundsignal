@@ -855,6 +855,45 @@ Scheduled sync commands refresh this stored data separately from user searches. 
 
 Opportunity scores are calculated when API results are requested; they are not stored in the planning table. The backend generates the raw and effective scores, opportunity level, component breakdown and electrical-work assessment from the application data and assessment date. This is separate from the category, which has a stored database column.
 
+## 16. Geocoding & Location Handling
+
+### Manual location search
+
+When a user submits a place name, React sends it as `query` to `GET /api/v1/locations/geocode`. FastAPI calls Google geocoding with an Ireland country filter and returns the first result's `display_name`, `latitude` and `longitude`. The frontend uses these coordinates for the nearby opportunity search and the display name for the contextual results heading.
+
+### Current location
+
+Selecting **Use my current location** calls the browser's geolocation API. If coordinates are available, the frontend selects them and clears the typed location. Selecting **Find opportunities** then uses those coordinates directly, without place-name geocoding. Typing a location again clears the current-location selection.
+
+### Why geocoding happens through the backend
+
+The browser calls SiteForecaster's endpoint rather than Google directly. The provider integration and its credential stay in the backend configuration, so the backend geocoding key is not included in frontend source code or returned in the location response.
+
+### Coordinate and radius validation
+
+The search API accepts latitude from −90 to 90 and longitude from −180 to 180. `radius_km` must be greater than 0 and no more than 50; the opportunities endpoint defaults to 25 km. The geocoding service also checks that provider coordinates are finite numbers within these geographic bounds before returning them.
+
+### Location search flow
+
+1. The user enters a location and submits the search.
+2. React sends the place name to FastAPI.
+3. FastAPI resolves it through Google geocoding.
+4. Coordinates and a display name are returned to React.
+5. React requests opportunities using those coordinates, the selected radius and other filters.
+6. PostgreSQL/PostGIS supplies nearby planning applications for the backend to process and return.
+
+For current location, browser geolocation replaces steps 2–4.
+
+### Errors and edge cases
+
+The location field is required unless current location is selected. The backend requires `query` to contain 1–200 characters and rejects blank or whitespace-only input. A geocoding response with no match produces the frontend's **Location not found** state, which asks users to check the spelling or try another Irish location.
+
+Provider failures, invalid provider responses, missing configuration and timeouts are handled as geocoding errors. The Google request uses a five-second timeout setting; the frontend shows **Location search unavailable** when lookup fails for these reasons. If browser permission is denied, geolocation is unavailable or another browser location error occurs, **Current location unavailable** lets the user know to enter a location instead or try again.
+
+### Privacy
+
+Typed place names are sent to the backend and Google for geocoding. Current-location coordinates are sent to the backend for the planning search, so precise location can be processed. The current search state is held in React memory; these search and geocoding paths do not persist a user location history in the database. Privacy-safe logging is covered separately in Section 17.
+
 ### 20.1 Backend Testing
 
 The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
