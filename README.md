@@ -1084,6 +1084,21 @@ Regression coverage distinguishes returning to previous results from deliberatel
 
 Verified with `npm run test:run` from `frontend/`: **84 tests passed across 5 test files**. These component and interaction tests do not constitute a full browser or accessibility audit.
 
+### 20.3 Linting & Build Validation
+
+The frontend package scripts and GitHub Actions workflow provide lint, build and validation checks. The results below distinguish commands verified locally for this update from dependency audits configured in CI but not rerun locally.
+
+| Area | What is checked | Result |
+| ---- | --------------- | ------ |
+| Frontend linting | `npm run lint` checks ESLint, TypeScript, React Hooks and React Refresh rules. | Pass |
+| TypeScript and production build | `npm run build` runs `tsc -b` for type validation, then Vite to build static production assets. | Pass |
+| Backend tests | `python -m pytest backend/tests -q` checks backend behaviour using the project virtual environment. | Pass |
+| Backend dependency audit | CI runs `pip-audit --requirement backend/requirements.txt` for known dependency vulnerabilities. | Configured in CI; not run locally for this update |
+| Frontend dependency audit | CI runs `npm audit --omit=dev --audit-level=high` against production dependencies. | Configured in CI; not run locally for this update |
+| Diff whitespace | `git diff --check` checks changed lines for whitespace errors and conflict markers; it is a local check, not a configured CI step. | Pass |
+
+The backend run passed with a pytest cache-write permission warning. No separate backend formatter, linter or type-checking command is configured. Together, the configured checks help catch syntax, type, lint, behavioural and build issues before deployment.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
