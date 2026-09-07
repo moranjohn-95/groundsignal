@@ -31,8 +31,7 @@ Planning intelligence platform for discovering local construction opportunities 
     - [Opportunity Scoring](#103-opportunity-scoring)
     - [Electrical Work Signals](#104-electrical-work-signals)
     - [Sorting & Pagination](#105-sorting--pagination)
-    - [Opportunity Detail View](#106-opportunity-detail-view)
-    - [Application States & Error Handling](#107-application-states--error-handling)
+    - [Application States & Error Handling](#106-application-states--error-handling)
 11. [Opportunity Scoring Logic](#11-opportunity-scoring-logic)
 12. [Application Architecture](#12-application-architecture)
     - [Frontend](#121-frontend)
@@ -453,6 +452,8 @@ The screenshots below show the discovery results at different ranking levels. Th
 ### 10.3 Opportunity Scoring
 
 Each SiteForecaster opportunity receives a numerical score to help contractors prioritise which planning applications to review first. The score is converted into an opportunity level: Very High, High, Medium, Low or Very Low. Scoring is deterministic and explainable rather than a black-box prediction, so users can understand the factors behind an application's final ranking.
+
+Selecting **View opportunity** opens a dedicated detail page with the fuller project context behind the score: project metadata, the electrical-work signal, planning description and score breakdown. **Back to opportunities** returns users to their previous results, while **View official application** opens the original planning source for verification.
 
 The detailed opportunity view shows the overall score alongside the project category, distance, received date, planning authority, application reference and electrical-work signal. Beneath this, the score breakdown explains how points were awarded across five factors: Project scope, Electrical relevance, Project scale, Lead timing and Category fit.
 
