@@ -1111,7 +1111,7 @@ The live SiteForecaster pages were checked using the WAVE Web Accessibility Eval
 | Privacy Policy | 0 errors, 0 contrast errors, 0 alerts | Pass |
 | Terms of Use | 0 errors, 0 contrast errors, 1 advisory alert for a redundant link | Pass with advisory |
 
-WAVE reported one redundant-link advisory on the Terms of Use page, with no accessibility errors or contrast failures. The page still received WAVE's AIM score of 10/10; the advisory is recorded here rather than presenting the result as completely clean.
+WAVE reported one redundant-link advisory on the Terms of Use page, with no accessibility errors or contrast failures. The page still received WAVE's AIM score of 10/10.
 
 Automated tools cannot detect every accessibility issue, so manual testing is also required; these results do not establish full accessibility compliance.
 
