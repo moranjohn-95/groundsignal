@@ -933,6 +933,42 @@ FastAPI/Pydantic validates API inputs, and normal database queries use SQLAlchem
 
 The current MVP has no user accounts or private user-data features, so its public search API does not require authentication. Authentication is planned and would be needed before adding accounts, saved shortlists or other user-specific data. The measures described here do not amount to a claim that the application is fully secure or penetration-tested.
 
+## 18. Data Licensing & Legal Considerations
+
+### Planning data source
+
+SiteForecaster uses the Irish Planning ArcGIS source to surface and prioritise planning opportunities. The application's Data Sources page identifies this as the National Planning Applications dataset, published by the Department of Housing, Local Government and Heritage. SiteForecaster is not the original publisher or authority for these records. Users can follow **View official application**, where a source link is available, to verify the underlying planning information.
+
+### Attribution
+
+The Data Sources page links to the National Planning Applications dataset and displays the attribution “Contains Irish Public Sector Data licensed under a Creative Commons Attribution 4.0 International (CC BY 4.0) licence.” It also distinguishes SiteForecaster's categorisation, scoring and electrical-work assessments from the original government data. This records the attribution currently provided by the project, rather than making a separate claim about reuse rights.
+
+The search form displays **Google Maps** attribution. The Privacy and Terms pages link to Google's Privacy Policy and the Google Maps/Google Earth Additional Terms of Service. Third-party data and services remain subject to their own applicable terms; these notices do not establish that every licensing or service requirement has been independently reviewed.
+
+### Data accuracy and freshness
+
+Scheduled syncs refresh SiteForecaster's local planning data, but upstream records can still be delayed, incomplete or corrected later. SiteForecaster should not be treated as the official planning record. Check the original planning source or application before acting on a lead.
+
+### Opportunity scoring disclaimer
+
+SiteForecaster adds its own scores and electrical-work interpretations to the source data. These are decision-support signals: a high score does not mean that a contract, tender or paid job exists. Users should review the original planning application before contacting anyone or making a business decision.
+
+### Personal data and privacy
+
+The current MVP does not provide user accounts. Typed locations are sent to the backend and Google for geocoding, while browser coordinates are used for nearby searches after the user chooses the current-location option and grants permission. The Privacy page states that the MVP does not intentionally create a user location history or profile from these searches.
+
+Location and technical request data can still be processed. IP addresses are used temporarily for rate limiting and appear in the configured Nginx access logs. Section 17 describes the privacy-safe logging controls; this is not a claim that no personal data is processed or that formal GDPR compliance has been established.
+
+### External links
+
+Official planning pages and other linked services have their own terms, privacy policies and availability. Their content and operation are outside SiteForecaster's control.
+
+### Legal positioning
+
+SiteForecaster is an independent planning-opportunity tool and is not affiliated with, endorsed by, or a replacement for the official planning authorities or source systems it references.
+
+This section describes the project's current data-use approach and is not legal advice.
+
 ### 20.1 Backend Testing
 
 The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
