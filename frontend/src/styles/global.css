@@ -383,14 +383,7 @@ summary:focus-visible {
   margin-top: 2.75rem;
 }
 
-.opportunity-results > h2 {
-  margin: 0 0 1rem;
-  color: var(--color-primary);
-  font-size: 1.375rem;
-  line-height: 1.25;
-}
-
-.opportunity-results > h3 {
+.opportunity-results__location {
   margin-block: 1.25rem 0.5rem;
   color: var(--color-primary);
   font-size: 1.125rem;
@@ -1350,14 +1343,6 @@ summary:focus-visible {
     margin-top: 1rem;
     margin-inline: 0;
     padding-inline: 0;
-  }
-
-  .opportunity-results > h2 {
-    margin-bottom: 0.625rem;
-  }
-
-  .opportunity-results__location {
-    display: none;
   }
 
   .opportunity-results__toolbar {

@@ -68,6 +68,8 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
   const [searchState, setSearchState] = useState<SearchState>({
     status: 'initial',
   })
+  const hasResultsHeading =
+    searchState.status === 'success' || searchState.status === 'opportunities-error'
 
   async function loadOpportunities(
     request: OpportunitySearchRequest,
@@ -258,12 +260,9 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
       <section
         className="opportunity-results"
-        aria-labelledby={resultsHeadingId}
+        aria-labelledby={hasResultsHeading ? resultsHeadingId : undefined}
+        aria-label={hasResultsHeading ? undefined : 'Opportunity results'}
       >
-        <h2 id={resultsHeadingId} tabIndex={-1}>
-          Top opportunities
-        </h2>
-
         {searchState.status === 'initial' && (
           <p className="opportunity-results__empty-message">
             Enter an Irish location to find nearby opportunities.
@@ -305,9 +304,13 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
 
         {(searchState.status === 'success' ||
           searchState.status === 'opportunities-error') && (
-          <h3 className="opportunity-results__location">
+          <h2
+            id={resultsHeadingId}
+            className="opportunity-results__location"
+            tabIndex={-1}
+          >
             Opportunities near {searchState.resultLocation}
-          </h3>
+          </h2>
         )}
 
         {searchState.status === 'opportunities-error' && (

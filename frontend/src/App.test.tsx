@@ -384,7 +384,7 @@ describe('App', () => {
     expect(
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
-    const results = screen.getByRole('list', { name: 'Top opportunities' })
+    const results = screen.getByRole('list', { name: /^Opportunities near / })
     const restoredOpportunityAction = within(results).getByRole('link', {
       name: 'View opportunity',
     })
@@ -433,7 +433,7 @@ describe('App', () => {
     expect(
       screen.getByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
-    const results = screen.getByRole('list', { name: 'Top opportunities' })
+    const results = screen.getByRole('list', { name: /^Opportunities near / })
     const restoredOpportunityAction = within(results).getByRole('link', {
       name: 'View opportunity',
     })

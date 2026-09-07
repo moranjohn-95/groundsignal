@@ -245,7 +245,7 @@ async function useCurrentLocation() {
 }
 
 function resultOpportunityPaths() {
-  const results = screen.getByRole('list', { name: 'Top opportunities' })
+  const results = screen.getByRole('list', { name: /^Opportunities near / })
   return within(results)
     .getAllByRole('link', { name: 'View opportunity' })
     .map((link) => link.getAttribute('href'))
@@ -277,8 +277,8 @@ describe('OpportunitiesPage', () => {
       screen.getByRole('heading', { level: 2, name: 'Opportunities near you' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { level: 2, name: 'Top opportunities' }),
-    ).toBeInTheDocument()
+      screen.queryByRole('heading', { name: 'Top opportunities' }),
+    ).not.toBeInTheDocument()
     expect(
       screen.getByRole('form', { name: 'Opportunity filters' }),
     ).toBeInTheDocument()
@@ -397,10 +397,12 @@ describe('OpportunitiesPage', () => {
     expect(opportunityUrl.searchParams.get('sort')).toBe('best')
     expect(
       screen.getByRole('heading', {
-        level: 3,
+        level: 2,
         name: 'Opportunities near your current location',
       }),
     ).toBeInTheDocument()
+    expect(screen.getByText('No opportunities found')).toBeInTheDocument()
+    expect(screen.queryByText('Top opportunities')).not.toBeInTheDocument()
   })
 
   it('omits category from current-location searches for All categories', async () => {
@@ -577,7 +579,8 @@ describe('OpportunitiesPage', () => {
       await screen.findByText('Opportunities near Tralee, Co. Kerry, Ireland'),
     ).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('1 opportunity')
-    const results = screen.getByRole('list', { name: 'Top opportunities' })
+    expect(screen.queryByText('Top opportunities')).not.toBeInTheDocument()
+    const results = screen.getByRole('list', { name: /^Opportunities near / })
     const opportunity = within(results).getByRole('article', {
       name: /industrial manufacturing facility/i,
     })
@@ -730,7 +733,7 @@ describe('OpportunitiesPage', () => {
       'Refreshing opportunities',
     )
     expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
-    expect(screen.getByRole('list', { name: 'Top opportunities' })).toHaveAttribute(
+    expect(screen.getByRole('list', { name: /^Opportunities near / })).toHaveAttribute(
       'aria-busy',
       'true',
     )
@@ -761,7 +764,7 @@ describe('OpportunitiesPage', () => {
     expect(await screen.findByText('Page 1 of 2')).toBeInTheDocument()
     expect(resultOpportunityPaths()).toEqual(['/opportunities/20'])
     expect(screen.getByRole('combobox', { name: 'Sort' })).toBeEnabled()
-    expect(screen.getByRole('list', { name: 'Top opportunities' })).toHaveAttribute(
+    expect(screen.getByRole('list', { name: /^Opportunities near / })).toHaveAttribute(
       'aria-busy',
       'false',
     )
