@@ -1345,6 +1345,62 @@ Production deployment is currently performed manually over SSH. New code is pull
 
 Secrets are supplied through environment configuration and should remain outside Git. Nginx handles public HTTPS traffic, while the API is bound to the host's loopback interface and the database has no published host port. These internal services are reached through the application setup rather than exposed directly to public traffic.
 
+### 23.2 Docker Compose
+
+In production, Docker Compose runs the FastAPI backend and PostgreSQL/PostGIS database on the EC2 server. Keeping these services in separate containers makes it easier to manage their dependencies and restart or rebuild the API without affecting the static frontend files served by Nginx.
+
+Docker Compose reads the project's `compose.yaml` file and starts the containers SiteForecaster needs. The API and database run separately, but Docker gives them an internal network so they can communicate with each other.
+
+| Service | Production role |
+| --- | --- |
+| `api` | Runs the FastAPI backend |
+| `db` | Runs PostgreSQL with PostGIS support |
+
+The API image is built from `backend/Dockerfile`, and the database uses the configured `postgis/postgis:17-3.5` image. The database container has a health check, and the API waits for it to become healthy before starting.
+
+The API is exposed only on `127.0.0.1:8000` on the EC2 host, and the database has no published host port. Nginx proxies public `/api/` requests to the API on localhost.
+
+#### Production commands
+
+From the repository directory on the EC2 server, rebuild and update the API:
+
+```bash
+docker compose up -d --build api
+```
+
+This rebuilds the API image and starts the updated API in detached mode, so it runs in the background. An existing database service with unchanged configuration keeps running; Compose starts it if needed.
+
+Check the current state of the production containers:
+
+```bash
+docker compose ps
+```
+
+This shows the service status and is used to confirm that the API and database are running and healthy.
+
+#### Health verification
+
+After rebuilding the API, check its local health endpoint:
+
+```bash
+curl -s http://127.0.0.1:8000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+This confirms that FastAPI is responding locally on the EC2 server. The endpoint does not check the database connection.
+
+The screenshot below shows an API rebuild followed by `docker compose ps`, with both production services running successfully and the local health endpoint returning `{"status":"ok"}`.
+
+<div align="center">
+  <img src="docs/images/deployment/docker-compose/docker-compose.png" alt="Production Docker Compose deployment on the SiteForecaster EC2 server showing the API and PostgreSQL PostGIS containers running and healthy" width="820">
+  <p style="color: #5f6b76;">Production Docker Compose deployment on EC2, showing the FastAPI and PostgreSQL/PostGIS containers running and healthy.</p>
+</div>
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
