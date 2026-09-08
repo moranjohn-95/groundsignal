@@ -1101,7 +1101,9 @@ The backend run passed with a pytest cache-write permission warning. No separate
 
 ### 20.4 Accessibility Testing (WAVE)
 
-The live SiteForecaster pages were checked using the WAVE Web Accessibility Evaluation Tool to look for accessibility errors, contrast issues, structural concerns and ARIA-related problems.
+The live SiteForecaster pages were checked with the WAVE Web Accessibility Evaluation Tool. WAVE was used to review common accessibility problems such as missing labels, contrast issues, heading structure, ARIA usage and other page-level accessibility errors.
+
+The main search page, opportunity detail page and the three legal/information pages were tested separately.
 
 | Page | WAVE result | Status |
 | --- | --- | --- |
@@ -1111,35 +1113,35 @@ The live SiteForecaster pages were checked using the WAVE Web Accessibility Eval
 | Privacy Policy | 0 errors, 0 contrast errors, 0 alerts | Pass |
 | Terms of Use | 0 errors, 0 contrast errors, 1 advisory alert for a redundant link | Pass with advisory |
 
-WAVE reported one redundant link advisory on the Terms of Use page, with no accessibility errors or contrast failures. The page still received WAVE's AIM score of 10/10.
+WAVE found no accessibility errors or contrast errors across the pages tested. The Terms of Use page produced one redundant-link advisory, but no accessibility error. All five pages received an AIM score of 10/10.
 
-Overall the results were very posituve as each page scored 10 out of 10 ont the AIM score.
+WAVE checks were used alongside Lighthouse and manual accessibility checks rather than being treated as the only accessibility test.
 
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
       <img src="docs/images/testing/accessibility/wave-homepage.png" alt="WAVE results for the SiteForecaster homepage showing no errors, contrast errors or alerts" width="410">
-      <p>WAVE check of the main search page.</p>
+      <p style="color: #5f6b76;">WAVE check of the main search page.</p>
     </td>
     <td width="50%" align="center" valign="top">
       <img src="docs/images/testing/accessibility/wave-opportunity-page.png" alt="WAVE results for a SiteForecaster opportunity detail page showing no errors, contrast errors or alerts" width="410">
-      <p>WAVE check of an opportunity detail page.</p>
+      <p style="color: #5f6b76;">WAVE check of an opportunity detail page.</p>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center" valign="top">
       <img src="docs/images/testing/accessibility/wave-data-sources.png" alt="WAVE results for the SiteForecaster Data Sources page showing no errors, contrast errors or alerts" width="410">
-      <p>WAVE check of the Data Sources page.</p>
+      <p style="color: #5f6b76;">WAVE check of the Data Sources page.</p>
     </td>
     <td width="50%" align="center" valign="top">
       <img src="docs/images/testing/accessibility/wave-privacy-policy.png" alt="WAVE results for the SiteForecaster Privacy Policy page showing no errors, contrast errors or alerts" width="410">
-      <p>WAVE check of the Privacy Policy page.</p>
+      <p style="color: #5f6b76;">WAVE check of the Privacy Policy page.</p>
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center" valign="top">
       <img src="docs/images/testing/accessibility/wave-terms-of-use.png" alt="WAVE results for the SiteForecaster Terms of Use page showing one redundant-link advisory and an AIM score of 10 out of 10" width="620">
-      <p>WAVE check of the Terms of Use page, showing one redundant-link advisory.</p>
+      <p style="color: #5f6b76;">WAVE check of the Terms of Use page, showing one redundant-link advisory.</p>
     </td>
   </tr>
 </table>
