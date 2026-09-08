@@ -1401,6 +1401,40 @@ The screenshot below shows an API rebuild followed by `docker compose ps`, with 
   <p style="color: #5f6b76;">Production Docker Compose deployment on EC2, showing the FastAPI and PostgreSQL/PostGIS containers running and healthy.</p>
 </div>
 
+### 23.3 Nginx
+
+Nginx sits in front of SiteForecaster on the EC2 server. It serves the built frontend files directly and forwards backend requests to the FastAPI container running locally on the same server.
+
+This means users only interact with the public SiteForecaster domain. Nginx decides whether a request should return a frontend file or be passed to the backend API.
+
+| Request | Nginx behaviour |
+| --- | --- |
+| Frontend pages/assets | Serves the built React/Vite files from the production web root |
+| `/api/` | Proxies requests to FastAPI on `127.0.0.1:8000` |
+| `/health` | Proxies the public health request to the FastAPI health endpoint |
+
+Nginx runs directly on the Ubuntu EC2 host, outside the Docker Compose stack. The API is bound only to the host's local interface, making Nginx the public-facing entry point for API traffic. The React/Vite frontend is served as static files, with an `index.html` fallback so frontend routes can be opened directly.
+
+The maintained Nginx configuration used for deployment is version controlled under `deploy/nginx/`.
+
+#### Privacy-safe logging
+
+The custom `siteforecaster_safe` access-log format records request paths without query strings or referrers. This avoids unnecessarily writing typed location searches and coordinates to access logs. Section 17 describes the logging behaviour in more detail.
+
+#### Configuration checks
+
+Before applying a configuration change, check for syntax and configuration errors:
+
+```bash
+sudo nginx -t
+```
+
+If the check succeeds, reload the configuration without fully stopping the web server:
+
+```bash
+sudo systemctl reload nginx
+```
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
