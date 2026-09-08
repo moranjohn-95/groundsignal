@@ -1201,6 +1201,31 @@ The WAVE and Lighthouse checks were followed by manual checks of the main SiteFo
 
 These manual checks covered the main search and opportunity detail journey. While also supporting the automated WAVE and Lighthouse results above.
 
+### 20.5 Manual & Production Testing
+
+Automated tests covered repeatable application behaviour, but I also manually checked the main user journeys in the browser and verified the live site after deployment. These checks focused on everyday use and production behaviour that prior tests do not fully represent.
+
+| Area | Test | Expected result | Result |
+| --- | --- | --- | --- |
+| Location search | Search using a valid Irish place name. | The location resolves and nearby opportunities are returned using the selected criteria. | Pass |
+| Current location | Use the browser's current-location option and run a search. | Browser coordinates are used without requiring a typed place name. | Pass |
+| Search filters | Change radius, recent period and category before searching. | Returned opportunities reflect the selected filters. | Pass |
+| Sorting | Switch between Best opportunity, Nearest and Newest. | Results use the selected order without requiring the location to be entered again. | Pass |
+| Pagination | Move between pages using Previous and Next. | The correct page loads while search criteria and sort selection are retained. | Pass |
+| Opportunity detail | Open an opportunity from the results. | The correct application, score, electrical-work signal and source details load. | Pass |
+| Return to results | Use Back to opportunities from a detail page. | The previous filters, sort choice and results are restored. | Pass |
+| Empty result state | Run a valid search with no matching applications. | No opportunities found is shown rather than a technical error. | Pass |
+| API / backend failure | Stop the local backend and repeat an opportunity request using already selected coordinates. | A technical load error and Try again action appear rather than an empty result. | Pass |
+| Retry behaviour | Use Try again after a failed request. | The same request is attempted again with the previous search criteria. | Pass |
+| Responsive layout | Review search, results and detail views at desktop, tablet and mobile widths. | Content remains readable and controls usable without overlapping or broken layouts. | Pass |
+| Frontend production deployment | Deploy a frontend build to the Nginx web root and load the live site. | The new Vite build is served and the expected changes are visible. | Pass |
+| Backend production deployment | Rebuild and restart the API Docker service on EC2 after changes. | The container starts and the deployed backend changes are available. | Pass |
+| Health endpoint | Request `https://siteforecaster.com/health` after deployment. | The public endpoint returns `{"status":"ok"}`. | Pass |
+| API proxy | Run an opportunity search through the live site. | Nginx proxies the `/api/` request to FastAPI and the frontend receives the response. | Pass |
+| Planning-data sync | Review scheduled sync logs and database freshness after production runs. | The sync completes and local records are inserted or updated from the upstream data within the sync window. | Pass |
+
+These checks added confidence in the full browser to backend flow and the deployed application. They were particularly useful for checking Nginx proxying, Docker restarts, the public health endpoint and the difference between an empty result and a failed API request.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
