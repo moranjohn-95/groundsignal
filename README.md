@@ -1099,7 +1099,7 @@ The frontend package scripts and GitHub Actions workflow provide lint, build and
 
 The backend run passed with a pytest cache-write permission warning. No separate backend formatter, linter or type-checking command is configured. Together, the configured checks help catch syntax, type, lint, behavioural and build issues before deployment.
 
-### 20.4 Accessibility Testing (WAVE)
+### 20.4 Accessibility Testing
 
 The live SiteForecaster pages were checked with the WAVE Web Accessibility Evaluation Tool. WAVE was used to review common accessibility problems such as missing labels, contrast issues, heading structure, ARIA usage and other page-level accessibility errors.
 
@@ -1142,6 +1142,42 @@ WAVE checks were used alongside Lighthouse and manual accessibility checks rathe
     <td colspan="2" align="center" valign="top">
       <img src="docs/images/testing/accessibility/wave-terms-of-use.png" alt="WAVE results for the SiteForecaster Terms of Use page showing one redundant-link advisory and an AIM score of 10 out of 10" width="620">
       <p style="color: #5f6b76;">WAVE check of the Terms of Use page, showing one redundant-link advisory.</p>
+    </td>
+  </tr>
+</table>
+
+#### Lighthouse Accessibility Testing
+
+Lighthouse was also used to check accessibility on the live homepage and on an opportunity detail page. Both pages were tested in desktop and mobile modes, and all four runs returned an Accessibility score of 100.
+
+The screenshots below show the results from each run. Lighthouse also reports Performance, Best Practices and SEO scores, but this section is focused on the accessibility result.
+
+| Page | Mode | Accessibility score | Result |
+| --- | --- | ---: | --- |
+| Homepage | Desktop | 100 | Pass |
+| Opportunity detail | Desktop | 100 | Pass |
+| Homepage | Mobile | 100 | Pass |
+| Opportunity detail | Mobile | 100 | Pass |
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/lighthouse/desktop-hompeage.png" alt="Lighthouse homepage desktop report showing an Accessibility score of 100" width="360">
+      <p style="color: #5f6b76;">Lighthouse check of the homepage in desktop mode.</p>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/lighthouse/desktop-opportunity-page.png" alt="Lighthouse opportunity detail desktop report showing an Accessibility score of 100" width="360">
+      <p style="color: #5f6b76;">Lighthouse check of an opportunity detail page in desktop mode.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/lighthouse/mobile-homepage-blank.png" alt="Lighthouse homepage mobile report showing an Accessibility score of 100" width="360">
+      <p style="color: #5f6b76;">Lighthouse check of the homepage in mobile mode.</p>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/images/testing/accessibility/lighthouse/mobile-opportunity-page.png" alt="Lighthouse opportunity detail mobile report showing an Accessibility score of 100" width="360">
+      <p style="color: #5f6b76;">Lighthouse check of an opportunity detail page in mobile mode.</p>
     </td>
   </tr>
 </table>
