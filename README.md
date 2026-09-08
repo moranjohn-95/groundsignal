@@ -1315,6 +1315,36 @@ The frontend is also built separately for production. The generated static files
 
 Locally, Docker Compose provides a consistent backend and database environment. In production, the FastAPI backend and PostgreSQL/PostGIS database also run through Docker Compose on the EC2 server, while Nginx serves the frontend and proxies API requests. Detailed production deployment steps belong in Section 23.
 
+## 23. Deployment
+
+### 23.1 AWS EC2
+
+SiteForecaster is hosted on an AWS EC2 virtual server running Ubuntu Linux. EC2 provides the server environment where the production backend, database, Nginx and scheduled planning-data jobs run.
+
+An EC2 instance is essentially a virtual computer running in AWS. It stays online so the application can continue serving requests without needing a developer's local computer to be running.
+
+The backend API and database run through Docker Compose. Nginx runs directly on the Ubuntu host and serves the built React/Vite frontend files from the server filesystem. Host systemd timers trigger the planning-data sync and reconciliation commands inside the API container.
+
+| Component | Production role |
+| --- | --- |
+| Ubuntu | Operating system running on the EC2 instance |
+| Docker Compose | Runs the API and PostgreSQL/PostGIS containers |
+| FastAPI | Handles backend API requests |
+| PostgreSQL/PostGIS | Stores planning application and spatial data |
+| Nginx | Serves the frontend and proxies API requests |
+| React/Vite build | Static frontend files served by Nginx |
+| systemd | Schedules planning-data sync and reconciliation jobs |
+
+When a user visits SiteForecaster, the request reaches Nginx on the EC2 server. Nginx serves the frontend directly and forwards API requests to the FastAPI container running locally on the server.
+
+#### Deployment approach
+
+Production deployment is currently performed manually over SSH. New code is pulled from GitHub on the EC2 server, after which the relevant backend containers or frontend build are updated. GitHub Actions validates the code and creates the frontend build artifact; it does not automatically deploy to EC2.
+
+#### Security
+
+Secrets are supplied through environment configuration and should remain outside Git. Nginx handles public HTTPS traffic, while the API is bound to the host's loopback interface and the database has no published host port. These internal services are reached through the application setup rather than exposed directly to public traffic.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
