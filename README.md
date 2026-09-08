@@ -1182,6 +1182,25 @@ The screenshots below show the results from each run. Lighthouse also reports Pe
   </tr>
 </table>
 
+#### Manual Accessibility Testing
+
+The WAVE and Lighthouse checks were followed by manual checks of the main SiteForecaster user flow, including keyboard navigation, search controls and the opportunity detail page.
+
+| Area | User action / check | Expected result | Result |
+| ---- | ------------------- | --------------- | ------ |
+| Keyboard navigation | Navigate the homepage using Tab and Shift+Tab without a mouse. | All interactive controls can be reached in a logical order. | Pass |
+| Visible focus | Tab through links, buttons, search fields and select controls. | The focused control has a clear visible focus indicator. | Pass |
+| Search form | Enter a location, change radius, recent period and category, then submit using the keyboard. | All search controls work and the search can be submitted without a mouse. | Pass |
+| Buttons and links | Activate buttons and links using the keyboard. | Each responds to normal keyboard interaction and opens the expected page or action. | Pass |
+| Opportunity results | Navigate returned cards and open an opportunity detail page using the keyboard. | Opportunity links can be reached and activated, and the detail page opens correctly. | Pass |
+| Back navigation | Use Back to opportunities and Back to SiteForecaster with the keyboard. | Each link returns the user to the expected page. | Pass |
+| Focus order | Tab through the search and opportunity detail pages from top to bottom. | Focus follows the visible page order without unexpected jumps or focus traps. | Pass |
+| Mobile / responsive controls | Review the interface at mobile width and use the main search and navigation controls. | Controls remain readable, usable and large enough to interact with, without overlapping content. | Pass |
+| Colour and meaning | Review opportunity levels and electrical-work indicators. | Text labels accompany visual styling, so meaning does not rely on colour alone. | Pass |
+| Page structure | Review headings, labels and main content on the homepage and opportunity detail page. | Pages have clear headings and labelled controls that match their purpose. | Pass |
+
+These manual checks covered the main search and opportunity detail journey. While also supporting the automated WAVE and Lighthouse results above.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
