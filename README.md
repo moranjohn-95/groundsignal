@@ -1264,6 +1264,57 @@ The Actions history shows the CI workflow running consistently as changes are pu
 
 This gives each main-branch change a repeatable set of checks rather than relying only on local testing. It also ensures the frontend can produce a valid production build before it is deployed.
 
+## 22. Docker & Local Development
+
+Docker is used to make the backend and database easier to run in a consistent environment. Instead of installing PostgreSQL, PostGIS and all backend dependencies directly on the computer, Docker runs them in separate containers with the required configuration.
+
+Containers can be thought of as isolated environments that contain the software and dependencies needed to run part of the application. Docker Compose uses `compose.yaml` to define which containers SiteForecaster needs and how they work together.
+
+| Service | Purpose |
+| --- | --- |
+| API (`api`) | Runs the FastAPI backend |
+| Database (`db`) | Runs PostgreSQL with PostGIS support |
+
+The API image is built from `backend/Dockerfile`, which installs the backend dependencies and starts FastAPI through Uvicorn. The database uses the `postgis/postgis:17-3.5` image configured in `compose.yaml`. The API connects to `db` over Docker's internal network, and Compose starts and manages both services together. It waits for the database health check to pass before starting the API.
+
+### Local commands
+
+With Docker running and local environment configuration in place, run this from the repository root:
+
+```bash
+docker compose up --build
+```
+
+This builds the API image, reusing cached build steps where possible, and starts the API and database containers. The API is available locally at `http://127.0.0.1:8000`; the database is not exposed on a host port.
+
+In another terminal, check the current state of the containers:
+
+```bash
+docker compose ps
+```
+
+To stop and remove the containers created by Compose:
+
+```bash
+docker compose down
+```
+
+The named `postgres_data` volume is retained by this command, so the database contents remain available the next time the services start.
+
+### Rebuilding and configuration
+
+If backend dependencies or the Docker configuration change, rerun `docker compose up --build` to rebuild the API image and start it with the latest setup. Backend source is copied into the image rather than mounted from the working directory, so backend code changes also require rebuilding.
+
+Local configuration is supplied through environment variables, which Compose passes into the containers. Local `.env` files and credentials should remain on the developer's computer and secret values should not be committed to Git. The repository excludes `.env` files from Git apart from `.env.example`.
+
+### Frontend and production use
+
+The React/Vite frontend runs separately during development using `npm run dev` from the `frontend` directory, after installing its dependencies with `npm ci`. Vite proxies `/api` requests to the local backend.
+
+The frontend is also built separately for production. The generated static files are served directly by Nginx rather than from a frontend Docker container.
+
+Locally, Docker Compose provides a consistent backend and database environment. In production, the FastAPI backend and PostgreSQL/PostGIS database also run through Docker Compose on the EC2 server, while Nginx serves the frontend and proxies API requests. Detailed production deployment steps belong in Section 23.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
