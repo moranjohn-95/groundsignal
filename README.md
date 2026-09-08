@@ -1226,6 +1226,44 @@ Automated tests covered repeatable application behaviour, but I also manually ch
 
 These checks added confidence in the full browser to backend flow and the deployed application. They were particularly useful for checking Nginx proxying, Docker restarts, the public health endpoint and the difference between an empty result and a failed API request.
 
+## 21. Continuous Integration
+
+SiteForecaster uses GitHub Actions for continuous integration. The workflow runs automatically when code is pushed to `main` or when a pull request targets `main`.
+
+The CI pipeline checks the backend and frontend separately so that problems with tests, dependencies, linting or the production frontend build can be caught before changes are relied on in production. The workflow is defined in `.github/workflows/ci.yml`.
+
+| Job | Check | Purpose |
+| --- | --- | --- |
+| Backend | Set up Python 3.12 | Provides the Python environment used by the API tests |
+| Backend | Install backend dependencies | Installs packages from `backend/requirements.txt` |
+| Backend | `pip-audit` | Checks Python dependencies for known vulnerabilities |
+| Backend | `pytest` | Runs the backend automated test suite |
+| Frontend | Set up Node.js 22 | Provides the Node environment used for frontend checks |
+| Frontend | `npm ci` | Installs the exact dependency versions from the lock file |
+| Frontend | `npm audit --omit=dev --audit-level=high` | Checks production dependencies and fails on high or critical vulnerabilities |
+| Frontend | `npm run lint` | Runs the configured frontend lint checks |
+| Frontend | `npm run test:run` | Runs the frontend Vitest test suite |
+| Frontend | `npm run build` | Runs TypeScript validation and creates the Vite production build |
+| Frontend | Upload `frontend-dist` | Stores the completed frontend build as a GitHub Actions artifact |
+
+The backend and frontend run as separate CI jobs. This makes failures easier to identify because a backend test failure is kept separate from a frontend lint, test or build failure.
+
+Continuous integration currently stops at validation and build artifact creation. Deployment to the EC2 production server is still performed manually.
+
+The Actions history shows the CI workflow running consistently as changes are pushed to `main`. The second screenshot shows one successful run in more detail, with both the backend and frontend jobs completing successfully.
+
+<div align="center">
+  <img src="docs/images/continuous-integration/github-actions-overview.png" alt="SiteForecaster GitHub Actions history showing successful CI runs on the main branch" width="820">
+  <p style="color: #5f6b76;">GitHub Actions history showing repeated successful CI runs on the main branch.</p>
+</div>
+
+<div align="center">
+  <img src="docs/images/continuous-integration/github-actions-success.png" alt="Successful SiteForecaster GitHub Actions continuous integration workflow showing backend and frontend checks" width="820">
+  <p style="color: #5f6b76;">Example successful CI run showing both backend tests and frontend checks passing.</p>
+</div>
+
+This gives each main-branch change a repeatable set of checks rather than relying only on local testing. It also ensures the frontend can produce a valid production build before it is deployed.
+
 ## Production Nginx and privacy-safe logging
 
 Nginx is the production reverse proxy and static frontend server on EC2. Its
