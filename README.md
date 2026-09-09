@@ -2,7 +2,7 @@
 
 > **Naming note:** This project originally started under the name **GroundSignal**. I made the slightly painful but useful mistake of choosing the project name before checking whether the matching domain was available.
 >
-> The public facing product was later renamed **SiteForecaster**, which is the name used on the live site. I have kept the GitHub repository name as `groundsignal` for now because recently sent CV's already link directly to this repository.
+> The public-facing product was later renamed **SiteForecaster**, which is the name used on the live site. I have kept the GitHub repository name as `groundsignal` for now because recently sent CVs already link directly to this repository.
 >
 > Lesson learned: check domain availability before getting attached to a name. 🙂
 
@@ -200,7 +200,7 @@ GitHub Projects was used throughout development to track epics, user stories and
 | Board Stage | Summary |
 | --- | --- |
 | During development | Board shows active work across Epics, Todo, In Progress and Done, reflecting the build-out of the MVP. |
-| Current state | Board is now mostly complete, with the remaining open items focused on the README/documentation and future features such as authentication and shortlist saving. |
+| MVP completion snapshot | The screenshot records the board before documentation was completed; authentication and shortlist saving remain future work. |
 
 The earlier board below shows SiteForecaster during active MVP development. At this point, all seven main epics were still visible, several Must-have stories were waiting to be started, and core work such as planning classification, database migrations and automated testing was still in progress.
 
@@ -210,11 +210,11 @@ The earlier board below shows SiteForecaster during active MVP development. At t
 
 As development progressed, completed stories and epics were moved into **Done**. Work was prioritised around the Must-have functionality needed for the MVP before moving on to lower-priority improvements.
 
-The current board shows the result of that process. The main MVP engineering work is complete, with 28 items in **Done**. The remaining open stories are the README/documentation work currently being completed and two future features: user authentication and saved opportunity shortlists.
+The later board screenshot records progress near MVP completion and predates the finished README. The MVP and its documentation are now complete; user authentication and saved opportunity shortlists remain future development. The screenshot is a historical snapshot, not a current issue count.
 
-#### Current Agile Board
+#### Later Agile Board Snapshot
 
-![Current Agile board](docs/images/agile/agile-board-current.png)
+![Agile board snapshot before documentation completion](docs/images/agile/agile-board-current.png)
 
 This progression provides a clear record of the project moving from planned epics and active development to a completed working MVP, while keeping future development separate from the functionality required for the initial release.
 
@@ -263,6 +263,7 @@ All Must-have stories listed below have been completed.
 | Responsive Design & Mobile Usability | The interface works across desktop, tablet and mobile devices. |
 | Automated Planning Data Ingestion & Refresh | Planning data is imported and refreshed automatically. |
 | Production Security & Configuration Hardening | Production configuration, dependency checks and privacy controls were reviewed and hardened. |
+| Project README, API Documentation & Architecture Guide | Documents the completed MVP, setup, architecture and production operations. |
 
 #### Should-have User Stories
 
@@ -279,13 +280,12 @@ The following Should-have stories were also completed as part of the MVP.
 
 | User Story | Priority | Status | Reason |
 | --- | --- | --- | --- |
-| Project README, API Documentation & Architecture Guide | Must-have | In progress | Final project documentation is currently being completed. |
 | User Accounts & Secure Authentication | Should-have | Future development | Authentication is useful but not required for the initial MVP. |
 | Save & Manage Opportunity Shortlist | Could-have | Future development | Saving opportunities depends on user accounts and is outside the current MVP scope. |
 
 ### Development Outcome
 
-The board shows clear progress from planning to delivery. The MVP is now largely complete, with documentation and future enhancements left open.
+The board snapshots show progress from planning to delivery. The working MVP and its documentation are complete, with future enhancements kept separate from the delivered scope.
 
 ## 9. Design
 
@@ -360,7 +360,7 @@ Responsive behaviour was tested across mobile, tablet and desktop viewport sizes
 
 #### Mobile Implementation
 
-The screenshots below show the completed SiteForecaster interface running on a real mobile browser, demonstrating how the search, results and opportunity detail layouts adapt to a narrow screen.
+The screenshots below show SiteForecaster running on a real mobile browser, demonstrating how the search, results and opportunity detail layouts adapt to a narrow screen. They were captured before the static "Top opportunities" heading was removed; the current results area uses contextual search text.
 
 **Mobile Homepage**
 
@@ -402,7 +402,7 @@ SiteForecaster gives users two ways to choose where they want to search. They ca
 
 Once a location has been selected, the search can be refined using the radius, recent-period and category controls. Selecting **Find opportunities** sends the chosen criteria to the backend and returns nearby planning applications that match the search.
 
-The screenshots below show the main stages of this flow: entering a location manually, using the current-location option, viewing the default search state, and running a completed search that returns ranked opportunities.
+The screenshots below show the main stages of this flow: entering a location manually, using the current-location option, viewing the default search state, and running a completed search that returns ranked opportunities. These captures predate the removal of the static "Top opportunities" heading and the addition of the sort-label icon.
 
 <table>
   <tr>
@@ -437,7 +437,7 @@ The screenshots below show the main stages of this flow: entering a location man
     </td>
   </tr>
   <tr>
-    <td width="50%" align="center">The default search interface before a location or search criteria have been entered.</td>
+    <td width="50%" align="center">The default search interface before a location is entered, with the default filters selected.</td>
     <td width="50%" align="center">A completed search showing the result count, sort control and ranked opportunity cards.</td>
   </tr>
 </table>
@@ -456,13 +456,13 @@ The screenshots below show the discovery results at different ranking levels. Th
   <img src="docs/images/features/opportunity-discovery/opportunity-discovery-top.png" alt="SiteForecaster ranked opportunity discovery results showing very high and high opportunities" width="820">
 </div>
 
-<p align="center">Highest-ranked opportunities with confirmed electrical-work signals.</p>
+<p align="center" style="color: #5f6b76;">Highest-ranked opportunities with confirmed electrical-work signals.</p>
 
 <div align="center">
   <img src="docs/images/features/opportunity-discovery/opportunity-discovery-bottom.png" alt="SiteForecaster opportunity discovery results showing high and medium opportunities" width="820">
 </div>
 
-<p align="center">High and medium opportunities showing implied and possible electrical-work signals.</p>
+<p align="center" style="color: #5f6b76;">High and medium opportunities showing implied and possible electrical-work signals.</p>
 
 ### 10.3 Opportunity Scoring
 
@@ -482,13 +482,13 @@ The screenshots below show the opportunity detail page and the complete score br
   <img src="docs/images/features/opportunity-scoring/opportunity-page.png" alt="SiteForecaster opportunity detail view showing overall score and project information" width="820">
 </div>
 
-<p align="center">Opportunity detail view showing the final score, project information and electrical-work signal.</p>
+<p align="center" style="color: #5f6b76;">Opportunity detail view showing the final score, project information and electrical-work signal.</p>
 
 <div align="center">
   <img src="docs/images/features/opportunity-scoring/opportunity-page-bottom.png" alt="SiteForecaster score breakdown showing the individual scoring factors" width="820">
 </div>
 
-<p align="center">Score breakdown showing how points are awarded across the five scoring dimensions.</p>
+<p align="center" style="color: #5f6b76;">Score breakdown showing how points are awarded across the five scoring dimensions.</p>
 
 ### 10.4 Electrical Work Signals
 
@@ -541,13 +541,13 @@ The screenshots below show the sorting options and the compact pagination contro
   <img src="docs/images/features/sorting-pagination/sort-options.png" alt="SiteForecaster sorting options showing Best opportunity, Nearest and Newest" width="300">
 </div>
 
-<p align="center">Sort options for prioritising results by opportunity strength, distance or recency.</p>
+<p align="center" style="color: #5f6b76;">Sort options for prioritising results by opportunity strength, distance or recency.</p>
 
 <div align="center">
   <img src="docs/images/features/sorting-pagination/pagination-feature.png" alt="SiteForecaster pagination controls showing Previous, current page and Next" width="320">
 </div>
 
-<p align="center">Compact pagination controls showing the current page and navigation between result pages.</p>
+<p align="center" style="color: #5f6b76;">Compact pagination controls showing the current page and navigation between result pages.</p>
 
 ### 10.6 Application States & Error Handling
 
@@ -1059,6 +1059,10 @@ Production deployment remains manual; the current GitHub Actions workflow does n
 | Irish Planning ArcGIS source | Supplies planning application data for imports and syncs. |
 | Google Maps Platform Geocoding | Resolves typed place names through the backend. |
 
+## 20. Testing & Quality Assurance
+
+The tables below record automated and manual validation carried out during development. They describe the checks performed, rather than guaranteeing the current state of every deployment.
+
 ### 20.1 Backend Testing
 
 The backend uses pytest, with tests in `backend/tests/` covering the main API, scoring and planning-data behaviour. API tests use FastAPI's `TestClient`, while controlled database sessions and mocked external responses make expected results and failure cases repeatable.
@@ -1076,6 +1080,22 @@ The backend uses pytest, with tests in `backend/tests/` covering the main API, s
 Regression cases preserve previously corrected scoring and classification behaviour, such as distinguishing a project's main purpose from ancillary works and sorting by the evidence-capped score. The repository also includes a curated classifier benchmark that compares descriptions with expected categories. It is a regression check, not a measure of production accuracy or a trained model's performance.
 
 These tests allow scoring-rule changes to be checked without relying only on manual testing and keep API behaviour verifiable across changes. They help catch edge cases and regressions before deployment; database query and session tests do not replace checks against a running PostgreSQL/PostGIS instance.
+
+#### Classifier evaluation
+
+Run the curated labelled regression benchmark inside the API container:
+
+```bash
+docker compose exec -T api python -m backend.app.commands.evaluate_planning_classifier --benchmark
+```
+
+This compares classifications with expected labels; it is not a measure of production accuracy. For a database sample used for category distribution and manual review:
+
+```bash
+docker compose exec -T api python -m backend.app.commands.evaluate_planning_classifier --sample-size 500
+```
+
+The sampled source records do not have human-assigned expected categories, so this mode does not report accuracy.
 
 ### 20.2 Frontend Testing
 
@@ -1098,19 +1118,19 @@ Frontend tests use Vitest with React Testing Library, user-event and jest-dom as
 
 Regression coverage distinguishes returning to previous results from deliberately starting a fresh search through the brand link. It also checks that failed page refreshes retain existing results and that empty searches remain distinct from technical failures.
 
-Verified with `npm run test:run` from `frontend/`: **84 tests passed across 5 test files**. These component and interaction tests do not constitute a full browser or accessibility audit.
+Run the frontend suite with `npm run test:run` from `frontend/`; it passed during this README audit. These component and interaction tests do not constitute a full browser or accessibility audit.
 
 ### 20.3 Linting & Build Validation
 
-The frontend package scripts and GitHub Actions workflow provide lint, build and validation checks. The results below distinguish commands verified locally for this update from dependency audits configured in CI but not rerun locally.
+The frontend package scripts and GitHub Actions workflow provide lint, build and validation checks. The results below record previous local validation, with dependency audits identified separately as CI checks. They are not a live status report of the latest commit.
 
 | Area | What is checked | Result |
 | ---- | --------------- | ------ |
 | Frontend linting | `npm run lint` checks ESLint, TypeScript, React Hooks and React Refresh rules. | Pass |
 | TypeScript and production build | `npm run build` runs `tsc -b` for type validation, then Vite to build static production assets. | Pass |
 | Backend tests | `python -m pytest backend/tests -q` checks backend behaviour using the project virtual environment. | Pass |
-| Backend dependency audit | CI runs `pip-audit --requirement backend/requirements.txt` for known dependency vulnerabilities. | Configured in CI; not run locally for this update |
-| Frontend dependency audit | CI runs `npm audit --omit=dev --audit-level=high` against production dependencies. | Configured in CI; not run locally for this update |
+| Backend dependency audit | CI runs `pip-audit --requirement backend/requirements.txt` for known dependency vulnerabilities. | Configured in CI; not part of the recorded local run |
+| Frontend dependency audit | CI runs `npm audit --omit=dev --audit-level=high` against production dependencies. | Configured in CI; not part of the recorded local run |
 | Diff whitespace | `git diff --check` checks changed lines for whitespace errors and conflict markers; it is a local check, not a configured CI step. | Pass |
 
 The backend run passed with a pytest cache-write permission warning. No separate backend formatter, linter or type-checking command is configured. Together, the configured checks help catch syntax, type, lint, behavioural and build issues before deployment.
@@ -1215,7 +1235,7 @@ The WAVE and Lighthouse checks were followed by manual checks of the main SiteFo
 | Colour and meaning | Review opportunity levels and electrical-work indicators. | Text labels accompany visual styling, so meaning does not rely on colour alone. | Pass |
 | Page structure | Review headings, labels and main content on the homepage and opportunity detail page. | Pages have clear headings and labelled controls that match their purpose. | Pass |
 
-These manual checks covered the main search and opportunity detail journey. While also supporting the automated WAVE and Lighthouse results above.
+These manual checks covered the main search and opportunity-detail journey and supported the automated WAVE and Lighthouse results above.
 
 ### 20.5 Manual & Production Testing
 
@@ -1498,7 +1518,7 @@ This removes the old frontend files and copies the new production build into `/v
 
 Load the live SiteForecaster site and confirm that the expected changes are visible. Compare the JavaScript and CSS asset filenames referenced by the live page with those in the new `dist/index.html`. Vite's hashed asset filenames help identify whether the latest build is being served.
 
-The screenshot below shows the code update, dependency installation and production build steps on EC2.
+The screenshot below shows the code update, dependency installation and production build steps on EC2. This earlier capture uses `npm install`; the instructions above use `npm ci` to install the lock-file versions reproducibly.
 
 <div align="center">
   <img src="docs/images/deployment/frontend/terminal-frontend-deploy.png" alt="SiteForecaster frontend deployment on the EC2 server showing the latest code being pulled, dependencies installed and the Vite production build created" width="820">
@@ -1515,6 +1535,8 @@ SiteForecaster does not rely on someone manually importing planning data every d
 | --- | --- | --- |
 | Planning sync | Refreshes records in an inclusive 7-day received-date window from the upstream planning source | Five minutes after boot, then 15 minutes after each service activation |
 | Planning reconciliation | Re-checks an inclusive 90-day received-date window to pick up changes to older records | Daily at 03:15 UTC |
+
+The initial full import is separate from these updates. The command defaults to a 7-day window when `--days` is omitted. `ETL_DATE` is not used as an incremental watermark because upstream refreshes can change it for older records.
 
 The regular sync keeps recent planning data refreshed, while reconciliation checks a wider historical window. Existing records are matched by their upstream source object ID and updated; new records are inserted when first seen. Re-reading these windows therefore updates records rather than blindly duplicating them.
 
@@ -1534,6 +1556,21 @@ docker compose exec -T api python -m backend.app.commands.planning_sync --days 9
 
 Both timer files contain `Persistent=true`. For the daily calendar-based reconciliation timer, this allows a missed run to be picked up when the timer becomes active again. That setting does not provide missed-run catch-up for the interval-based sync timer, which uses its boot and service-activation schedule.
 
+#### Install the systemd timers
+
+From the deployed repository directory on EC2:
+
+```bash
+sudo cp deploy/systemd/siteforecaster-planning-sync.service /etc/systemd/system/
+sudo cp deploy/systemd/siteforecaster-planning-sync.timer /etc/systemd/system/
+sudo cp deploy/systemd/siteforecaster-planning-reconcile.service /etc/systemd/system/
+sudo cp deploy/systemd/siteforecaster-planning-reconcile.timer /etc/systemd/system/
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now siteforecaster-planning-sync.timer
+sudo systemctl enable --now siteforecaster-planning-reconcile.timer
+```
+
 #### Operational checks
 
 On the EC2 server, list the timers and check their status:
@@ -1551,7 +1588,7 @@ journalctl -u siteforecaster-planning-sync.service -n 50 --no-pager
 journalctl -u siteforecaster-planning-reconcile.service -n 50 --no-pager
 ```
 
-Successful runs report how many records were fetched, inserted and updated. Failures return a non-zero exit status and a failure message, which helps distinguish a scheduled trigger from a completed data update.
+The recent-sync timer has previously been verified in production with a successful `status=0` run. Successful runs report how many records were fetched, inserted and updated. Failures return a non-zero exit status and a failure message, which helps distinguish a scheduled trigger from a completed data update.
 
 ## 24. Environment Variables
 
@@ -1786,78 +1823,3 @@ These credits do not imply endorsement or affiliation with the providers. Servic
 Thank you to Code Institute for the learning and support that helped shape my approach to building this project. Official documentation and developer communities also helped me work through implementation questions and debugging along the way.
 
 I used OpenAI's ChatGPT and Codex to support development and debugging, with code changes reviewed and tested before being accepted.
-
-## Production planning-data sync
-
-Planning applications are stored locally in PostgreSQL. The initial full import
-is a separate operation; ongoing production freshness uses inclusive rolling
-`ReceivedDate` windows. Existing applications are updated and missing ones are
-inserted by source object ID, so repeating a window is safe and idempotent.
-
-- The recent, near-real-time sync runs every 15 minutes with a 7-day window.
-- A 90-day reconciliation runs daily at 03:15 UTC.
-- `ETL_DATE` is deliberately not used as an incremental watermark because the
-  source batch-refreshes older records.
-
-Both jobs run inside the existing Docker Compose `api` container and are
-scheduled by systemd timers on the Ubuntu EC2 host. The 7-day timer has been
-verified in production with a successful `status=0` run.
-
-### Install the systemd timers
-
-From `/home/ubuntu/groundsignal` after deploying this repository revision:
-
-```bash
-sudo cp deploy/systemd/siteforecaster-planning-sync.service /etc/systemd/system/
-sudo cp deploy/systemd/siteforecaster-planning-sync.timer /etc/systemd/system/
-sudo cp deploy/systemd/siteforecaster-planning-reconcile.service /etc/systemd/system/
-sudo cp deploy/systemd/siteforecaster-planning-reconcile.timer /etc/systemd/system/
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now siteforecaster-planning-sync.timer
-sudo systemctl enable --now siteforecaster-planning-reconcile.timer
-```
-
-### Verify and operate
-
-```bash
-systemctl list-timers --all | grep siteforecaster
-systemctl status siteforecaster-planning-sync.timer --no-pager
-systemctl status siteforecaster-planning-reconcile.timer --no-pager
-journalctl -u siteforecaster-planning-sync.service -n 50 --no-pager
-journalctl -u siteforecaster-planning-reconcile.service -n 50 --no-pager
-```
-
-For a manual recent sync, the default window is 7 days:
-
-```bash
-docker compose exec -T api python -m backend.app.commands.planning_sync
-docker compose exec -T api python -m backend.app.commands.planning_sync --days 90
-```
-
-### Classifier evaluation
-
-The planning classifier assigns each application an opportunity type used by
-the application. It is deterministic and rule-based, not a machine-learning
-model.
-
-Run the curated labelled regression benchmark with:
-
-```bash
-docker compose exec -T api python -m backend.app.commands.evaluate_planning_classifier --benchmark
-```
-
-The current benchmark contains 34 representative labelled cases across the
-seven categories. It produced 34 correct classifications, 0 incorrect
-classifications, and 100.0% accuracy. This is a regression benchmark, not an
-independent random sample of production data. Planning descriptions can be
-incomplete or ambiguous, so users should review the original application before
-acting on an opportunity.
-
-The default command samples database records for category distribution and
-manual review, but cannot report accuracy because those source records do not
-have human-assigned expected categories:
-
-```bash
-docker compose exec -T api python -m backend.app.commands.evaluate_planning_classifier --sample-size 500
-```
