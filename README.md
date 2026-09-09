@@ -1569,6 +1569,113 @@ In production, the required values are configured on the EC2 server and passed i
 
 Keeping these values outside the source code reduces the risk of accidentally publishing credentials when the repository is pushed to GitHub.
 
+## 25. Local Installation & Setup
+
+This section explains how to run SiteForecaster locally for development. The backend and database use Docker Compose, while the React/Vite frontend runs separately through Node.js.
+
+### Prerequisites
+
+- Git
+- Docker with Docker Compose
+- Node.js and npm (the CI workflow uses Node.js 22)
+
+Python runs inside the API container for this workflow, so a separate local Python installation is not required.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/moranjohn-95/groundsignal.git
+cd groundsignal
+```
+
+### 2. Create local environment configuration
+
+Copy the example configuration:
+
+```bash
+cp .env.example .env
+```
+
+In Windows PowerShell, use:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Replace the placeholders with your local settings, including a Google Maps Geocoding API key for typed location searches. Keep `.env` local and do not commit credentials. Section 24 explains the variables.
+
+### 3. Start the backend and database
+
+From the repository root, with Docker running:
+
+```bash
+docker compose up --build
+```
+
+This starts PostgreSQL/PostGIS, builds and starts FastAPI, and makes the API available at `http://127.0.0.1:8000`. Leave this terminal open to view the container output.
+
+For a new database, open a second terminal at the repository root and apply the schema migrations:
+
+```bash
+docker compose exec -w /app/backend api alembic upgrade head
+```
+
+Startup does not apply migrations or import planning data automatically. To populate the database with planning records, run the existing import command after migrations complete:
+
+```bash
+docker compose exec api python -m backend.app.commands.planning_import
+```
+
+This imports records from the external planning source and may take time. Until data has been imported, searches have no local planning records to return.
+
+### 4. Start the frontend
+
+In the second terminal, from the repository root:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+`npm ci` installs the frontend dependencies and `npm run dev` starts Vite. Open the local URL printed by Vite in the browser. The development server proxies `/api` requests to the local backend.
+
+### 5. Check the application
+
+In another terminal at the repository root:
+
+```bash
+docker compose ps
+curl http://127.0.0.1:8000/health
+```
+
+The expected health response is:
+
+```json
+{"status":"ok"}
+```
+
+Check that:
+
+- The API health endpoint responds; this confirms API liveness, not database connectivity.
+- The database container is running and healthy in `docker compose ps`.
+- The frontend loads at the URL printed by Vite.
+- A location search reaches the API and returns results or a valid empty state after database setup.
+
+### 6. Stop the local services
+
+Stop the Vite development server with Ctrl+C. From the repository root, stop the Compose services:
+
+```bash
+docker compose down
+```
+
+The named database volume is retained unless deliberately removed, so imported records remain available for the next session.
+
+### Optional troubleshooting
+
+If startup fails, check that Docker is running, `.env` exists and the API port is available. For frontend startup problems, confirm that `npm ci` completed. Typed geocoding requires a configured Google API key; database errors on a fresh installation may indicate that migrations have not been applied.
+
 ## 26. Monitoring & Production Operations
 
 `GET /health` returns `{"status": "ok"}` when the FastAPI process can serve
