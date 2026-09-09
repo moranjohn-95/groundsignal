@@ -1448,6 +1448,47 @@ If the check succeeds, reload the configuration without fully stopping the web s
 sudo systemctl reload nginx
 ```
 
+### 23.4 Frontend Deployment
+
+The SiteForecaster frontend is built separately from the backend. The build checks the TypeScript source and uses Vite to produce static production files, which are then copied to the Nginx web directory on the EC2 server.
+
+The browser does not run the original development files directly. Vite creates a production version of the frontend containing the HTML, JavaScript and CSS files that Nginx serves to users.
+
+#### Manual build and copy
+
+On the EC2 server, pull the latest code and build the frontend:
+
+```bash
+cd ~/groundsignal
+git pull origin main
+
+cd frontend
+npm ci
+npm run build
+```
+
+`git pull origin main` gets the latest code from the main branch. `npm ci` installs the dependency versions from the lock file, and `npm run build` runs TypeScript validation followed by the Vite production build. The generated files are placed in `frontend/dist/`.
+
+After the build succeeds, run these commands while still in the `frontend` directory:
+
+```bash
+sudo rm -rf /var/www/siteforecaster/*
+sudo cp -r dist/* /var/www/siteforecaster/
+```
+
+This removes the old frontend files and copies the new production build into `/var/www/siteforecaster/`, the directory served by Nginx. Deployment is manual: GitHub Actions validates and builds the frontend but does not deploy it. The frontend files are served by Nginx on the host, not from a Docker container.
+
+#### Verification
+
+Load the live SiteForecaster site and confirm that the expected changes are visible. Compare the JavaScript and CSS asset filenames referenced by the live page with those in the new `dist/index.html`. Vite's hashed asset filenames help identify whether the latest build is being served.
+
+The screenshot below shows the code update, dependency installation and production build steps on EC2.
+
+<div align="center">
+  <img src="docs/images/deployment/frontend/terminal-frontend-deploy.png" alt="SiteForecaster frontend deployment on the EC2 server showing the latest code being pulled, dependencies installed and the Vite production build created" width="820">
+  <p style="color: #5f6b76;">Frontend deployment on the EC2 server, showing the latest code being pulled and the React/Vite production build being created.</p>
+</div>
+
 ## 26. Monitoring & Production Operations
 
 `GET /health` returns `{"status": "ok"}` when the FastAPI process can serve
