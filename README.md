@@ -1489,6 +1489,54 @@ The screenshot below shows the code update, dependency installation and producti
   <p style="color: #5f6b76;">Frontend deployment on the EC2 server, showing the latest code being pulled and the React/Vite production build being created.</p>
 </div>
 
+### 23.5 Automated Planning Sync
+
+SiteForecaster does not rely on someone manually importing planning data every day. On the EC2 server, systemd timers run the planning-data update commands automatically in the background.
+
+`systemd` is part of Ubuntu and can schedule jobs like recurring tasks. SiteForecaster uses it to run regular planning-data updates even when nobody is actively using the application.
+
+| Job | Purpose | Schedule |
+| --- | --- | --- |
+| Planning sync | Refreshes records in an inclusive 7-day received-date window from the upstream planning source | Five minutes after boot, then 15 minutes after each service activation |
+| Planning reconciliation | Re-checks an inclusive 90-day received-date window to pick up changes to older records | Daily at 03:15 UTC |
+
+The regular sync keeps recent planning data refreshed, while reconciliation checks a wider historical window. Existing records are matched by their upstream source object ID and updated; new records are inserted when first seen. Re-reading these windows therefore updates records rather than blindly duplicating them.
+
+#### systemd configuration
+
+The version-controlled files under `deploy/systemd/` define the commands and schedules:
+
+- `siteforecaster-planning-sync.timer` starts `siteforecaster-planning-sync.service`.
+- `siteforecaster-planning-reconcile.timer` starts `siteforecaster-planning-reconcile.service`.
+
+Both services run the backend's `planning_sync` command inside the existing Docker Compose API container. The sync service uses `--days 7`, and reconciliation uses `--days 90`:
+
+```bash
+docker compose exec -T api python -m backend.app.commands.planning_sync --days 7
+docker compose exec -T api python -m backend.app.commands.planning_sync --days 90
+```
+
+Both timer files contain `Persistent=true`. For the daily calendar-based reconciliation timer, this allows a missed run to be picked up when the timer becomes active again. That setting does not provide missed-run catch-up for the interval-based sync timer, which uses its boot and service-activation schedule.
+
+#### Operational checks
+
+On the EC2 server, list the timers and check their status:
+
+```bash
+systemctl list-timers --all | grep siteforecaster
+systemctl status siteforecaster-planning-sync.timer --no-pager
+systemctl status siteforecaster-planning-reconcile.timer --no-pager
+```
+
+The timer listing shows upcoming and previous triggers. To check whether the update commands completed successfully, inspect the service logs:
+
+```bash
+journalctl -u siteforecaster-planning-sync.service -n 50 --no-pager
+journalctl -u siteforecaster-planning-reconcile.service -n 50 --no-pager
+```
+
+Successful runs report how many records were fetched, inserted and updated. Failures return a non-zero exit status and a failure message, which helps distinguish a scheduled trigger from a completed data update.
+
 ## 26. Monitoring & Production Operations
 
 `GET /health` returns `{"status": "ok"}` when the FastAPI process can serve
