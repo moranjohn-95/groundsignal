@@ -1745,6 +1745,26 @@ The current MVP is functional. Future work would focus on improving the user wor
 
 Future work would be driven by user value rather than adding complexity for its own sake.
 
+## 30. Credits & Data Sources
+
+SiteForecaster uses the following external data, services and resources for planning discovery, hosting, development and testing.
+
+| Source / Service | Use in SiteForecaster |
+| --- | --- |
+| [National Planning Applications dataset](https://data.gov.ie/dataset/national-planning-applications) / [ArcGIS source](https://services.arcgis.com/NzlPQPKn5QF9v2US/ArcGIS/rest/services/IrishPlanningApplications/FeatureServer/0) | Supplies the planning application data imported by the platform. |
+| [Department of Housing, Local Government and Heritage](https://www.gov.ie/en/department-of-housing-local-government-and-heritage/) | Publisher identified in the official planning dataset listing. |
+| [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/) | Licence stated in the official dataset listing and acknowledged on the Data Sources page. |
+| [Google Maps Platform – Geocoding API](https://developers.google.com/maps/documentation/geocoding/overview) | Converts typed locations into coordinates through the backend. |
+| [AWS EC2](https://aws.amazon.com/ec2/) | Hosts the production server. |
+| [GitHub](https://github.com/moranjohn-95/groundsignal) / [GitHub Projects](https://github.com/features/issues) / [GitHub Actions](https://github.com/features/actions) | Hosts the repository, supports project tracking and runs CI validation. |
+| [WAVE](https://wave.webaim.org/) | Checks pages for accessibility issues. |
+| [Google Lighthouse](https://developer.chrome.com/docs/lighthouse/overview) | Provides accessibility and wider page-quality audit reports. |
+| [Coolors](https://coolors.co/) | Provides the colour-palette reference used during design. |
+
+SiteForecaster does not own or create the underlying planning records. It processes and presents the source data for opportunity discovery, adding its own categorisation, scores and electrical-work assessments. Users can follow official application links where available to verify the original records.
+
+These credits do not imply endorsement or affiliation with the providers. Service names and trademarks remain the property of their respective owners.
+
 ## Production planning-data sync
 
 Planning applications are stored locally in PostgreSQL. The initial full import
