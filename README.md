@@ -1727,6 +1727,24 @@ SiteForecaster is a working MVP with a focused scope. The following limitations 
 
 These limitations define the current MVP boundary and provide clear areas for future development.
 
+## 29. Future Development
+
+The current MVP is functional. Future work would focus on improving the user workflow, data quality and production operations, building on the limitations described in Section 28.
+
+| Future improvement | Why it would add value |
+| ------------------ | ---------------------- |
+| User accounts and authentication | Provide a personal workspace and the user identity needed for saved features. |
+| Saved opportunities / shortlist | Let users save planning opportunities and return to them later. |
+| Opportunity notes and lead status | Give users a lightweight way to track opportunities they are reviewing or following up. |
+| Contact enrichment | Add verified public or business contact information where legally and technically appropriate, helping users contact a relevant party. |
+| Data freshness indicators | Show when planning data was last synced and make upstream source delays clearer. |
+| Additional data sources | Consider other relevant sources where licensing and data quality support combining them with planning data. |
+| Scoring improvements | Refine the existing rule-based scorer using more contextual signals and real user feedback. |
+| Monitoring and alerts | Add dedicated uptime and error monitoring with production alerts as the application grows. |
+| Automated deployment | Extend CI into a controlled deployment workflow once the manual process is stable and well understood. |
+
+Future work would be driven by user value rather than adding complexity for its own sake.
+
 ## Production planning-data sync
 
 Planning applications are stored locally in PostgreSQL. The initial full import
