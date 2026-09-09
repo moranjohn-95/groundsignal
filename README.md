@@ -1708,6 +1708,25 @@ These examples show issues found through testing and production debugging, inclu
 | Empty results were not clearly distinguished from request failures | A successful search with no matches needed a different presentation from an API or network error. | Added separate empty and error states, search-broadening guidance and a retry action for failed requests. |
 | Returning from detail could lose search context | Search, filter and sort state needed to survive navigation away from the results page. | Kept the results page state during detail navigation and added regression coverage for returning to previous results, including scroll and focus restoration. |
 
+## 28. Known Limitations
+
+SiteForecaster is a working MVP with a focused scope. The following limitations reflect its current data dependencies and features that are outside that scope.
+
+| Limitation | Current impact |
+| ---------- | -------------- |
+| Upstream planning-data freshness | New applications can only appear once the Irish planning source makes them available and SiteForecaster imports them. |
+| No user accounts | There is no authentication or personalised user area. |
+| No saved opportunities or shortlists | Users cannot save or manage opportunities for later review. |
+| Rule-based scoring | Scoring is deterministic and explainable, but cannot perfectly interpret every planning description. |
+| Electrical-work inference | Projects may involve electrical work without enough evidence in the description for SiteForecaster to identify it strongly. |
+| Single main planning-data source | The MVP relies primarily on the existing Irish planning dataset rather than combining multiple commercial or enrichment sources. |
+| No direct contact enrichment | Opportunities do not include verified phone numbers or email contacts for developers, agents or contractors. |
+| Manual production deployment | GitHub Actions validates the code, but deployment to EC2 is manual. |
+| Lightweight production monitoring | Health checks, Docker/systemd status and logs are available, but there is no dedicated external monitoring or alerting platform. |
+| No CRM-style opportunity workflow | There is no lead pipeline, notes, contact history or opportunity-status tracking. |
+
+These limitations define the current MVP boundary and provide clear areas for future development.
+
 ## Production planning-data sync
 
 Planning applications are stored locally in PostgreSQL. The initial full import
