@@ -1695,6 +1695,19 @@ Section 23.5 lists the exact timer and service-log commands for both planning jo
 
 These checks provide a practical level of monitoring for the current MVP. Dedicated uptime alerts and error monitoring could be added later to help detect problems without relying on someone checking manually.
 
+## 27. Bugs & Fixes
+
+These examples show issues found through testing and production debugging, including fixes to application behaviour and an investigation into upstream data freshness.
+
+| Issue | Root cause | Fix |
+| ----- | ---------- | --- |
+| Production API served stale code | Backend changes had been pulled, but the running Docker image still contained the previous source. | Rebuilt and restarted the API with `docker compose up -d --build api`, then checked its response. |
+| Public `/health` did not reach FastAPI | Nginx lacked a dedicated health-route proxy, so the request could reach frontend routing instead. | Added the exact `/health` proxy to FastAPI and verified the public response. |
+| Planning data appeared out of date | Investigation confirmed SiteForecaster's scheduled sync was operating correctly; the upstream Irish planning source had not yet published newer records. | No scoring or search-filter change was needed. The upstream delay was identified, leading to clearer checks of source freshness alongside sync status; SiteForecaster did not fix the upstream delay. |
+| Some opportunities ranked too strongly | Ancillary-work wording and weak project descriptions could outweigh the main proposal or provide insufficient evidence for a strong ranking. | Refined classification and scope rules, limited displayed scores by electrical evidence, and added regression cases. |
+| Empty results were not clearly distinguished from request failures | A successful search with no matches needed a different presentation from an API or network error. | Added separate empty and error states, search-broadening guidance and a retry action for failed requests. |
+| Returning from detail could lose search context | Search, filter and sort state needed to survive navigation away from the results page. | Kept the results page state during detail navigation and added regression coverage for returning to previous results, including scroll and focus restoration. |
+
 ## Production planning-data sync
 
 Planning applications are stored locally in PostgreSQL. The initial full import
