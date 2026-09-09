@@ -1678,32 +1678,22 @@ If startup fails, check that Docker is running, `.env` exists and the API port i
 
 ## 26. Monitoring & Production Operations
 
-`GET /health` returns `{"status": "ok"}` when the FastAPI process can serve
-HTTP requests. It is a liveness check only: it does not query the database or
-expose configuration, credentials, or infrastructure details. Docker Compose
-uses this endpoint for the API container healthcheck, and Nginx proxies the
-same exact path for external uptime checks.
+The live deployment is checked using the public health endpoint, container status, scheduled-job logs and a manual browser check after deployment. Monitoring is currently lightweight and manual; the repository does not configure a full external monitoring platform.
 
-On the EC2 host, check the application manually with:
+| Check | Purpose |
+| --- | --- |
+| Public `/health` | Confirms FastAPI responds through the public site |
+| `docker compose ps` | Checks API and database container status and health indicators |
+| `systemctl status` / `systemctl list-timers` | Checks planning sync and reconciliation units and their scheduled runs |
+| `journalctl` | Reviews planning service logs, completion summaries and failures |
+| Nginx checks | Uses `sudo systemctl status nginx` for service status and `sudo nginx -t` to validate configuration |
+| Live-site check | Confirms the deployed frontend loads and can complete a search through the API |
 
-```bash
-curl -fsS https://siteforecaster.com/health
-docker compose ps
-docker compose logs --tail=100 api
-sudo tail -n 100 /var/log/nginx/error.log
-```
+Request `https://siteforecaster.com/health` to check for `{"status":"ok"}`. This is a liveness check only: it confirms the API is responding, not that the database, external services or every other dependency is healthy.
 
-Docker health status, Nginx error logs, Docker API logs, and the existing
-systemd planning-sync timer logs provide the MVP operational view. Privacy-safe
-Nginx access logging and disabled Uvicorn access logging remain unchanged.
+Section 23.5 lists the exact timer and service-log commands for both planning jobs. For API or web-server failures, `docker compose logs --tail=100 api` and the Nginx error log provide further detail. After deployment, load the live frontend, check that the expected changes appear and run a search to verify that the frontend and API work together.
 
-No external uptime alert is configured by this repository. As an optional
-AWS-native manual step, create a CloudWatch alarm for the EC2 instance's
-`StatusCheckFailed` metric: trigger when it is at least `1` for one five-minute
-period, and send the notification to an SNS email topic with a confirmed
-subscription. This monitors EC2 availability, not the application endpoint;
-an external HTTP monitor can use `/health` if one is chosen later. Confirm AWS
-account pricing and limits before enabling any alarm.
+These checks provide a practical level of monitoring for the current MVP. Dedicated uptime alerts and error monitoring could be added later to help detect problems without relying on someone checking manually.
 
 ## Production planning-data sync
 
