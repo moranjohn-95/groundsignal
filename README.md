@@ -75,6 +75,22 @@ Planning intelligence platform for discovering local construction opportunities 
 30. [Credits & Data Sources](#30-credits--data-sources)
 31. [Acknowledgements](#31-acknowledgements)
 
+## 1. Project Overview
+
+SiteForecaster is a full-stack planning intelligence platform aimed primarily at electricians and electrical contractors in Ireland. It uses Irish planning application data to help users find nearby construction opportunities, search by location, filter and sort results, and open detailed planning records.
+
+Opportunities are ranked using a transparent, rule based scoring system. It considers project scope, scale, timing, category and electrical work signals to help users decide which applications are worth reviewing more closely.
+
+The frontend uses React and TypeScript, while the FastAPI backend works with PostgreSQL/PostGIS. The application runs on AWS EC2 with Ubuntu: Docker Compose runs the backend and database, and Nginx serves the frontend. Automated tests and GitHub Actions validate changes.
+
+### Current MVP
+
+The current live version is the first working MVP, focused on helping electrical contractors find and prioritise relevant planning opportunities. It includes search, filtering, scoring, opportunity details, automated planning sync and production deployment, demonstrating the idea end to end.
+
+User accounts, saved opportunities, lead notes and status tracking, contact enrichment, stronger monitoring and automated deployment are intentionally left for future development rather than unfinished parts of the current MVP.
+
+SiteForecaster is both a usable working application and a professional portfolio project demonstrating practical full-stack development, testing, deployment and production operations.
+
 ## 2. Project Aims
 
 The main aim of SiteForecaster is to help electrical contractors find relevant local construction opportunities without having to manually search through large volumes of planning application data.
@@ -1764,6 +1780,12 @@ SiteForecaster uses the following external data, services and resources for plan
 SiteForecaster does not own or create the underlying planning records. It processes and presents the source data for opportunity discovery, adding its own categorisation, scores and electrical-work assessments. Users can follow official application links where available to verify the original records.
 
 These credits do not imply endorsement or affiliation with the providers. Service names and trademarks remain the property of their respective owners.
+
+## 31. Acknowledgements
+
+Thank you to Code Institute for the learning and support that helped shape my approach to building this project. Official documentation and developer communities also helped me work through implementation questions and debugging along the way.
+
+I used OpenAI's ChatGPT and Codex to support development and debugging, with code changes reviewed and tested before being accepted.
 
 ## Production planning-data sync
 
