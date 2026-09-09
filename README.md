@@ -1537,6 +1537,38 @@ journalctl -u siteforecaster-planning-reconcile.service -n 50 --no-pager
 
 Successful runs report how many records were fetched, inserted and updated. Failures return a non-zero exit status and a failure message, which helps distinguish a scheduled trigger from a completed data update.
 
+## 24. Environment Variables
+
+SiteForecaster uses environment variables for configuration that can change between local development and production. This keeps settings such as database connection details and API credentials out of the application source code.
+
+Environment variables are values supplied to the application when it runs. They allow the same codebase to use different settings on a developer's computer and on the production EC2 server.
+
+The `.env.example` file shows the expected variables using placeholder and example values only, without real production credentials.
+
+| Variable | Purpose |
+| --- | --- |
+| `POSTGRES_DB` | PostgreSQL database name |
+| `POSTGRES_USER` | PostgreSQL database user |
+| `POSTGRES_PASSWORD` | PostgreSQL database password |
+| `POSTGRES_HOST` | Hostname used to reach PostgreSQL |
+| `POSTGRES_PORT` | PostgreSQL port |
+| `DATABASE_URL` | Optional alternative database connection string |
+| `GOOGLE_MAPS_API_KEY` | Server-side Google Maps Geocoding API credential |
+
+The backend can use `DATABASE_URL` instead of the individual PostgreSQL settings; when supplied, it takes precedence. The current Compose configuration passes the individual settings rather than `DATABASE_URL`, and sets the API's database host to `db` and port to `5432` for container-to-container communication. The Google credential is used by the backend for geocoding, not by the browser.
+
+### Local configuration
+
+Developers can create their own local `.env` file using `.env.example` as a guide, then replace the placeholder values with their local configuration. Docker Compose reads the local configuration and passes the declared values into its containers.
+
+The `.env` file should remain local. `.env` files are excluded from Git, with `.env.example` kept as the shared template. Real credentials should never be committed to the repository.
+
+### Production configuration
+
+In production, the required values are configured on the EC2 server and passed into the application containers through Docker Compose. Production values are kept outside the Git repository.
+
+Keeping these values outside the source code reduces the risk of accidentally publishing credentials when the repository is pushed to GitHub.
+
 ## 26. Monitoring & Production Operations
 
 `GET /health` returns `{"status": "ok"}` when the FastAPI process can serve
