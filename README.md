@@ -1607,6 +1607,9 @@ The `.env.example` file shows the expected variables using placeholder and examp
 | `POSTGRES_PORT` | PostgreSQL port |
 | `DATABASE_URL` | Optional alternative database connection string |
 | `GOOGLE_MAPS_API_KEY` | Server-side Google Maps Geocoding API credential |
+| `APP_ENV` | Set to `development` only for local HTTP account testing; defaults to `production` |
+| `AUTH_COOKIE_SECURE` | Keep `true` for HTTPS; `false` is allowed only with `APP_ENV=development` |
+| `AUTH_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to make account-changing requests |
 
 The backend can use `DATABASE_URL` instead of the individual PostgreSQL settings; when supplied, it takes precedence. The current Compose configuration passes the individual settings rather than `DATABASE_URL`, and sets the API's database host to `db` and port to `5432` for container-to-container communication. The Google credential is used by the backend for geocoding, not by the browser.
 
@@ -1655,7 +1658,7 @@ In Windows PowerShell, use:
 Copy-Item .env.example .env
 ```
 
-Replace the placeholders with your local settings, including a Google Maps Geocoding API key for typed location searches. Keep `.env` local and do not commit credentials. Section 24 explains the variables.
+Replace the placeholders with your local settings, including a Google Maps Geocoding API key for typed location searches. Keep `.env` local and do not commit credentials. Section 24 explains the variables. For account endpoints over local HTTP, set `APP_ENV=development`, `AUTH_COOKIE_SECURE=false`, and `AUTH_ALLOWED_ORIGINS` to the Vite origins shown in `.env.example`. Production should use `APP_ENV=production`, `AUTH_COOKIE_SECURE=true`, and the site's HTTPS origin.
 
 ### 3. Start the backend and database
 
