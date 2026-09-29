@@ -10,11 +10,11 @@ from sqlalchemy import create_engine, inspect, text
 from backend.alembic.versions import c24a7e91d603_add_users as migration
 
 
-def test_users_revision_is_the_single_head():
+def test_users_revision_precedes_sessions():
     config = Config()
     config.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == [migration.revision]
+    assert script.get_revision(migration.revision).nextrev == {"d81f8c0a2b46"}
     assert migration.down_revision == "b70ca4a7c9ef"
 
 
