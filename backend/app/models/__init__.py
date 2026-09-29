@@ -6,5 +6,6 @@ class Base(DeclarativeBase):
 
 
 from .planning_application import PlanningApplication
+from .user import User
 
-__all__ = ["Base", "PlanningApplication"]
+__all__ = ["Base", "PlanningApplication", "User"]
