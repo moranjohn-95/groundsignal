@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 from app.database import DATABASE_URL
-from app.models import Base, PlanningApplication, User, UserSession
+from app.models import Base, PlanningApplication, SavedOpportunity, User, UserSession
 from geoalchemy2 import alembic_helpers
 
 # this is the Alembic Config object, which provides

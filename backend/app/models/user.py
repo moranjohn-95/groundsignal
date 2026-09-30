@@ -35,6 +35,9 @@ class User(Base):
     sessions: Mapped[list["UserSession"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", passive_deletes=True
     )
+    saved_opportunities: Mapped[list["SavedOpportunity"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
 
     @validates("email")
     def _normalize_email(self, key: str, value: str) -> str:

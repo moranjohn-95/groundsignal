@@ -13,7 +13,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..services.planning_classifier import (
     PLANNING_APPLICATION_CATEGORIES,
@@ -112,4 +112,7 @@ class PlanningApplication(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    saved_opportunities: Mapped[list["SavedOpportunity"]] = relationship(
+        back_populates="planning_application", passive_deletes="all"
     )

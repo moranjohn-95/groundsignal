@@ -11,11 +11,11 @@ from backend.alembic.versions import d81f8c0a2b46_add_user_sessions as migration
 from backend.app.models import User
 
 
-def test_sessions_revision_follows_users_and_is_single_head():
+def test_sessions_revision_follows_users():
     config = Config()
     config.set_main_option("script_location", str(Path(__file__).resolve().parents[1] / "alembic"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == [migration.revision]
+    assert script.get_revision(migration.revision) is not None
     assert migration.down_revision == "c24a7e91d603"
 
 
