@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -7,12 +8,14 @@ import {
 } from 'react'
 
 import type { Opportunity } from './api/opportunities'
+import { saveOpportunity, SavedOpportunityApiError } from './api/savedOpportunities'
 import {
   fetchCurrentUser,
   logoutAccount,
   type CurrentUser,
 } from './api/auth'
 import AccountPage from './features/account/AccountPage'
+import { readSaveReturn, saveReturnSearch } from './features/account/saveReturn'
 import {
   DataSourcesPage,
   PrivacyPage,
@@ -20,6 +23,7 @@ import {
 } from './features/LegalPages'
 import NotFoundPage from './features/NotFoundPage'
 import OpportunityDetailPage from './features/opportunities/OpportunityDetailPage'
+import type { SaveReturnOutcome } from './features/opportunities/SaveOpportunityControl'
 import OpportunitiesPage from './features/opportunities/OpportunitiesPage'
 
 type LegalPage = 'data-sources' | 'privacy' | 'terms'
@@ -39,6 +43,8 @@ type AppRoute =
 interface OpportunityHistoryState {
   distanceKm?: unknown
   preservesOpportunities?: unknown
+  saveReturnDepth?: unknown
+  saveReturnOpportunityId?: unknown
 }
 
 type SessionState =
@@ -105,12 +111,27 @@ function routeForSession(
   return routeFromLocation(pathname, historyState)
 }
 
+function saveReturnDepth(
+  historyState: OpportunityHistoryState | null,
+  opportunityId: number,
+): number | null {
+  const depth = historyState?.saveReturnDepth
+  return historyState?.saveReturnOpportunityId === opportunityId &&
+    typeof depth === 'number' &&
+    Number.isSafeInteger(depth) &&
+    depth > 0 &&
+    depth < window.history.length
+    ? depth
+    : null
+}
+
 function App() {
   const [searchVersion, setSearchVersion] = useState(0)
   const [sessionState, setSessionState] = useState<SessionState>({ status: 'checking' })
   const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0)
   const [logoutPending, setLogoutPending] = useState(false)
   const [accountError, setAccountError] = useState<string | null>(null)
+  const [postAuthSaveOutcome, setPostAuthSaveOutcome] = useState<SaveReturnOutcome | null>(null)
   const authVersion = useRef(0)
   const opportunitiesScrollPosition = useRef<number | null>(null)
   const opportunityFocusTarget = useRef<number | null>(null)
@@ -141,15 +162,28 @@ function App() {
 
   useEffect(() => {
     function handleHistoryChange(event: PopStateEvent) {
-      setRoute(routeForSession(window.location.pathname, event.state, sessionState.status === 'authenticated'))
+      const nextRoute = routeForSession(
+        window.location.pathname, event.state, sessionState.status === 'authenticated',
+      )
+      if (
+        nextRoute.page !== 'opportunity-detail' ||
+        nextRoute.opportunityId !== postAuthSaveOutcome?.opportunityId
+      ) {
+        setPostAuthSaveOutcome(null)
+      }
+      setRoute(nextRoute)
     }
 
     window.addEventListener('popstate', handleHistoryChange)
     return () => window.removeEventListener('popstate', handleHistoryChange)
-  }, [sessionState.status])
+  }, [postAuthSaveOutcome?.opportunityId, sessionState.status])
 
   const accountRoute = route.page === 'signup' || route.page === 'login' ? route.page : null
   const isAccountRoute = accountRoute !== null
+  const accountSaveReturn = isAccountRoute ? readSaveReturn(window.location.search) : null
+  const accountReturnQuery = accountSaveReturn
+    ? saveReturnSearch(accountSaveReturn.opportunityId)
+    : ''
 
   useLayoutEffect(() => {
     // Restore list context when a visitor returns from an opportunity detail page.
@@ -175,16 +209,73 @@ function App() {
     }
   }, [route.page])
 
-  function navigateTo(pathname: string) {
-    window.history.pushState(null, '', pathname)
-    setRoute(routeForSession(pathname, null, sessionState.status === 'authenticated'))
+  function navigateTo(destination: string, historyState: OpportunityHistoryState | null = null) {
+    const url = new URL(destination, window.location.origin)
+    if (url.origin !== window.location.origin) return
+    window.history.pushState(historyState, '', url.pathname + url.search)
+    setRoute(routeForSession(url.pathname, historyState, sessionState.status === 'authenticated'))
+    if (url.pathname !== `/opportunities/${postAuthSaveOutcome?.opportunityId}`) {
+      setPostAuthSaveOutcome(null)
+    }
   }
 
-  function handleAuthenticated(user: CurrentUser) {
+  async function handleAuthenticated(user: CurrentUser) {
+    const saveReturn = readSaveReturn(window.location.search)
+    const depth = saveReturn
+      ? saveReturnDepth(window.history.state, saveReturn.opportunityId)
+      : null
     authVersion.current += 1
     setAccountError(null)
+    if (saveReturn) {
+      let sessionExpired = false
+      try {
+        const saved = await saveOpportunity(saveReturn.opportunityId)
+        setPostAuthSaveOutcome({
+          opportunityId: saveReturn.opportunityId,
+          status: 'saved',
+          saveId: saved.id,
+        })
+      } catch (error: unknown) {
+        if (error instanceof SavedOpportunityApiError && error.status === 401) {
+          authVersion.current += 1
+          sessionExpired = true
+          setAccountError('Your session expired. Log in to save this opportunity.')
+        }
+        setPostAuthSaveOutcome({
+          opportunityId: saveReturn.opportunityId,
+          status: 'error',
+          message:
+            error instanceof SavedOpportunityApiError && error.status === 404
+              ? 'This opportunity is no longer available to save.'
+              : 'Could not save this opportunity. Try again below.',
+        })
+      }
+      setSessionState(sessionExpired ? { status: 'anonymous' } : { status: 'authenticated', user })
+      if (window.location.pathname !== '/signup' && window.location.pathname !== '/login') return
+      if (depth !== null) {
+        window.history.go(-depth)
+      } else {
+        window.history.replaceState(null, '', saveReturn.path)
+        setRoute(routeFromLocation(saveReturn.path, null))
+      }
+      return
+    }
     setSessionState({ status: 'authenticated', user })
     navigateTo('/')
+  }
+
+  const handleSaveSessionExpired = useCallback(() => {
+    authVersion.current += 1
+    setSessionState({ status: 'anonymous' })
+    setAccountError('Your session expired. Log in to save this opportunity.')
+  }, [])
+
+  function requestSaveAuthentication(opportunityId: number) {
+    setPostAuthSaveOutcome(null)
+    navigateTo(`/signup${saveReturnSearch(opportunityId)}`, {
+      saveReturnDepth: 1,
+      saveReturnOpportunityId: opportunityId,
+    })
   }
 
   async function handleLogout() {
@@ -277,6 +368,29 @@ function App() {
     }
 
     event.preventDefault()
+    const saveReturn = accountRoute === null ? null : readSaveReturn(window.location.search)
+    if (saveReturn && destination.pathname === saveReturn.path) {
+      const depth = saveReturnDepth(window.history.state, saveReturn.opportunityId)
+      setPostAuthSaveOutcome(null)
+      if (depth !== null) {
+        window.history.go(-depth)
+      } else {
+        window.history.replaceState(null, '', saveReturn.path)
+        setRoute(routeFromLocation(saveReturn.path, null))
+      }
+      return
+    }
+    if (saveReturn && (destination.pathname === '/signup' || destination.pathname === '/login')) {
+      const nextReturn = readSaveReturn(destination.search)
+      const depth = saveReturnDepth(window.history.state, saveReturn.opportunityId)
+      if (nextReturn?.opportunityId === saveReturn.opportunityId && depth !== null) {
+        navigateTo(destination.pathname + destination.search, {
+          saveReturnDepth: depth + 1,
+          saveReturnOpportunityId: saveReturn.opportunityId,
+        })
+        return
+      }
+    }
     if (destination.pathname === '/') {
       // Remount the search and its filters, including when already at home.
       setSearchVersion((version) => version + 1)
@@ -284,7 +398,7 @@ function App() {
       opportunityFocusTarget.current = null
       window.scrollTo(0, 0)
     }
-    navigateTo(destination.pathname)
+    navigateTo(destination.pathname + destination.search)
   }
 
   return (
@@ -314,8 +428,8 @@ function App() {
                 {sessionState.status === 'error' && (
                   <button type="button" onClick={retrySessionCheck}>Retry account check</button>
                 )}
-                <a href="/login" onClick={handleInternalNavigation}>Log in</a>
-                <a className="account-nav__signup" href="/signup" onClick={handleInternalNavigation}>
+                <a href={`/login${accountReturnQuery}`} onClick={handleInternalNavigation}>Log in</a>
+                <a className="account-nav__signup" href={`/signup${accountReturnQuery}`} onClick={handleInternalNavigation}>
                   Sign up
                 </a>
               </>
@@ -341,6 +455,15 @@ function App() {
               opportunityId={route.opportunityId}
               distanceKm={route.distanceKm}
               onBack={returnToOpportunities}
+              saveAccess={sessionState.status}
+              saveUserId={sessionState.status === 'authenticated' ? sessionState.user.id : undefined}
+              saveReturnOutcome={
+                postAuthSaveOutcome?.opportunityId === route.opportunityId
+                  ? postAuthSaveOutcome
+                  : null
+              }
+              onRequestSaveAuthentication={requestSaveAuthentication}
+              onSaveSessionExpired={handleSaveSessionExpired}
             />
           )}
 
@@ -351,6 +474,7 @@ function App() {
               currentUser={null}
               onAuthenticated={handleAuthenticated}
               onNavigate={handleInternalNavigation}
+              saveReturn={accountSaveReturn}
             />
           )}
 

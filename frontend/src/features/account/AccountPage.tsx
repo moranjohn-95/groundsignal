@@ -7,12 +7,14 @@ import {
 } from 'react'
 
 import { AuthApiError, submitAccount, type CurrentUser } from '../../api/auth'
+import { saveReturnSearch, type SaveReturn } from './saveReturn'
 
 interface AccountPageProps {
   mode: 'signup' | 'login'
   currentUser: CurrentUser | null
-  onAuthenticated: (user: CurrentUser) => void
+  onAuthenticated: (user: CurrentUser) => Promise<void> | void
   onNavigate: MouseEventHandler<HTMLAnchorElement>
+  saveReturn?: SaveReturn | null
 }
 
 function errorMessage(error: unknown, mode: 'signup' | 'login'): string {
@@ -41,6 +43,7 @@ export default function AccountPage({
   currentUser,
   onAuthenticated,
   onNavigate,
+  saveReturn,
 }: AccountPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const [email, setEmail] = useState('')
@@ -64,7 +67,7 @@ export default function AccountPage({
     setPending(true)
     try {
       const user = await submitAccount(mode, email.trim(), password)
-      onAuthenticated(user)
+      await onAuthenticated(user)
     } catch (reason: unknown) {
       setError(errorMessage(reason, mode))
     } finally {
@@ -73,11 +76,12 @@ export default function AccountPage({
   }
 
   const title = mode === 'signup' ? 'Create your account' : 'Log in'
+  const returnQuery = saveReturn ? saveReturnSearch(saveReturn.opportunityId) : ''
 
   return (
     <section className="account-page" aria-labelledby="account-heading">
-      <a className="account-page__back" href="/" onClick={onNavigate}>
-        Back to opportunities
+      <a className="account-page__back" href={saveReturn?.path ?? '/'} onClick={onNavigate}>
+        {saveReturn ? 'Back to opportunity' : 'Back to opportunities'}
       </a>
       <div className="account-card">
         <h2 id="account-heading" ref={headingRef} tabIndex={-1}>
@@ -149,7 +153,7 @@ export default function AccountPage({
             </form>
             <p className="account-card__switch">
               {mode === 'signup' ? 'Already have an account?' : 'New to SiteForecaster?'}{' '}
-              <a href={mode === 'signup' ? '/login' : '/signup'} onClick={onNavigate}>
+              <a href={`${mode === 'signup' ? '/login' : '/signup'}${returnQuery}`} onClick={onNavigate}>
                 {mode === 'signup' ? 'Log in' : 'Create an account'}
               </a>
             </p>

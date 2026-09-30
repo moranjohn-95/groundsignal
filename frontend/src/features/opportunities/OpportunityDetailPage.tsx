@@ -17,6 +17,10 @@ import {
 } from './opportunityPresentation'
 import ElectricalSignalIndicator from './ElectricalSignalIndicator'
 import OpportunityState from './OpportunityState'
+import SaveOpportunityControl, {
+  type SaveAccess,
+  type SaveReturnOutcome,
+} from './SaveOpportunityControl'
 
 type DetailState =
   | { status: 'loading' }
@@ -28,12 +32,22 @@ interface OpportunityDetailPageProps {
   opportunityId: number
   distanceKm?: number
   onBack?: () => void
+  saveAccess?: SaveAccess
+  saveUserId?: number
+  saveReturnOutcome?: SaveReturnOutcome | null
+  onRequestSaveAuthentication?: (opportunityId: number) => void
+  onSaveSessionExpired?: () => void
 }
 
 function OpportunityDetailPage({
   opportunityId,
   distanceKm,
   onBack,
+  saveAccess = 'anonymous',
+  saveUserId,
+  saveReturnOutcome,
+  onRequestSaveAuthentication,
+  onSaveSessionExpired,
 }: OpportunityDetailPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const [detailState, setDetailState] = useState<DetailState>({
@@ -295,6 +309,14 @@ function OpportunityDetailPage({
         </section>
 
         <footer className="opportunity-detail__footer">
+          <SaveOpportunityControl
+            key={`${opportunityId}-${saveUserId ?? saveAccess}`}
+            opportunityId={opportunityId}
+            access={saveAccess}
+            initialOutcome={saveReturnOutcome}
+            onRequestAuthentication={onRequestSaveAuthentication}
+            onSessionExpired={onSaveSessionExpired}
+          />
           {applicationUrl === null ? (
             <p>Official application link is not available for this authority.</p>
           ) : (
