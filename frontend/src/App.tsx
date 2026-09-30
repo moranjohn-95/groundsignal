@@ -93,6 +93,18 @@ function routeFromLocation(
   }
 }
 
+function routeForSession(
+  pathname: string,
+  historyState: OpportunityHistoryState | null,
+  isAuthenticated: boolean,
+): AppRoute {
+  if (isAuthenticated && (pathname === '/signup' || pathname === '/login')) {
+    window.history.replaceState(null, '', '/')
+    return { page: 'opportunities' }
+  }
+  return routeFromLocation(pathname, historyState)
+}
+
 function App() {
   const [searchVersion, setSearchVersion] = useState(0)
   const [sessionState, setSessionState] = useState<SessionState>({ status: 'checking' })
@@ -112,6 +124,9 @@ function App() {
     void fetchCurrentUser()
       .then((user) => {
         if (cancelled || version !== authVersion.current) return
+        if (user !== null && (window.location.pathname === '/signup' || window.location.pathname === '/login')) {
+          setRoute(routeForSession(window.location.pathname, window.history.state, true))
+        }
         setSessionState(user ? { status: 'authenticated', user } : { status: 'anonymous' })
       })
       .catch(() => {
@@ -126,12 +141,15 @@ function App() {
 
   useEffect(() => {
     function handleHistoryChange(event: PopStateEvent) {
-      setRoute(routeFromLocation(window.location.pathname, event.state))
+      setRoute(routeForSession(window.location.pathname, event.state, sessionState.status === 'authenticated'))
     }
 
     window.addEventListener('popstate', handleHistoryChange)
     return () => window.removeEventListener('popstate', handleHistoryChange)
-  }, [])
+  }, [sessionState.status])
+
+  const accountRoute = route.page === 'signup' || route.page === 'login' ? route.page : null
+  const isAccountRoute = accountRoute !== null
 
   useLayoutEffect(() => {
     // Restore list context when a visitor returns from an opportunity detail page.
@@ -159,7 +177,7 @@ function App() {
 
   function navigateTo(pathname: string) {
     window.history.pushState(null, '', pathname)
-    setRoute(routeFromLocation(pathname, null))
+    setRoute(routeForSession(pathname, null, sessionState.status === 'authenticated'))
   }
 
   function handleAuthenticated(user: CurrentUser) {
@@ -310,7 +328,7 @@ function App() {
 
       <main className="site-main">
         <div className="app-container">
-          <div hidden={route.page !== 'opportunities'}>
+          <div hidden={route.page !== 'opportunities' && !(isAccountRoute && sessionState.status === 'authenticated')}>
             <OpportunitiesPage
               key={searchVersion}
               onViewOpportunity={showOpportunity}
@@ -326,11 +344,11 @@ function App() {
             />
           )}
 
-          {(route.page === 'signup' || route.page === 'login') && (
+          {accountRoute !== null && sessionState.status !== 'checking' && sessionState.status !== 'authenticated' && (
             <AccountPage
-              key={route.page}
-              mode={route.page}
-              currentUser={sessionState.status === 'authenticated' ? sessionState.user : null}
+              key={accountRoute}
+              mode={accountRoute}
+              currentUser={null}
               onAuthenticated={handleAuthenticated}
               onNavigate={handleInternalNavigation}
             />

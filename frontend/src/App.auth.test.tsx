@@ -62,7 +62,7 @@ function mockAccountServer(initialUser: typeof account | null = null) {
 }
 
 async function fillCredentials(user: ReturnType<typeof userEvent.setup>, signup: boolean) {
-  await user.type(screen.getByRole('textbox', { name: 'Email address' }), account.email)
+  await user.type(await screen.findByRole('textbox', { name: 'Email address' }), account.email)
   await user.type(screen.getByLabelText('Password', { exact: true }), password)
   if (signup) {
     await user.type(screen.getByLabelText('Confirm password'), password)
@@ -177,6 +177,41 @@ describe('customer account pages', () => {
       credentials: 'same-origin',
     })
   })
+
+  it.each(['/signup', '/login'])(
+    'redirects a signed-in direct visit to %s without showing the form and preserves Back',
+    async (pathname) => {
+      let resolveSession!: (response: Response) => void
+      const sessionResponse = new Promise<Response>((resolve) => {
+        resolveSession = resolve
+      })
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (url === '/api/v1/auth/me') return sessionResponse
+        throw new Error(`Unexpected request: ${url}`)
+      })
+      vi.stubGlobal('fetch', fetchMock)
+      window.history.replaceState({ previousPage: true }, '', '/privacy')
+      window.history.pushState(null, '', pathname)
+
+      render(<App />)
+      expect(window.location.pathname).toBe(pathname)
+      expect(screen.queryByRole('textbox', { name: 'Email address' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Create your account' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Log in' })).not.toBeInTheDocument()
+
+      await act(async () => resolveSession(jsonResponse(account)))
+      await waitFor(() => expect(window.location.pathname).toBe('/'))
+      expect(screen.getByText(`Signed in as ${account.email}`)).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: 'Location' })).toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: 'Email address' })).not.toBeInTheDocument()
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+
+      act(() => window.history.back())
+      await waitFor(() => expect(window.location.pathname).toBe('/privacy'))
+      expect(window.history.state).toEqual({ previousPage: true })
+      expect(screen.getByRole('heading', { name: 'Privacy Policy' })).toBeInTheDocument()
+    },
+  )
 
   it('logs out, clears the header state, and keeps public pages accessible', async () => {
     const { fetchMock } = mockAccountServer(account)
