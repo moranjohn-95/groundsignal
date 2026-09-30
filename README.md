@@ -8,6 +8,8 @@
 
 Planning intelligence platform for discovering local construction opportunities from Irish planning data.
 
+**Project status:** Phase 1 (the MVP) is complete and live at [siteforecaster.com](https://siteforecaster.com). Phase 2 is in development on a separate branch and will add customer accounts, a dashboard and saved opportunities. This work has not been merged or deployed, so the live MVP remains available while Phase 2 is being built.
+
 **Live site:** [https://siteforecaster.com](https://siteforecaster.com)
 
 ## Table of Contents
@@ -83,13 +85,13 @@ Opportunities are ranked using a transparent, rule based scoring system. It cons
 
 The frontend uses React and TypeScript, while the FastAPI backend works with PostgreSQL/PostGIS. The application runs on AWS EC2 with Ubuntu: Docker Compose runs the backend and database, and Nginx serves the frontend. Automated tests and GitHub Actions validate changes.
 
-### Current MVP
+### Phase 1 MVP
 
-The current live version is the first working MVP, focused on helping electrical contractors find and prioritise relevant planning opportunities. It includes search, filtering, scoring, opportunity details, automated planning sync and production deployment, demonstrating the idea end to end.
+The live version is the completed Phase 1 MVP, focused on helping electrical contractors find and prioritise relevant planning opportunities. It includes search, filtering, scoring, opportunity details, automated planning sync and production deployment.
 
-User accounts, saved opportunities, lead notes and status tracking, contact enrichment, stronger monitoring and automated deployment are intentionally left for future development rather than unfinished parts of the current MVP.
+Phase 2 is now in development on a separate branch. It will add customer registration, login, a dashboard and saved opportunities. These features have not yet been deployed to the live site. Lead notes and status tracking, contact enrichment, stronger monitoring and automated deployment remain possible future improvements.
 
-SiteForecaster is both a usable working application and a professional portfolio project demonstrating practical full-stack development, testing, deployment and production operations.
+SiteForecaster is both a usable application and a professional portfolio project demonstrating full-stack development, testing, deployment and production operations.
 
 ## 2. Project Aims
 
