@@ -8,6 +8,12 @@ import {
 
 import type { Opportunity } from './api/opportunities'
 import {
+  fetchCurrentUser,
+  logoutAccount,
+  type CurrentUser,
+} from './api/auth'
+import AccountPage from './features/account/AccountPage'
+import {
   DataSourcesPage,
   PrivacyPage,
   TermsPage,
@@ -20,6 +26,7 @@ type LegalPage = 'data-sources' | 'privacy' | 'terms'
 
 type AppRoute =
   | { page: 'opportunities' }
+  | { page: 'signup' | 'login' }
   | {
       page: 'opportunity-detail'
       opportunityId: number
@@ -34,12 +41,20 @@ interface OpportunityHistoryState {
   preservesOpportunities?: unknown
 }
 
+type SessionState =
+  | { status: 'checking' | 'anonymous' | 'error' }
+  | { status: 'authenticated'; user: CurrentUser }
+
 function routeFromLocation(
   pathname: string,
   historyState: OpportunityHistoryState | null,
 ): AppRoute {
   if (pathname === '/') {
     return { page: 'opportunities' }
+  }
+
+  if (pathname === '/signup' || pathname === '/login') {
+    return { page: pathname.slice(1) as 'signup' | 'login' }
   }
 
   const legalPages: Record<string, LegalPage> = {
@@ -80,11 +95,34 @@ function routeFromLocation(
 
 function App() {
   const [searchVersion, setSearchVersion] = useState(0)
+  const [sessionState, setSessionState] = useState<SessionState>({ status: 'checking' })
+  const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0)
+  const [logoutPending, setLogoutPending] = useState(false)
+  const [accountError, setAccountError] = useState<string | null>(null)
+  const authVersion = useRef(0)
   const opportunitiesScrollPosition = useRef<number | null>(null)
   const opportunityFocusTarget = useRef<number | null>(null)
   const [route, setRoute] = useState(() =>
     routeFromLocation(window.location.pathname, window.history.state),
   )
+
+  useEffect(() => {
+    let cancelled = false
+    const version = authVersion.current
+    void fetchCurrentUser()
+      .then((user) => {
+        if (cancelled || version !== authVersion.current) return
+        setSessionState(user ? { status: 'authenticated', user } : { status: 'anonymous' })
+      })
+      .catch(() => {
+        if (!cancelled && version === authVersion.current) {
+          setSessionState({ status: 'error' })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [sessionCheckAttempt])
 
   useEffect(() => {
     function handleHistoryChange(event: PopStateEvent) {
@@ -122,6 +160,34 @@ function App() {
   function navigateTo(pathname: string) {
     window.history.pushState(null, '', pathname)
     setRoute(routeFromLocation(pathname, null))
+  }
+
+  function handleAuthenticated(user: CurrentUser) {
+    authVersion.current += 1
+    setAccountError(null)
+    setSessionState({ status: 'authenticated', user })
+    navigateTo('/')
+  }
+
+  async function handleLogout() {
+    if (logoutPending) return
+    setLogoutPending(true)
+    setAccountError(null)
+    try {
+      await logoutAccount()
+      authVersion.current += 1
+      setSessionState({ status: 'anonymous' })
+      navigateTo('/')
+    } catch {
+      setAccountError('Could not log out. Please try again.')
+    } finally {
+      setLogoutPending(false)
+    }
+  }
+
+  function retrySessionCheck() {
+    setSessionState({ status: 'checking' })
+    setSessionCheckAttempt((attempt) => attempt + 1)
   }
 
   function showOpportunities() {
@@ -212,8 +278,35 @@ function App() {
               SiteForecaster
             </a>
           </h1>
+          <nav className="account-nav" aria-label="Account">
+            {sessionState.status === 'checking' && (
+              <span className="account-nav__status">Checking account…</span>
+            )}
+            {sessionState.status === 'authenticated' ? (
+              <>
+                <span className="account-nav__identity">
+                  Signed in as {sessionState.user.email}
+                </span>
+                <button type="button" onClick={() => void handleLogout()} disabled={logoutPending}>
+                  {logoutPending ? 'Logging out…' : 'Log out'}
+                </button>
+              </>
+            ) : sessionState.status !== 'checking' && (
+              <>
+                {sessionState.status === 'error' && (
+                  <button type="button" onClick={retrySessionCheck}>Retry account check</button>
+                )}
+                <a href="/login" onClick={handleInternalNavigation}>Log in</a>
+                <a className="account-nav__signup" href="/signup" onClick={handleInternalNavigation}>
+                  Sign up
+                </a>
+              </>
+            )}
+          </nav>
         </div>
       </header>
+
+      {accountError && <p className="account-alert" role="alert">{accountError}</p>}
 
       <main className="site-main">
         <div className="app-container">
@@ -230,6 +323,16 @@ function App() {
               opportunityId={route.opportunityId}
               distanceKm={route.distanceKm}
               onBack={returnToOpportunities}
+            />
+          )}
+
+          {(route.page === 'signup' || route.page === 'login') && (
+            <AccountPage
+              key={route.page}
+              mode={route.page}
+              currentUser={sessionState.status === 'authenticated' ? sessionState.user : null}
+              onAuthenticated={handleAuthenticated}
+              onNavigate={handleInternalNavigation}
             />
           )}
 
