@@ -19,11 +19,76 @@ type ListState =
   | { status: 'loading' | 'error' }
   | { status: 'ready'; items: SavedOpportunity[] }
 
+type SavedOpportunitySort =
+  | 'recently-saved'
+  | 'best-opportunity'
+  | 'newest-received'
+  | 'oldest-received'
+
+function timestampFor(value: unknown) {
+  if (typeof value !== 'string') return null
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function scoreFor(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function compareValues(
+  first: number | null,
+  second: number | null,
+  direction: 'ascending' | 'descending',
+) {
+  if (first === null) return second === null ? 0 : 1
+  if (second === null) return -1
+  return direction === 'ascending' ? first - second : second - first
+}
+
+function sortSavedOpportunities(
+  items: SavedOpportunity[],
+  sort: SavedOpportunitySort,
+) {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((first, second) => {
+      const firstOpportunity = first.item.opportunity
+      const secondOpportunity = second.item.opportunity
+      const comparison = sort === 'best-opportunity'
+        ? compareValues(
+            scoreFor(firstOpportunity.opportunity_score),
+            scoreFor(secondOpportunity.opportunity_score),
+            'descending',
+          )
+        : sort === 'oldest-received'
+          ? compareValues(
+              timestampFor(firstOpportunity.received_date),
+              timestampFor(secondOpportunity.received_date),
+              'ascending',
+            )
+          : sort === 'newest-received'
+            ? compareValues(
+                timestampFor(firstOpportunity.received_date),
+                timestampFor(secondOpportunity.received_date),
+                'descending',
+              )
+            : compareValues(
+                timestampFor(first.item.saved_at),
+                timestampFor(second.item.saved_at),
+                'descending',
+              )
+      return comparison === 0 ? first.index - second.index : comparison
+    })
+    .map(({ item }) => item)
+}
+
 export default function DashboardPage({ onNavigate, onViewOpportunity, onSessionExpired }: Props) {
   const [list, setList] = useState<ListState>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [removalStatus, setRemovalStatus] = useState<string | null>(null)
+  const [sort, setSort] = useState<SavedOpportunitySort>('recently-saved')
 
   useEffect(() => {
     let cancelled = false
@@ -40,8 +105,15 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
     return () => { cancelled = true }
   }, [attempt, onSessionExpired])
 
+  useEffect(() => {
+    if (removalStatus === null) return
+    const timeout = window.setTimeout(() => setRemovalStatus(null), 4000)
+    return () => window.clearTimeout(timeout)
+  }, [removalStatus])
+
   function retry() {
     setFeedback(null)
+    setRemovalStatus(null)
     setList({ status: 'loading' })
     setAttempt((value) => value + 1)
   }
@@ -50,12 +122,13 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
     if (removingId !== null) return
     setRemovingId(item.id)
     setFeedback(null)
+    setRemovalStatus(null)
     try {
       await removeSavedOpportunity(item.id)
       setList((current) => current.status === 'ready'
         ? { status: 'ready', items: current.items.filter((saved) => saved.id !== item.id) }
         : current)
-      setFeedback('Opportunity removed from your saves.')
+      setRemovalStatus('Removed from saved opportunities')
     } catch (error: unknown) {
       if (error instanceof SavedOpportunityApiError && error.status === 401) {
         onSessionExpired()
@@ -76,16 +149,50 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
     {feedback && <p className="dashboard__feedback" role="status">{feedback}</p>}
     {list.status === 'loading' && <OpportunityState variant="loading" title="Loading saved opportunities">Retrieving your saves.</OpportunityState>}
     {list.status === 'error' && <OpportunityState variant="error" title="Saved opportunities unavailable" action={{ label: 'Try again', onClick: retry }}>We could not load your saves right now.</OpportunityState>}
-    {list.status === 'ready' && (list.items.length === 0
-      ? <div className="dashboard__empty">
+    {list.status === 'ready' && <>
+      {(list.items.length > 0 || removalStatus !== null) && (
+        <div className="dashboard__list-toolbar">
+          <div className="dashboard__list-heading-group">
+            {list.items.length > 0 && (
+              <h3 className="dashboard__list-heading">Saved opportunities <span>({list.items.length})</span></h3>
+            )}
+            {removalStatus !== null && (
+              <p className="dashboard__removal-status" role="status" aria-live="polite">
+                {removalStatus}
+              </p>
+            )}
+          </div>
+          {list.items.length > 0 && (
+            <div className="opportunity-results__sort">
+              <label htmlFor="saved-opportunity-sort">
+                <svg className="opportunity-results__sort-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="m3 7 4-4 4 4M7 3v18m6-4 4 4 4-4M17 21V3" />
+                </svg>
+                Sort
+              </label>
+              <select
+                id="saved-opportunity-sort"
+                value={sort}
+                onChange={(event) => setSort(event.currentTarget.value as SavedOpportunitySort)}
+              >
+                <option value="recently-saved">Recently saved</option>
+                <option value="best-opportunity">Best opportunity</option>
+                <option value="newest-received">Newest received</option>
+                <option value="oldest-received">Oldest received</option>
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+      {list.items.length === 0
+        ? <div className="dashboard__empty">
           <h3>No saved opportunities yet</h3>
           <p>Find a planning opportunity that interests you and save it for later.</p>
           <a className="button button--primary" href="/" onClick={onNavigate}>Search opportunities</a>
         </div>
-      : <>
-          <h3 className="dashboard__list-heading">Saved opportunities <span>({list.items.length})</span></h3>
+        :
           <ul className="opportunity-list dashboard__list">
-            {list.items.map((item) => (
+            {sortSavedOpportunities(list.items, sort).map((item) => (
               <li key={item.id}>
                 <OpportunityCard
                   opportunity={item.opportunity}
@@ -105,6 +212,7 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
               </li>
             ))}
           </ul>
-        </>)}
+      }
+    </>}
   </section>
 }

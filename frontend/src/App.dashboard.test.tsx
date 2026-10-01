@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -13,11 +13,16 @@ const opportunity = {
 }
 const saved = { id: 9, saved_at: '2026-09-30T12:00:00Z', opportunity }
 
+function savedOpportunityPaths() {
+  return screen.getAllByRole('link', { name: 'View opportunity' })
+    .map((link) => link.getAttribute('href'))
+}
+
 function response(body: unknown, status = 200): Response {
   return { ok: status >= 200 && status < 300, status, json: vi.fn().mockResolvedValue(body) } as unknown as Response
 }
 
-function server(options: { authenticated?: boolean; saves?: typeof saved[]; listStatus?: number; deleteStatus?: number } = {}) {
+function server(options: { authenticated?: boolean; saves?: Array<{ id: number }>; listStatus?: number; deleteStatus?: number } = {}) {
   let loggedIn = options.authenticated ?? true
   let saves = options.saves ?? [saved]
   const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
@@ -25,7 +30,7 @@ function server(options: { authenticated?: boolean; saves?: typeof saved[]; list
     if (url === '/api/v1/auth/login') { loggedIn = true; return Promise.resolve(response(account)) }
     if (url.startsWith('/api/v1/saved-opportunities?')) return Promise.resolve(response({ items: saves, total: saves.length }, options.listStatus ?? 200))
     if (url === '/api/v1/saved-opportunities/9' && init?.method === 'DELETE') {
-      if (!options.deleteStatus || options.deleteStatus === 204) saves = []
+      if (!options.deleteStatus || options.deleteStatus === 204) saves = saves.filter((item) => item.id !== 9)
       return Promise.resolve(response(null, options.deleteStatus ?? 204))
     }
     if (url === '/api/v1/planning-applications/42') return Promise.resolve(response(null, 404))
@@ -44,6 +49,7 @@ describe('customer dashboard', () => {
     window.history.replaceState(null, '', '/')
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+    vi.useRealTimers()
   })
 
   it('sends a visitor to login and returns to dashboard after login', async () => {
@@ -100,13 +106,71 @@ describe('customer dashboard', () => {
     expect(within(savedList as HTMLElement).getAllByRole('button', { name: 'Remove save' })).toHaveLength(3)
   })
 
-  it('removes a save and shows confirmation', async () => {
-    const fetchMock = server()
+  it('sorts saved opportunities locally and keeps missing values last', async () => {
+    const saves = [
+      saved,
+      {
+        ...saved,
+        id: 10,
+        saved_at: '2026-10-01T12:00:00Z',
+        opportunity: {
+          ...opportunity,
+          id: 43,
+          application_number: 'PL-43',
+          opportunity_score: 95,
+          received_date: null,
+        },
+      },
+      {
+        ...saved,
+        id: 11,
+        saved_at: '2026-09-25T12:00:00Z',
+        opportunity: {
+          ...opportunity,
+          id: 44,
+          application_number: 'PL-44',
+          opportunity_score: undefined as unknown as number,
+          received_date: '2026-09-25',
+        },
+      },
+    ]
+    server({ saves })
     render(<App />)
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Remove save' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Opportunity removed from your saves.')
-    expect(screen.getByRole('heading', { name: 'No saved opportunities yet' })).toBeInTheDocument()
+
+    const sortControl = await screen.findByRole('combobox', { name: 'Sort' })
+    expect(sortControl).toHaveValue('recently-saved')
+    expect(screen.getByRole('option', { name: 'Recently saved' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Best opportunity' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Newest received' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Oldest received' })).toBeInTheDocument()
+    expect(savedOpportunityPaths()).toEqual(['/opportunities/43', '/opportunities/42', '/opportunities/44'])
+
+    const user = userEvent.setup()
+    await user.selectOptions(sortControl, 'best-opportunity')
+    expect(savedOpportunityPaths()).toEqual(['/opportunities/43', '/opportunities/42', '/opportunities/44'])
+
+    await user.selectOptions(sortControl, 'newest-received')
+    expect(savedOpportunityPaths()).toEqual(['/opportunities/44', '/opportunities/42', '/opportunities/43'])
+
+    await user.selectOptions(sortControl, 'oldest-received')
+    expect(savedOpportunityPaths()).toEqual(['/opportunities/42', '/opportunities/44', '/opportunities/43'])
+  })
+
+  it('removes a save, announces it near the heading, and clears the status', async () => {
+    const secondSave = { ...saved, id: 10, opportunity: { ...opportunity, id: 43, application_number: 'PL-43' } }
+    const fetchMock = server({ saves: [saved, secondSave] })
+    render(<App />)
+    const [removeButton] = await screen.findAllByRole('button', { name: 'Remove save' })
+    vi.useFakeTimers()
+    fireEvent.click(removeButton)
+    await act(async () => { await Promise.resolve() })
+    const removalStatus = screen.getByText('Removed from saved opportunities')
+    expect(removalStatus).toHaveAttribute('aria-live', 'polite')
+    expect(screen.getByRole('heading', { name: 'Saved opportunities (1)' })).toBeInTheDocument()
+    expect(savedOpportunityPaths()).toEqual(['/opportunities/43'])
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/saved-opportunities/9', expect.objectContaining({ method: 'DELETE' }))
+    act(() => vi.advanceTimersByTime(4000))
+    expect(screen.queryByText('Removed from saved opportunities')).not.toBeInTheDocument()
   })
 
   it('shows load and removal errors with recovery actions', async () => {

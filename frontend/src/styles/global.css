@@ -1056,8 +1056,11 @@ summary:focus-visible {
 .dashboard__empty h3 { margin: 0; color: var(--color-primary); font-size: 1.375rem; }
 .dashboard__empty p { color: var(--color-text-muted); }
 .dashboard__empty .button { display: inline-flex; align-items: center; min-height: 2.75rem; margin-top: 0.5rem; text-decoration: none; }
-.dashboard__list-heading { margin: 0 0 1rem; color: var(--color-primary); font-size: 1.125rem; }
+.dashboard__list-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1rem; margin-bottom: 1rem; }
+.dashboard__list-heading-group { display: flex; flex: 1 1 16rem; flex-wrap: wrap; align-items: baseline; gap: 0.375rem 0.625rem; }
+.dashboard__list-heading { margin: 0; color: var(--color-primary); font-size: 1.125rem; }
 .dashboard__list-heading span { color: var(--color-text-muted); font-weight: 500; }
+.dashboard__removal-status { min-height: 1.2em; margin: 0; color: var(--color-text-muted); font-size: 0.8125rem; }
 .dashboard__list { margin: 0; }
 .dashboard-card { overflow: hidden; border: 1px solid var(--color-border); border-top: 0.25rem solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-panel); }
 .dashboard-card__content { padding: 1.25rem; }
