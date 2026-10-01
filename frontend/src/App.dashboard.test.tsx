@@ -18,6 +18,11 @@ function savedOpportunityPaths() {
     .map((link) => link.getAttribute('href'))
 }
 
+function summaryCard(label: string) {
+  const overview = screen.getByRole('region', { name: 'Dashboard overview' })
+  return within(overview).getByText(label).parentElement as HTMLElement
+}
+
 function response(body: unknown, status = 200): Response {
   return { ok: status >= 200 && status < 300, status, json: vi.fn().mockResolvedValue(body) } as unknown as Response
 }
@@ -106,6 +111,41 @@ describe('customer dashboard', () => {
     expect(within(savedList as HTMLElement).getAllByRole('button', { name: 'Remove save' })).toHaveLength(3)
   })
 
+  it('shows calculated saved-opportunity overview values', async () => {
+    const confirmedSave = {
+      ...saved,
+      id: 10,
+      opportunity: {
+        ...opportunity,
+        id: 43,
+        application_number: 'PL-43',
+        opportunity_score: 92,
+        electrical_work_brief: {
+          evidence_level: 'direct',
+          summary: 'Electrical work evidenced: solar infrastructure.',
+          signals: [],
+        },
+      },
+    }
+    server({ saves: [saved, confirmedSave] })
+    render(<App />)
+
+    await screen.findByRole('region', { name: 'Dashboard overview' })
+    expect(summaryCard('Saved opportunities')).toHaveTextContent('2')
+    expect(summaryCard('Best opportunity')).toHaveTextContent('92')
+    expect(summaryCard('Confirmed electrical signals')).toHaveTextContent('1')
+  })
+
+  it('shows empty overview values when there are no saved opportunities', async () => {
+    server({ saves: [] })
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'No saved opportunities yet' })
+    expect(summaryCard('Saved opportunities')).toHaveTextContent('0')
+    expect(summaryCard('Best opportunity')).toHaveTextContent('—')
+    expect(summaryCard('Confirmed electrical signals')).toHaveTextContent('0')
+  })
+
   it('sorts saved opportunities locally and keeps missing values last', async () => {
     const saves = [
       saved,
@@ -157,7 +197,21 @@ describe('customer dashboard', () => {
   })
 
   it('removes a save, announces it near the heading, and clears the status', async () => {
-    const secondSave = { ...saved, id: 10, opportunity: { ...opportunity, id: 43, application_number: 'PL-43' } }
+    const secondSave = {
+      ...saved,
+      id: 10,
+      opportunity: {
+        ...opportunity,
+        id: 43,
+        application_number: 'PL-43',
+        opportunity_score: 90,
+        electrical_work_brief: {
+          evidence_level: 'direct',
+          summary: 'Electrical work evidenced: solar infrastructure.',
+          signals: [],
+        },
+      },
+    }
     const fetchMock = server({ saves: [saved, secondSave] })
     render(<App />)
     const [removeButton] = await screen.findAllByRole('button', { name: 'Remove save' })
@@ -168,6 +222,9 @@ describe('customer dashboard', () => {
     expect(removalStatus).toHaveAttribute('aria-live', 'polite')
     expect(screen.getByRole('heading', { name: 'Saved opportunities (1)' })).toBeInTheDocument()
     expect(savedOpportunityPaths()).toEqual(['/opportunities/43'])
+    expect(summaryCard('Saved opportunities')).toHaveTextContent('1')
+    expect(summaryCard('Best opportunity')).toHaveTextContent('90')
+    expect(summaryCard('Confirmed electrical signals')).toHaveTextContent('1')
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/saved-opportunities/9', expect.objectContaining({ method: 'DELETE' }))
     act(() => vi.advanceTimersByTime(4000))
     expect(screen.queryByText('Removed from saved opportunities')).not.toBeInTheDocument()

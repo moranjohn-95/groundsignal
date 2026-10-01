@@ -1048,10 +1048,15 @@ summary:focus-visible {
 
 .dashboard { max-width: 64rem; margin-inline: auto; }
 .dashboard__intro { margin-bottom: 1.75rem; }
-.dashboard__accent { display: block; width: 2rem; height: 0.25rem; margin-bottom: 1rem; border-radius: 999px; background: var(--color-accent); }
+.dashboard__eyebrow { margin: 0 0 0.5rem; color: var(--color-accent-active); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
 .dashboard__intro h2 { margin: 0; color: var(--color-primary); font-size: clamp(1.75rem, 5vw, 2.25rem); letter-spacing: -0.03em; }
-.dashboard__intro p { margin: 0.5rem 0 0; color: var(--color-text-muted); }
+.dashboard__intro > p:not(.dashboard__eyebrow) { margin: 0.5rem 0 0; color: var(--color-text-muted); }
 .dashboard__feedback { padding: 0.75rem 1rem; border-left: 0.25rem solid var(--color-success); border-radius: var(--radius-sm); background: var(--color-success-surface); color: var(--color-primary); }
+.dashboard__overview { margin-bottom: 1.75rem; }
+.dashboard__summary { display: grid; gap: 0.75rem; margin: 0; }
+.dashboard__summary-card { min-width: 0; padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-panel); }
+.dashboard__summary-card dt { color: var(--color-text-muted); font-size: 0.8125rem; font-weight: 650; line-height: 1.35; }
+.dashboard__summary-card dd { margin: 0.375rem 0 0; color: var(--color-primary); font-size: 1.75rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
 .dashboard__empty { padding: clamp(1.5rem, 5vw, 3rem); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-panel); }
 .dashboard__empty h3 { margin: 0; color: var(--color-primary); font-size: 1.375rem; }
 .dashboard__empty p { color: var(--color-text-muted); }
@@ -1963,6 +1968,10 @@ summary:focus-visible {
 
   .opportunity-metadata {
     grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .opportunity-card__action {

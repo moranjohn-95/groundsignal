@@ -8,6 +8,7 @@ import {
 } from '../../api/savedOpportunities'
 import OpportunityCard from '../opportunities/OpportunityCard'
 import OpportunityState from '../opportunities/OpportunityState'
+import { electricalWorkBriefFor } from '../opportunities/opportunityPresentation'
 
 interface Props {
   onNavigate: (event: MouseEvent<HTMLAnchorElement>) => void
@@ -82,6 +83,20 @@ function sortSavedOpportunities(
     .map(({ item }) => item)
 }
 
+function summaryFor(items: SavedOpportunity[]) {
+  const scores = items
+    .map((item) => scoreFor(item.opportunity.opportunity_score))
+    .filter((score): score is number => score !== null)
+
+  return {
+    savedCount: items.length,
+    bestScore: scores.length === 0 ? null : Math.max(...scores),
+    confirmedSignalCount: items.filter(
+      (item) => electricalWorkBriefFor(item.opportunity).evidence_level === 'direct',
+    ).length,
+  }
+}
+
 export default function DashboardPage({ onNavigate, onViewOpportunity, onSessionExpired }: Props) {
   const [list, setList] = useState<ListState>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
@@ -89,6 +104,7 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
   const [feedback, setFeedback] = useState<string | null>(null)
   const [removalStatus, setRemovalStatus] = useState<string | null>(null)
   const [sort, setSort] = useState<SavedOpportunitySort>('recently-saved')
+  const summary = list.status === 'ready' ? summaryFor(list.items) : null
 
   useEffect(() => {
     let cancelled = false
@@ -142,13 +158,31 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
 
   return <section className="dashboard" aria-labelledby="dashboard-heading">
     <div className="dashboard__intro">
-      <span className="dashboard__accent" aria-hidden="true" />
-      <h2 id="dashboard-heading">Your dashboard</h2>
-      <p>Keep track of the planning opportunities you have saved.</p>
+      <p className="dashboard__eyebrow">Customer portal</p>
+      <h2 id="dashboard-heading">Dashboard</h2>
+      <p>Your saved planning opportunities at a glance.</p>
     </div>
     {feedback && <p className="dashboard__feedback" role="status">{feedback}</p>}
     {list.status === 'loading' && <OpportunityState variant="loading" title="Loading saved opportunities">Retrieving your saves.</OpportunityState>}
     {list.status === 'error' && <OpportunityState variant="error" title="Saved opportunities unavailable" action={{ label: 'Try again', onClick: retry }}>We could not load your saves right now.</OpportunityState>}
+    {summary !== null && (
+      <section className="dashboard__overview" aria-label="Dashboard overview">
+        <dl className="dashboard__summary">
+          <div className="dashboard__summary-card">
+            <dt>Saved opportunities</dt>
+            <dd>{summary.savedCount}</dd>
+          </div>
+          <div className="dashboard__summary-card">
+            <dt>Best opportunity</dt>
+            <dd>{summary.bestScore ?? '—'}</dd>
+          </div>
+          <div className="dashboard__summary-card">
+            <dt>Confirmed electrical signals</dt>
+            <dd>{summary.confirmedSignalCount}</dd>
+          </div>
+        </dl>
+      </section>
+    )}
     {list.status === 'ready' && <>
       {(list.items.length > 0 || removalStatus !== null) && (
         <div className="dashboard__list-toolbar">
