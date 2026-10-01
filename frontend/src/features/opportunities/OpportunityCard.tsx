@@ -1,6 +1,6 @@
-import type { MouseEvent } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 
-import type { Opportunity } from '../../api/opportunities'
+import type { Opportunity, OpportunityDetail } from '../../api/opportunities'
 import {
   formatOpportunityDate,
   formatOpportunityDistance,
@@ -14,8 +14,11 @@ import {
 import ElectricalSignalIndicator from './ElectricalSignalIndicator'
 
 interface OpportunityCardProps {
-  opportunity: Opportunity
+  opportunity: Opportunity | OpportunityDetail
   onViewOpportunity?: (opportunity: Opportunity) => void
+  onViewOpportunityById?: (opportunityId: number) => void
+  savedAt?: string
+  secondaryAction?: ReactNode
 }
 
 const MAX_HEADING_LENGTH = 96
@@ -42,6 +45,9 @@ function displayHeading(description: string | null, applicationNumber: string) {
 function OpportunityCard({
   opportunity,
   onViewOpportunity,
+  onViewOpportunityById,
+  savedAt,
+  secondaryAction,
 }: OpportunityCardProps) {
   const headingId = `opportunity-${opportunity.id}-heading`
   const description = normalizeOpportunityDescription(opportunity.description)
@@ -58,7 +64,7 @@ function OpportunityCard({
 
   function handleViewOpportunity(event: MouseEvent<HTMLAnchorElement>) {
     if (
-      onViewOpportunity === undefined ||
+      (onViewOpportunity === undefined && onViewOpportunityById === undefined) ||
       event.button !== 0 ||
       event.metaKey ||
       event.ctrlKey ||
@@ -69,7 +75,12 @@ function OpportunityCard({
     }
 
     event.preventDefault()
-    onViewOpportunity(opportunity)
+    if (onViewOpportunityById !== undefined) {
+      onViewOpportunityById(opportunity.id)
+      return
+    }
+
+    onViewOpportunity?.(opportunity as Opportunity)
   }
 
   return (
@@ -95,10 +106,12 @@ function OpportunityCard({
             <span>Category</span>
             <strong>{formatOpportunityLabel(opportunity.category)}</strong>
           </li>
-          <li>
-            <span>Distance</span>
-            <strong>{formatOpportunityDistance(opportunity.distance_km)}</strong>
-          </li>
+          {opportunity.distance_km !== undefined && (
+            <li>
+              <span>Distance</span>
+              <strong>{formatOpportunityDistance(opportunity.distance_km)}</strong>
+            </li>
+          )}
           <li>
             <span>Received</span>
             <strong>
@@ -154,6 +167,11 @@ function OpportunityCard({
       </section>
 
       <footer className="opportunity-card__footer">
+        {savedAt !== undefined && (
+          <p className="opportunity-card__saved">
+            Saved <time dateTime={savedAt}>{formatOpportunityDate(savedAt.slice(0, 10))}</time>
+          </p>
+        )}
         <a
           className="opportunity-card__action"
           href={`/opportunities/${opportunity.id}`}
@@ -162,6 +180,7 @@ function OpportunityCard({
         >
           View opportunity
         </a>
+        {secondaryAction}
       </footer>
     </article>
   )

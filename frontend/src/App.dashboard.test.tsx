@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -63,7 +63,16 @@ describe('customer dashboard', () => {
   it('lists all saves, opens detail, and returns to the dashboard', async () => {
     const fetchMock = server()
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Install rooftop solar panels' })).toBeInTheDocument()
+    const title = await screen.findByRole('heading', { name: 'Install rooftop solar panels' })
+    const card = title.closest('article')
+    expect(card).toHaveClass('opportunity-card--high')
+    expect(card).toHaveTextContent('Score')
+    expect(card).toHaveTextContent('80')
+    expect(card).toHaveTextContent('Energy')
+    expect(card).toHaveTextContent('20 September 2026')
+    expect(card).toHaveTextContent('42 Main Street, Dublin')
+    expect(card).toHaveTextContent('No specific electrical work')
+    expect(card).toHaveTextContent('Saved 30 September 2026')
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
     await userEvent.setup().click(screen.getByRole('link', { name: 'View opportunity' }))
     expect(window.location.pathname).toBe('/opportunities/42')
@@ -72,6 +81,23 @@ describe('customer dashboard', () => {
     await waitFor(() => expect(window.location.pathname).toBe('/dashboard'))
     expect(screen.getByRole('heading', { name: 'Install rooftop solar panels' })).toBeInTheDocument()
     expect(fetchMock.mock.calls.filter(([url]) => String(url).startsWith('/api/v1/saved-opportunities?'))).toHaveLength(2)
+  })
+
+  it('uses the public opportunity grid for saved cards', async () => {
+    const saves = [
+      saved,
+      { ...saved, id: 10, opportunity: { ...opportunity, id: 43, application_number: 'PL-43' } },
+      { ...saved, id: 11, opportunity: { ...opportunity, id: 44, application_number: 'PL-44' } },
+    ]
+    server({ saves })
+    render(<App />)
+
+    await screen.findAllByRole('heading', { name: 'Install rooftop solar panels' })
+    const savedList = document.querySelector('ul.dashboard__list')
+    expect(savedList).toHaveClass('opportunity-list')
+    expect(within(savedList as HTMLElement).getAllByRole('article')).toHaveLength(3)
+    expect(within(savedList as HTMLElement).getAllByRole('link', { name: 'View opportunity' })).toHaveLength(3)
+    expect(within(savedList as HTMLElement).getAllByRole('button', { name: 'Remove save' })).toHaveLength(3)
   })
 
   it('removes a save and shows confirmation', async () => {

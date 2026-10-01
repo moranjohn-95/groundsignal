@@ -1,7 +1,12 @@
 import { useEffect, useState, type MouseEvent } from 'react'
 
-import { listSavedOpportunities, removeSavedOpportunity, SavedOpportunityApiError, type SavedOpportunity } from '../../api/savedOpportunities'
-import { formatOpportunityDate, formatOpportunityLabel, normalizeOpportunityDescription } from '../opportunities/opportunityPresentation'
+import {
+  listSavedOpportunities,
+  removeSavedOpportunity,
+  SavedOpportunityApiError,
+  type SavedOpportunity,
+} from '../../api/savedOpportunities'
+import OpportunityCard from '../opportunities/OpportunityCard'
 import OpportunityState from '../opportunities/OpportunityState'
 
 interface Props {
@@ -62,12 +67,6 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
     }
   }
 
-  function openDetail(event: MouseEvent<HTMLAnchorElement>, id: number) {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-    event.preventDefault()
-    onViewOpportunity(id)
-  }
-
   return <section className="dashboard" aria-labelledby="dashboard-heading">
     <div className="dashboard__intro">
       <span className="dashboard__accent" aria-hidden="true" />
@@ -85,27 +84,26 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
         </div>
       : <>
           <h3 className="dashboard__list-heading">Saved opportunities <span>({list.items.length})</span></h3>
-          <ul className="dashboard__list">
-            {list.items.map((item) => {
-              const opportunity = item.opportunity
-              const title = normalizeOpportunityDescription(opportunity.description) ?? `Planning application ${opportunity.application_number}`
-              return <li key={item.id} className="dashboard-card">
-                <div className="dashboard-card__content">
-                  <span className="dashboard-card__level">{formatOpportunityLabel(opportunity.opportunity_level)} opportunity</span>
-                  <h4>{title}</h4>
-                  <p>{opportunity.address || opportunity.planning_authority}</p>
-                  <dl>
-                    <div><dt>Category</dt><dd>{formatOpportunityLabel(opportunity.category)}</dd></div>
-                    <div><dt>Reference</dt><dd>{opportunity.application_number}</dd></div>
-                    <div><dt>Saved</dt><dd><time dateTime={item.saved_at}>{formatOpportunityDate(item.saved_at.slice(0, 10))}</time></dd></div>
-                  </dl>
-                </div>
-                <div className="dashboard-card__actions">
-                  <a className="opportunity-card__action" href={`/opportunities/${opportunity.id}`} onClick={(event) => openDetail(event, opportunity.id)}>View opportunity</a>
-                  <button type="button" className="button button--secondary" disabled={removingId !== null} onClick={() => void remove(item)}>{removingId === item.id ? 'Removing…' : 'Remove save'}</button>
-                </div>
+          <ul className="opportunity-list dashboard__list">
+            {list.items.map((item) => (
+              <li key={item.id}>
+                <OpportunityCard
+                  opportunity={item.opportunity}
+                  onViewOpportunityById={onViewOpportunity}
+                  savedAt={item.saved_at}
+                  secondaryAction={
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      disabled={removingId !== null}
+                      onClick={() => void remove(item)}
+                    >
+                      {removingId === item.id ? 'Removing…' : 'Remove save'}
+                    </button>
+                  }
+                />
               </li>
-            })}
+            ))}
           </ul>
         </>)}
   </section>
