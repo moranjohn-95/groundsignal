@@ -32,6 +32,7 @@ interface OpportunityDetailPageProps {
   opportunityId: number
   distanceKm?: number
   onBack?: () => void
+  backToDashboard?: boolean
   saveAccess?: SaveAccess
   saveUserId?: number
   saveReturnOutcome?: SaveReturnOutcome | null
@@ -43,6 +44,7 @@ function OpportunityDetailPage({
   opportunityId,
   distanceKm,
   onBack,
+  backToDashboard = false,
   saveAccess = 'anonymous',
   saveUserId,
   saveReturnOutcome,
@@ -105,8 +107,8 @@ function OpportunityDetailPage({
   }
 
   const backLink = (
-    <a className="opportunity-detail__back" href="/" onClick={handleBack}>
-      Back to opportunities
+    <a className="opportunity-detail__back" href={backToDashboard ? '/dashboard' : '/'} onClick={handleBack}>
+      {backToDashboard ? 'Back to dashboard' : 'Back to opportunities'}
     </a>
   )
 

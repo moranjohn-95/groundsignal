@@ -1,7 +1,9 @@
+import type { OpportunityDetail } from './opportunities'
+
 export interface SavedOpportunity {
   id: number
   saved_at: string
-  opportunity: { id: number }
+  opportunity: OpportunityDetail
 }
 
 interface SavedOpportunityList {
@@ -17,6 +19,20 @@ export class SavedOpportunityApiError extends Error {
 }
 
 const endpoint = '/api/v1/saved-opportunities'
+
+export async function listSavedOpportunities(): Promise<SavedOpportunity[]> {
+  const items: SavedOpportunity[] = []
+  while (true) {
+    const response = await fetch(`${endpoint}?limit=100&offset=${items.length}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    })
+    if (!response.ok) throw new SavedOpportunityApiError(response.status)
+    const page = (await response.json()) as SavedOpportunityList
+    items.push(...page.items)
+    if (page.items.length === 0 || items.length >= page.total) return items
+  }
+}
 
 export async function findSavedOpportunity(
   planningApplicationId: number,

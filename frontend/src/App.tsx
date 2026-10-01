@@ -15,6 +15,7 @@ import {
   type CurrentUser,
 } from './api/auth'
 import AccountPage from './features/account/AccountPage'
+import DashboardPage from './features/dashboard/DashboardPage'
 import { readSaveReturn, saveReturnSearch } from './features/account/saveReturn'
 import {
   DataSourcesPage,
@@ -31,11 +32,13 @@ type LegalPage = 'data-sources' | 'privacy' | 'terms'
 type AppRoute =
   | { page: 'opportunities' }
   | { page: 'signup' | 'login' }
+  | { page: 'dashboard' }
   | {
       page: 'opportunity-detail'
       opportunityId: number
       distanceKm?: number
       preservesOpportunities: boolean
+      preservesDashboard: boolean
     }
   | { page: LegalPage }
   | { page: 'not-found' }
@@ -43,6 +46,7 @@ type AppRoute =
 interface OpportunityHistoryState {
   distanceKm?: unknown
   preservesOpportunities?: unknown
+  preservesDashboard?: unknown
   saveReturnDepth?: unknown
   saveReturnOpportunityId?: unknown
 }
@@ -58,6 +62,8 @@ function routeFromLocation(
   if (pathname === '/') {
     return { page: 'opportunities' }
   }
+
+  if (pathname === '/dashboard') return { page: 'dashboard' }
 
   if (pathname === '/signup' || pathname === '/login') {
     return { page: pathname.slice(1) as 'signup' | 'login' }
@@ -96,6 +102,7 @@ function routeFromLocation(
     opportunityId,
     distanceKm,
     preservesOpportunities: historyState?.preservesOpportunities === true,
+    preservesDashboard: historyState?.preservesDashboard === true,
   }
 }
 
@@ -104,9 +111,14 @@ function routeForSession(
   historyState: OpportunityHistoryState | null,
   isAuthenticated: boolean,
 ): AppRoute {
+  if (!isAuthenticated && pathname === '/dashboard') {
+    window.history.replaceState(null, '', '/login?returnTo=%2Fdashboard')
+    return { page: 'login' }
+  }
   if (isAuthenticated && (pathname === '/signup' || pathname === '/login')) {
-    window.history.replaceState(null, '', '/')
-    return { page: 'opportunities' }
+    const destination = new URLSearchParams(window.location.search).get('returnTo') === '/dashboard' ? '/dashboard' : '/'
+    window.history.replaceState(null, '', destination)
+    return routeFromLocation(destination, null)
   }
   return routeFromLocation(pathname, historyState)
 }
@@ -145,8 +157,9 @@ function App() {
     void fetchCurrentUser()
       .then((user) => {
         if (cancelled || version !== authVersion.current) return
-        if (user !== null && (window.location.pathname === '/signup' || window.location.pathname === '/login')) {
-          setRoute(routeForSession(window.location.pathname, window.history.state, true))
+        if ((user !== null && (window.location.pathname === '/signup' || window.location.pathname === '/login')) ||
+            (user === null && window.location.pathname === '/dashboard')) {
+          setRoute(routeForSession(window.location.pathname, window.history.state, user !== null))
         }
         setSessionState(user ? { status: 'authenticated', user } : { status: 'anonymous' })
       })
@@ -183,7 +196,9 @@ function App() {
   const accountSaveReturn = isAccountRoute ? readSaveReturn(window.location.search) : null
   const accountReturnQuery = accountSaveReturn
     ? saveReturnSearch(accountSaveReturn.opportunityId)
-    : ''
+    : isAccountRoute && new URLSearchParams(window.location.search).get('returnTo') === '/dashboard'
+      ? '?returnTo=%2Fdashboard'
+      : ''
 
   useLayoutEffect(() => {
     // Restore list context when a visitor returns from an opportunity detail page.
@@ -261,13 +276,23 @@ function App() {
       return
     }
     setSessionState({ status: 'authenticated', user })
-    navigateTo('/')
+    const destination = new URLSearchParams(window.location.search).get('returnTo') === '/dashboard' ? '/dashboard' : '/'
+    window.history.pushState(null, '', destination)
+    setRoute(routeFromLocation(destination, null))
   }
 
   const handleSaveSessionExpired = useCallback(() => {
     authVersion.current += 1
     setSessionState({ status: 'anonymous' })
     setAccountError('Your session expired. Log in to save this opportunity.')
+  }, [])
+
+  const handleDashboardSessionExpired = useCallback(() => {
+    authVersion.current += 1
+    setSessionState({ status: 'anonymous' })
+    setAccountError('Your session expired. Log in to view your dashboard.')
+    window.history.replaceState(null, '', '/login?returnTo=%2Fdashboard')
+    setRoute({ page: 'login' })
   }, [])
 
   function requestSaveAuthentication(opportunityId: number) {
@@ -309,6 +334,7 @@ function App() {
     const historyState: OpportunityHistoryState = {
       distanceKm: opportunity.distance_km,
       preservesOpportunities: true,
+      preservesDashboard: false,
     }
     window.history.pushState(
       historyState,
@@ -320,13 +346,18 @@ function App() {
       opportunityId: opportunity.id,
       distanceKm: opportunity.distance_km,
       preservesOpportunities: true,
+      preservesDashboard: false,
     })
+  }
+
+  function showSavedOpportunity(opportunityId: number) {
+    navigateTo(`/opportunities/${opportunityId}`, { preservesDashboard: true })
   }
 
   function returnToOpportunities() {
     if (
       route.page === 'opportunity-detail' &&
-      route.preservesOpportunities
+      (route.preservesOpportunities || route.preservesDashboard)
     ) {
       // Return through browser history only when the current list is still there.
       window.history.back()
@@ -419,6 +450,7 @@ function App() {
                 <span className="account-nav__identity">
                   Signed in as {sessionState.user.email}
                 </span>
+                <a href="/dashboard" onClick={handleInternalNavigation} aria-current={route.page === 'dashboard' ? 'page' : undefined}>Dashboard</a>
                 <button type="button" onClick={() => void handleLogout()} disabled={logoutPending}>
                   {logoutPending ? 'Logging out…' : 'Log out'}
                 </button>
@@ -455,6 +487,7 @@ function App() {
               opportunityId={route.opportunityId}
               distanceKm={route.distanceKm}
               onBack={returnToOpportunities}
+              backToDashboard={route.preservesDashboard}
               saveAccess={sessionState.status}
               saveUserId={sessionState.status === 'authenticated' ? sessionState.user.id : undefined}
               saveReturnOutcome={
@@ -467,6 +500,21 @@ function App() {
             />
           )}
 
+          {route.page === 'dashboard' && sessionState.status === 'checking' && (
+            <p role="status">Checking your account…</p>
+          )}
+          {route.page === 'dashboard' && sessionState.status === 'error' && (
+            <div role="alert">Could not check your account. <button type="button" onClick={retrySessionCheck}>Try again</button></div>
+          )}
+          {route.page === 'dashboard' && sessionState.status === 'authenticated' && (
+            <DashboardPage
+              key={sessionState.user.id}
+              onNavigate={handleInternalNavigation}
+              onViewOpportunity={showSavedOpportunity}
+              onSessionExpired={handleDashboardSessionExpired}
+            />
+          )}
+
           {accountRoute !== null && sessionState.status !== 'checking' && sessionState.status !== 'authenticated' && (
             <AccountPage
               key={accountRoute}
@@ -475,6 +523,7 @@ function App() {
               onAuthenticated={handleAuthenticated}
               onNavigate={handleInternalNavigation}
               saveReturn={accountSaveReturn}
+              returnToDashboard={accountReturnQuery === '?returnTo=%2Fdashboard'}
             />
           )}
 

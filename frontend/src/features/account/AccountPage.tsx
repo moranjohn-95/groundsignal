@@ -15,6 +15,7 @@ interface AccountPageProps {
   onAuthenticated: (user: CurrentUser) => Promise<void> | void
   onNavigate: MouseEventHandler<HTMLAnchorElement>
   saveReturn?: SaveReturn | null
+  returnToDashboard?: boolean
 }
 
 function errorMessage(error: unknown, mode: 'signup' | 'login'): string {
@@ -44,6 +45,7 @@ export default function AccountPage({
   onAuthenticated,
   onNavigate,
   saveReturn,
+  returnToDashboard = false,
 }: AccountPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const [email, setEmail] = useState('')
@@ -76,7 +78,7 @@ export default function AccountPage({
   }
 
   const title = mode === 'signup' ? 'Create your account' : 'Log in'
-  const returnQuery = saveReturn ? saveReturnSearch(saveReturn.opportunityId) : ''
+  const returnQuery = saveReturn ? saveReturnSearch(saveReturn.opportunityId) : returnToDashboard ? '?returnTo=%2Fdashboard' : ''
 
   return (
     <section className="account-page" aria-labelledby="account-heading">
