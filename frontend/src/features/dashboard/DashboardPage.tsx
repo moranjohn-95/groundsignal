@@ -169,16 +169,37 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
       <section className="dashboard__overview" aria-label="Dashboard overview">
         <dl className="dashboard__summary">
           <div className="dashboard__summary-card">
-            <dt>Saved opportunities</dt>
-            <dd>{summary.savedCount}</dd>
+            <span className="dashboard__summary-icon dashboard__summary-icon--saved" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3.5L6 21V4.5Z" />
+              </svg>
+            </span>
+            <div>
+              <dt>Saved opportunities</dt>
+              <dd>{summary.savedCount}</dd>
+            </div>
           </div>
           <div className="dashboard__summary-card">
-            <dt>Best opportunity</dt>
-            <dd>{summary.bestScore ?? '—'}</dd>
+            <span className="dashboard__summary-icon dashboard__summary-icon--best" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="m4 17 6-6 4 4 6-7M15 8h5v5" />
+              </svg>
+            </span>
+            <div>
+              <dt>Best opportunity</dt>
+              <dd>{summary.bestScore ?? '—'}</dd>
+            </div>
           </div>
           <div className="dashboard__summary-card">
-            <dt>Confirmed electrical signals</dt>
-            <dd>{summary.confirmedSignalCount}</dd>
+            <span className="dashboard__summary-icon dashboard__summary-icon--confirmed" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="m13 2-10 12h7l-1 8 10-12h-7l1-6Z" />
+              </svg>
+            </span>
+            <div>
+              <dt>Confirmed electrical signals</dt>
+              <dd>{summary.confirmedSignalCount}</dd>
+            </div>
           </div>
         </dl>
       </section>

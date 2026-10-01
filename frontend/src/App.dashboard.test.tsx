@@ -131,6 +131,9 @@ describe('customer dashboard', () => {
     render(<App />)
 
     await screen.findByRole('region', { name: 'Dashboard overview' })
+    const overview = screen.getByRole('region', { name: 'Dashboard overview' })
+    expect(overview.querySelectorAll('.dashboard__summary-icon[aria-hidden="true"]')).toHaveLength(3)
+    expect(overview.querySelectorAll('.dashboard__summary-icon svg[aria-hidden]')).toHaveLength(0)
     expect(summaryCard('Saved opportunities')).toHaveTextContent('2')
     expect(summaryCard('Best opportunity')).toHaveTextContent('92')
     expect(summaryCard('Confirmed electrical signals')).toHaveTextContent('1')
