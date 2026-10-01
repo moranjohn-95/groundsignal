@@ -155,6 +155,8 @@ function OpportunityDetailPage({
   )
   const opportunityLevelClass = opportunity.opportunity_level.replaceAll('_', '-')
   const applicationUrl = officialApplicationUrl(opportunity)
+  const showDublinSearch =
+    applicationUrl === null && opportunity.planning_authority === 'Dublin City Council'
   const electricalWorkBrief = electricalWorkBriefFor(opportunity)
   const electricalWorkBriefHeading = electricalWorkCardHeading(electricalWorkBrief)
   const electricalWorkBriefSummary = electricalWorkSummary(electricalWorkBrief)
@@ -295,7 +297,21 @@ function OpportunityDetailPage({
         </section>
 
         <footer className="opportunity-detail__footer">
-          {applicationUrl === null ? (
+          {showDublinSearch ? (
+            <div className="opportunity-detail__official-search">
+              <a
+                className="opportunity-detail__action"
+                href="https://planning.agileapplications.ie/dublincity"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Search Dublin City Council applications
+              </a>
+              <p>
+                Enter application reference <strong>{opportunity.application_number}</strong> in the council portal.
+              </p>
+            </div>
+          ) : applicationUrl === null ? (
             <p>Official application link is not available for this authority.</p>
           ) : (
             <a

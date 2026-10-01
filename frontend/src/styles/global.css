@@ -1226,6 +1226,17 @@ summary:focus-visible {
   font-size: 0.875rem;
 }
 
+.opportunity-detail__official-search {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 25rem;
+}
+
+.opportunity-detail__official-search p {
+  margin: 0;
+  line-height: 1.5;
+}
+
 .opportunity-detail__action {
   display: inline-flex;
   width: 100%;

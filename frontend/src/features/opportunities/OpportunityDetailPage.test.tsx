@@ -311,13 +311,14 @@ describe('OpportunityDetailPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('preserves an allowed HTTPS source URL as the unsupported-authority fallback', async () => {
+  it('preserves a usable Dublin City Council direct link ahead of the search fallback', async () => {
     const sourceApplicationUrl =
       'https://planning.example.test/applications/reference/0012345'
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         ...opportunity,
         planning_authority: 'Dublin City Council',
+        application_number: 'WEB2852/26',
         application_url: sourceApplicationUrl,
       }),
     )
@@ -329,6 +330,10 @@ describe('OpportunityDetailPage', () => {
     expect(fallbackLink).toHaveAttribute('href', sourceApplicationUrl)
     expect(fallbackLink).toHaveAttribute('target', '_blank')
     expect(fallbackLink).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(
+      screen.queryByRole('link', { name: 'Search Dublin City Council applications' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/Enter application reference/)).not.toBeInTheDocument()
   })
 
   it('preserves an allowed HTTP eplanning.ie source URL', async () => {
@@ -376,25 +381,51 @@ describe('OpportunityDetailPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('does not invent an official URL for an unsupported authority', async () => {
+  it.each([null, 'javascript:alert(1)'])(
+    'shows the verified Dublin search portal when the direct URL is unusable: %s',
+    async (applicationUrl) => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          ...opportunity,
+          planning_authority: 'Dublin City Council',
+          application_number: 'WEB2852/26',
+          application_url: applicationUrl,
+        }),
+      )
+      render(<OpportunityDetailPage opportunityId={20} />)
+
+      const searchLink = await screen.findByRole('link', {
+        name: 'Search Dublin City Council applications',
+      })
+      expect(searchLink).toHaveAttribute('href', 'https://planning.agileapplications.ie/dublincity')
+      expect(searchLink).toHaveAttribute('target', '_blank')
+      expect(searchLink).toHaveAttribute('rel', 'noopener noreferrer')
+      expect(screen.getByText('Enter application reference', { exact: false })).toHaveTextContent(
+        'WEB2852/26',
+      )
+      expect(
+        screen.queryByRole('link', {
+          name: 'View official application (opens in a new tab)',
+        }),
+      ).not.toBeInTheDocument()
+    },
+  )
+
+  it('keeps the unavailable message for another council without a direct link', async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         ...opportunity,
-        planning_authority: 'Dublin City Council',
+        planning_authority: 'Another Planning Authority',
         application_url: null,
       }),
     )
     render(<OpportunityDetailPage opportunityId={20} />)
 
     expect(
-      await screen.findByText(
-        'Official application link is not available for this authority.',
-      ),
+      await screen.findByText('Official application link is not available for this authority.'),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('link', {
-        name: 'View official application (opens in a new tab)',
-      }),
+      screen.queryByRole('link', { name: 'Search Dublin City Council applications' }),
     ).not.toBeInTheDocument()
   })
 
