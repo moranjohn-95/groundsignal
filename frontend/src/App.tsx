@@ -149,6 +149,7 @@ function App() {
   const [sessionState, setSessionState] = useState<SessionState>({ status: 'checking' })
   const [sessionCheckAttempt, setSessionCheckAttempt] = useState(0)
   const [logoutPending, setLogoutPending] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [accountError, setAccountError] = useState<string | null>(null)
   const [postAuthSaveOutcome, setPostAuthSaveOutcome] = useState<SaveReturnOutcome | null>(null)
   const authVersion = useRef(0)
@@ -439,6 +440,16 @@ function App() {
     navigateTo(destination.pathname + destination.search)
   }
 
+  function handleMobileNavigation(event: MouseEvent<HTMLAnchorElement>) {
+    setMobileMenuOpen(false)
+    handleInternalNavigation(event)
+  }
+
+  function handleMobileLogout() {
+    setMobileMenuOpen(false)
+    void handleLogout()
+  }
+
   return (
     <>
       <header className="site-header">
@@ -448,7 +459,7 @@ function App() {
               SiteForecaster
             </a>
           </h1>
-          <nav className="account-nav" aria-label="Account">
+          <nav className="account-nav account-nav--desktop" aria-label="Account">
             {sessionState.status === 'checking' && (
               <span className="account-nav__status">Checking account…</span>
             )}
@@ -481,6 +492,50 @@ function App() {
                   Sign up
                 </a>
               </>
+            )}
+          </nav>
+          <button
+            type="button"
+            className="header-menu-toggle"
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-controls="mobile-account-navigation"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            <span aria-hidden="true" />
+            <span aria-hidden="true" />
+            <span aria-hidden="true" />
+          </button>
+          <nav
+            id="mobile-account-navigation"
+            className="account-nav account-nav--mobile"
+            aria-label="Account navigation"
+            hidden={!mobileMenuOpen}
+          >
+            {sessionState.status === 'checking' && (
+              <span className="account-nav__status">Checking account…</span>
+            )}
+            {sessionState.status === 'authenticated' ? (
+              <>
+                <span className="account-nav__identity">
+                  <span className="account-nav__avatar" aria-hidden="true">
+                    {initialsFor(sessionState.user.email)}
+                  </span>
+                  <span className="account-nav__email">{sessionState.user.email}</span>
+                </span>
+                <span className="account-nav__links">
+                  {route.page === 'dashboard' ? (
+                    <a href="/" onClick={handleMobileNavigation}>Opportunities</a>
+                  ) : (
+                    <a href="/dashboard" onClick={handleMobileNavigation}>Dashboard</a>
+                  )}
+                </span>
+                <button type="button" onClick={handleMobileLogout} disabled={logoutPending}>
+                  {logoutPending ? 'Logging out…' : 'Log out'}
+                </button>
+              </>
+            ) : sessionState.status !== 'checking' && (
+              <a href={`/login${accountReturnQuery}`} onClick={handleMobileNavigation}>Log in</a>
             )}
           </nav>
         </div>

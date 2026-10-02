@@ -23,6 +23,10 @@ function summaryCard(label: string) {
   return within(overview).getByText(label).parentElement as HTMLElement
 }
 
+function mobileNavigation() {
+  return document.getElementById('mobile-account-navigation') as HTMLElement
+}
+
 function response(body: unknown, status = 200): Response {
   return { ok: status >= 200 && status < 300, status, json: vi.fn().mockResolvedValue(body) } as unknown as Response
 }
@@ -87,7 +91,7 @@ describe('customer dashboard', () => {
     expect(card).toHaveTextContent('Saved 30 September 2026')
     expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Opportunities' })).toHaveAttribute('href', '/')
-    expect(screen.getByText('customer@example.com')).toHaveClass('account-nav__email')
+    expect(screen.getAllByText('customer@example.com')[0]).toHaveClass('account-nav__email')
     const avatar = document.querySelector('.account-nav__avatar')
     expect(avatar).toHaveTextContent('C')
     expect(avatar).toHaveAttribute('aria-hidden', 'true')
@@ -133,6 +137,51 @@ describe('customer dashboard', () => {
     server({ authenticated: false })
     render(<App />)
     expect(await screen.findByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login')
+  })
+
+  it('opens the authenticated mobile menu with contextual navigation and closes it after navigation', async () => {
+    server()
+    render(<App />)
+    const user = userEvent.setup()
+    const menuButton = await screen.findByRole('button', { name: 'Open navigation menu' })
+    expect(menuButton).toHaveAttribute('aria-controls', 'mobile-account-navigation')
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+    expect(mobileNavigation()).toHaveAttribute('hidden')
+
+    await user.click(menuButton)
+    expect(menuButton).toHaveAccessibleName('Close navigation menu')
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true')
+    expect(within(mobileNavigation()).getByText('customer@example.com')).toBeInTheDocument()
+    const opportunitiesLink = within(mobileNavigation()).getByRole('link', { name: 'Opportunities' })
+    expect(opportunitiesLink).toHaveAttribute('href', '/')
+    expect(within(mobileNavigation()).getByRole('button', { name: 'Log out' })).toBeInTheDocument()
+
+    await user.click(opportunitiesLink)
+    expect(window.location.pathname).toBe('/')
+    expect(menuButton).toHaveAccessibleName('Open navigation menu')
+    expect(mobileNavigation()).toHaveAttribute('hidden')
+
+    await user.click(menuButton)
+    expect(within(mobileNavigation()).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard')
+  })
+
+  it('shows login when signed out and closes the mobile menu on logout', async () => {
+    server()
+    const first = render(<App />)
+    const user = userEvent.setup()
+    const menuButton = await screen.findByRole('button', { name: 'Open navigation menu' })
+    await user.click(menuButton)
+    await user.click(within(mobileNavigation()).getByRole('button', { name: 'Log out' }))
+    await screen.findByRole('link', { name: 'Log in' })
+    expect(mobileNavigation()).toHaveAttribute('hidden')
+
+    first.unmount()
+    window.history.replaceState(null, '', '/')
+    server({ authenticated: false })
+    render(<App />)
+    const signedOutMenuButton = await screen.findByRole('button', { name: 'Open navigation menu' })
+    await user.click(signedOutMenuButton)
+    expect(within(mobileNavigation()).getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login')
   })
 
   it('logs out through the separate navigation action', async () => {
