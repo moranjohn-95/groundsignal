@@ -2,11 +2,11 @@ import { useEffect, useState, type MouseEvent } from 'react'
 
 import {
   listSavedOpportunities,
-  removeSavedOpportunity,
   SavedOpportunityApiError,
   type SavedOpportunity,
 } from '../../api/savedOpportunities'
 import OpportunityCard from '../opportunities/OpportunityCard'
+import QuickSaveOpportunityControl, { QuickSaveToast } from '../opportunities/QuickSaveOpportunityControl'
 import OpportunityState from '../opportunities/OpportunityState'
 import { electricalWorkBriefFor } from '../opportunities/opportunityPresentation'
 
@@ -100,8 +100,6 @@ function summaryFor(items: SavedOpportunity[]) {
 export default function DashboardPage({ onNavigate, onViewOpportunity, onSessionExpired }: Props) {
   const [list, setList] = useState<ListState>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
-  const [removingId, setRemovingId] = useState<number | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
   const [removalStatus, setRemovalStatus] = useState<string | null>(null)
   const [sort, setSort] = useState<SavedOpportunitySort>('recently-saved')
   const summary = list.status === 'ready' ? summaryFor(list.items) : null
@@ -123,37 +121,20 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
 
   useEffect(() => {
     if (removalStatus === null) return
-    const timeout = window.setTimeout(() => setRemovalStatus(null), 4000)
+    const timeout = window.setTimeout(() => setRemovalStatus(null), 2000)
     return () => window.clearTimeout(timeout)
   }, [removalStatus])
 
   function retry() {
-    setFeedback(null)
     setRemovalStatus(null)
     setList({ status: 'loading' })
     setAttempt((value) => value + 1)
   }
 
-  async function remove(item: SavedOpportunity) {
-    if (removingId !== null) return
-    setRemovingId(item.id)
-    setFeedback(null)
-    setRemovalStatus(null)
-    try {
-      await removeSavedOpportunity(item.id)
-      setList((current) => current.status === 'ready'
-        ? { status: 'ready', items: current.items.filter((saved) => saved.id !== item.id) }
-        : current)
-      setRemovalStatus('Removed from saved opportunities')
-    } catch (error: unknown) {
-      if (error instanceof SavedOpportunityApiError && error.status === 401) {
-        onSessionExpired()
-      } else {
-        setFeedback('Could not remove this save. Please try again.')
-      }
-    } finally {
-      setRemovingId(null)
-    }
+  function removeFromList(saveId: number) {
+    setList((current) => current.status === 'ready'
+      ? { status: 'ready', items: current.items.filter((saved) => saved.id !== saveId) }
+      : current)
   }
 
   return <section className="dashboard" aria-labelledby="dashboard-heading">
@@ -162,7 +143,7 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
       <h2 id="dashboard-heading">Dashboard</h2>
       <p>Your saved planning opportunities at a glance.</p>
     </div>
-    {feedback && <p className="dashboard__feedback" role="status">{feedback}</p>}
+    <QuickSaveToast message={removalStatus} />
     {list.status === 'loading' && <OpportunityState variant="loading" title="Loading saved opportunities">Retrieving your saves.</OpportunityState>}
     {list.status === 'error' && <OpportunityState variant="error" title="Saved opportunities unavailable" action={{ label: 'Try again', onClick: retry }}>We could not load your saves right now.</OpportunityState>}
     {summary !== null && (
@@ -205,16 +186,11 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
       </section>
     )}
     {list.status === 'ready' && <>
-      {(list.items.length > 0 || removalStatus !== null) && (
+      {list.items.length > 0 && (
         <div className="dashboard__list-toolbar">
           <div className="dashboard__list-heading-group">
             {list.items.length > 0 && (
               <h3 className="dashboard__list-heading">Saved opportunities</h3>
-            )}
-            {removalStatus !== null && (
-              <p className="dashboard__removal-status" role="status" aria-live="polite">
-                {removalStatus}
-              </p>
             )}
           </div>
           {list.items.length > 0 && (
@@ -253,15 +229,21 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
                   opportunity={item.opportunity}
                   onViewOpportunityById={onViewOpportunity}
                   savedAt={item.saved_at}
-                  secondaryAction={
-                    <button
-                      type="button"
-                      className="button button--secondary"
-                      disabled={removingId !== null}
-                      onClick={() => void remove(item)}
-                    >
-                      {removingId === item.id ? 'Removing…' : 'Remove save'}
-                    </button>
+                  quickSaveControl={
+                    <QuickSaveOpportunityControl
+                      opportunityId={item.opportunity.id}
+                      access="authenticated"
+                      initialOutcome={{
+                        opportunityId: item.opportunity.id,
+                        status: 'saved',
+                        saveId: item.id,
+                      }}
+                      onSessionExpired={onSessionExpired}
+                      onToast={setRemovalStatus}
+                      onSuccessfulAction={(action) => {
+                        if (action === 'removed') removeFromList(item.id)
+                      }}
+                    />
                   }
                 />
               </li>

@@ -19,6 +19,7 @@ interface OpportunityCardProps {
   onViewOpportunityById?: (opportunityId: number) => void
   savedAt?: string
   secondaryAction?: ReactNode
+  quickSaveControl?: ReactNode
 }
 
 const MAX_HEADING_LENGTH = 96
@@ -48,6 +49,7 @@ function OpportunityCard({
   onViewOpportunityById,
   savedAt,
   secondaryAction,
+  quickSaveControl,
 }: OpportunityCardProps) {
   const headingId = `opportunity-${opportunity.id}-heading`
   const description = normalizeOpportunityDescription(opportunity.description)
@@ -93,10 +95,13 @@ function OpportunityCard({
           <span className="opportunity-level">
             {opportunityLevel} opportunity
           </span>
-          <p className="opportunity-score">
-            <span>Score</span>
-            <strong>{opportunity.opportunity_score}</strong>
-          </p>
+          <div className="opportunity-card__score-actions">
+            {quickSaveControl}
+            <p className="opportunity-score">
+              <span>Score</span>
+              <strong>{opportunity.opportunity_score}</strong>
+            </p>
+          </div>
         </div>
 
         <h3 id={headingId}>{heading}</h3>

@@ -118,7 +118,10 @@ describe('customer dashboard', () => {
     expect(savedList).toHaveClass('opportunity-list')
     expect(within(savedList as HTMLElement).getAllByRole('article')).toHaveLength(3)
     expect(within(savedList as HTMLElement).getAllByRole('link', { name: 'View opportunity' })).toHaveLength(3)
-    expect(within(savedList as HTMLElement).getAllByRole('button', { name: 'Remove save' })).toHaveLength(3)
+    const removeButtons = within(savedList as HTMLElement).getAllByRole('button', { name: 'Remove saved opportunity' })
+    expect(removeButtons).toHaveLength(3)
+    expect(removeButtons[0]).toHaveAttribute('aria-pressed', 'true')
+    expect(removeButtons[0]).toHaveClass('opportunity-card__save-button--saved')
   })
 
   it('shows dashboard navigation for signed-in public visitors and a login link for signed-out visitors', async () => {
@@ -281,7 +284,7 @@ describe('customer dashboard', () => {
     expect(savedOpportunityPaths()).toEqual(['/opportunities/42', '/opportunities/44', '/opportunities/43'])
   })
 
-  it('removes a save, announces it near the heading, and clears the status', async () => {
+  it('removes a save with the shared bookmark and clears its floating toast', async () => {
     const secondSave = {
       ...saved,
       id: 10,
@@ -299,19 +302,20 @@ describe('customer dashboard', () => {
     }
     const fetchMock = server({ saves: [saved, secondSave] })
     render(<App />)
-    const [removeButton] = await screen.findAllByRole('button', { name: 'Remove save' })
+    const [removeButton] = await screen.findAllByRole('button', { name: 'Remove saved opportunity' })
     vi.useFakeTimers()
     fireEvent.click(removeButton)
     await act(async () => { await Promise.resolve() })
     const removalStatus = screen.getByText('Removed from saved opportunities')
     expect(removalStatus).toHaveAttribute('aria-live', 'polite')
+    expect(removalStatus).toHaveClass('opportunity-card__save-status')
     expect(screen.getByRole('heading', { name: 'Saved opportunities' })).toBeInTheDocument()
     expect(savedOpportunityPaths()).toEqual(['/opportunities/43'])
     expect(summaryCard('Saved opportunities')).toHaveTextContent('1')
     expect(summaryCard('Best opportunity')).toHaveTextContent('90')
     expect(summaryCard('Confirmed electrical signals')).toHaveTextContent('1')
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/saved-opportunities/9', expect.objectContaining({ method: 'DELETE' }))
-    act(() => vi.advanceTimersByTime(4000))
+    act(() => vi.advanceTimersByTime(2000))
     expect(screen.queryByText('Removed from saved opportunities')).not.toBeInTheDocument()
   })
 
@@ -322,8 +326,8 @@ describe('customer dashboard', () => {
     first.unmount()
     server({ deleteStatus: 500 })
     render(<App />)
-    await userEvent.setup().click(await screen.findByRole('button', { name: 'Remove save' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Could not remove this save.')
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Remove saved opportunity' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not remove this saved opportunity.')
     expect(screen.getByRole('heading', { name: 'Install rooftop solar panels' })).toBeInTheDocument()
   })
 

@@ -549,6 +549,9 @@ function App() {
             <OpportunitiesPage
               key={searchVersion}
               onViewOpportunity={showOpportunity}
+              saveAccess={sessionState.status}
+              onRequestSaveAuthentication={requestSaveAuthentication}
+              onSaveSessionExpired={handleSaveSessionExpired}
             />
           </div>
 

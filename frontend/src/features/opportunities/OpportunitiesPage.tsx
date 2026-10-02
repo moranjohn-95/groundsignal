@@ -18,6 +18,7 @@ import type {
 } from './OpportunityFilters'
 import OpportunityList from './OpportunityList'
 import OpportunityState from './OpportunityState'
+import type { SaveAccess } from './useOpportunitySave'
 
 const OPPORTUNITY_PAGE_SIZE = 20
 
@@ -56,9 +57,17 @@ interface BrowserCoordinates {
 
 interface OpportunitiesPageProps {
   onViewOpportunity?: (opportunity: Opportunity) => void
+  saveAccess?: SaveAccess
+  onRequestSaveAuthentication?: (opportunityId: number) => void
+  onSaveSessionExpired?: () => void
 }
 
-function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
+function OpportunitiesPage({
+  onViewOpportunity,
+  saveAccess,
+  onRequestSaveAuthentication,
+  onSaveSessionExpired,
+}: OpportunitiesPageProps) {
   const resultsHeadingId = 'top-opportunities-heading'
   const [currentCoordinates, setCurrentCoordinates] =
     useState<BrowserCoordinates | null>(null)
@@ -394,6 +403,9 @@ function OpportunitiesPage({ onViewOpportunity }: OpportunitiesPageProps) {
                 opportunities={searchState.response.items}
                 labelledBy={resultsHeadingId}
                 onViewOpportunity={onViewOpportunity}
+                saveAccess={saveAccess}
+                onRequestSaveAuthentication={onRequestSaveAuthentication}
+                onSaveSessionExpired={onSaveSessionExpired}
               />
               <nav
                 className="opportunity-pagination"

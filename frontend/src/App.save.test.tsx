@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -56,6 +56,7 @@ function mockServer(initialUser: typeof account | null = null) {
   let savedItems: Array<{ id: number; saved_at: string; opportunity: { id: number } }> = []
   let listStatus = 200
   let saveStatus = 201
+  let removeStatus = 204
   let nextSaveId = 40
   const fetchMock = vi.fn().mockImplementation((request: string, options?: RequestInit) => {
     const url = new URL(request, 'http://localhost')
@@ -108,6 +109,7 @@ function mockServer(initialUser: typeof account | null = null) {
     }
     if (url.pathname.startsWith('/api/v1/saved-opportunities/') && options?.method === 'DELETE') {
       if (!currentUser) return Promise.resolve(jsonResponse(null, 401))
+      if (removeStatus !== 204) return Promise.resolve(jsonResponse(null, removeStatus))
       savedItems = savedItems.filter((item) => item.id !== Number(url.pathname.split('/').at(-1)))
       return Promise.resolve(jsonResponse(null, 204))
     }
@@ -118,6 +120,7 @@ function mockServer(initialUser: typeof account | null = null) {
     fetchMock,
     setListStatus: (status: number) => { listStatus = status },
     setSaveStatus: (status: number) => { saveStatus = status },
+    setRemoveStatus: (status: number) => { removeStatus = status },
   }
 }
 
@@ -157,6 +160,95 @@ describe('opportunity saving', () => {
     const removal = server.fetchMock.mock.calls.find(([, options]) => options?.method === 'DELETE')
     expect(removal?.[0]).toBe('/api/v1/saved-opportunities/40')
     expect(removal?.[1]).toMatchObject({ credentials: 'same-origin' })
+  })
+
+  it('quick saves and removes a public result without opening its detail page', async () => {
+    const server = mockServer(account)
+    render(<App />)
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox', { name: 'Location' }), 'Tralee')
+    await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
+
+    const saveButton = await screen.findByRole('button', { name: 'Save opportunity' })
+    expect(saveButton).toHaveAttribute('aria-pressed', 'false')
+    expect(saveButton).not.toHaveClass('opportunity-card__save-button--saved')
+    await user.click(saveButton)
+
+    const removeButton = await screen.findByRole('button', { name: 'Remove saved opportunity' })
+    expect(removeButton).toHaveAttribute('aria-pressed', 'true')
+    expect(removeButton).toHaveClass('opportunity-card__save-button--saved')
+    expect(await screen.findByText('Opportunity saved')).toHaveAttribute('role', 'status')
+    expect(window.location.pathname).toBe('/')
+    expect(server.fetchMock.mock.calls.some(([url]) =>
+      url === '/api/v1/planning-applications/20',
+    )).toBe(false)
+    const post = server.fetchMock.mock.calls.find(([url, options]) =>
+      url === '/api/v1/saved-opportunities' && options?.method === 'POST',
+    )
+    expect(JSON.parse(post?.[1].body as string)).toEqual({ planning_application_id: 20 })
+
+    await user.click(removeButton)
+    const unsavedButton = await screen.findByRole('button', { name: 'Save opportunity' })
+    expect(unsavedButton).toHaveAttribute('aria-pressed', 'false')
+    expect(await screen.findByText('Removed from saved opportunities')).toHaveAttribute('role', 'status')
+    const removal = server.fetchMock.mock.calls.find(([, options]) => options?.method === 'DELETE')
+    expect(removal?.[0]).toBe('/api/v1/saved-opportunities/40')
+  })
+
+  it('clears a quick-save toast after two seconds', async () => {
+    mockServer(account)
+    render(<App />)
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox', { name: 'Location' }), 'Tralee')
+    await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
+    const saveButton = await screen.findByRole('button', { name: 'Save opportunity' })
+
+    vi.useFakeTimers()
+    try {
+      await act(async () => {
+        fireEvent.click(saveButton)
+        await Promise.resolve()
+      })
+      expect(screen.getByText('Opportunity saved')).toBeInTheDocument()
+      act(() => vi.advanceTimersByTime(2000))
+      expect(screen.queryByText('Opportunity saved')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('sends signed-out visitors through the existing save return flow from a public result', async () => {
+    const server = mockServer()
+    render(<App />)
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox', { name: 'Location' }), 'Tralee')
+    await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
+    await user.click(await screen.findByRole('button', { name: 'Save opportunity' }))
+
+    expect(window.location.pathname).toBe('/signup')
+    expect(new URLSearchParams(window.location.search).get('returnTo')).toBe('/opportunities/20')
+    expect(new URLSearchParams(window.location.search).get('save')).toBe('1')
+    expect(server.fetchMock.mock.calls.some(([, options]) => options?.method === 'POST')).toBe(false)
+  })
+
+  it('keeps the public-card save state accurate when save or remove requests fail', async () => {
+    const server = mockServer(account)
+    server.setSaveStatus(500)
+    render(<App />)
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox', { name: 'Location' }), 'Tralee')
+    await user.click(screen.getByRole('button', { name: 'Find opportunities' }))
+
+    await user.click(await screen.findByRole('button', { name: 'Save opportunity' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save this opportunity.')
+    expect(screen.getByRole('button', { name: 'Save opportunity' })).toHaveAttribute('aria-pressed', 'false')
+
+    server.setSaveStatus(201)
+    await user.click(screen.getByRole('button', { name: 'Save opportunity' }))
+    server.setRemoveStatus(500)
+    await user.click(await screen.findByRole('button', { name: 'Remove saved opportunity' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not remove this saved opportunity.')
+    expect(screen.getByRole('button', { name: 'Remove saved opportunity' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('returns through login to the same detail and preserves search Back state', async () => {

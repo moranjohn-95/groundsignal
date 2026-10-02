@@ -1,11 +1,16 @@
 import type { Opportunity } from '../../api/opportunities'
 import OpportunityCard from './OpportunityCard'
+import QuickSaveOpportunityControl from './QuickSaveOpportunityControl'
+import type { SaveAccess } from './useOpportunitySave'
 
 interface OpportunityListProps {
   isBusy?: boolean
   opportunities: Opportunity[]
   labelledBy: string
   onViewOpportunity?: (opportunity: Opportunity) => void
+  saveAccess?: SaveAccess
+  onRequestSaveAuthentication?: (opportunityId: number) => void
+  onSaveSessionExpired?: () => void
 }
 
 function OpportunityList({
@@ -13,6 +18,9 @@ function OpportunityList({
   opportunities,
   labelledBy,
   onViewOpportunity,
+  saveAccess,
+  onRequestSaveAuthentication,
+  onSaveSessionExpired,
 }: OpportunityListProps) {
   return (
     <ul
@@ -25,6 +33,14 @@ function OpportunityList({
           <OpportunityCard
             opportunity={opportunity}
             onViewOpportunity={onViewOpportunity}
+            quickSaveControl={saveAccess !== undefined ? (
+              <QuickSaveOpportunityControl
+                opportunityId={opportunity.id}
+                access={saveAccess}
+                onRequestAuthentication={onRequestSaveAuthentication}
+                onSessionExpired={onSaveSessionExpired}
+              />
+            ) : undefined}
           />
         </li>
       ))}
