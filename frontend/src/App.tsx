@@ -137,6 +137,13 @@ function saveReturnDepth(
     : null
 }
 
+function initialsFor(email: string) {
+  const localPart = email.split('@', 1)[0] ?? ''
+  const words = localPart.match(/[A-Za-z0-9]+/g) ?? []
+  const initials = words.slice(0, 2).map((word) => word[0]).join('')
+  return initials === '' ? '?' : initials.toUpperCase()
+}
+
 function App() {
   const [searchVersion, setSearchVersion] = useState(0)
   const [sessionState, setSessionState] = useState<SessionState>({ status: 'checking' })
@@ -448,9 +455,18 @@ function App() {
             {sessionState.status === 'authenticated' ? (
               <>
                 <span className="account-nav__identity">
-                  Signed in as {sessionState.user.email}
+                  <span className="account-nav__avatar" aria-hidden="true">
+                    {initialsFor(sessionState.user.email)}
+                  </span>
+                  <span className="account-nav__email">{sessionState.user.email}</span>
                 </span>
-                <a href="/dashboard" onClick={handleInternalNavigation} aria-current={route.page === 'dashboard' ? 'page' : undefined}>Dashboard</a>
+                <span className="account-nav__links">
+                  {route.page === 'dashboard' ? (
+                    <a href="/" onClick={handleInternalNavigation}>Opportunities</a>
+                  ) : (
+                    <a href="/dashboard" onClick={handleInternalNavigation}>Dashboard</a>
+                  )}
+                </span>
                 <button type="button" onClick={() => void handleLogout()} disabled={logoutPending}>
                   {logoutPending ? 'Logging out…' : 'Log out'}
                 </button>

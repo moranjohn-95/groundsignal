@@ -209,7 +209,7 @@ export default function DashboardPage({ onNavigate, onViewOpportunity, onSession
         <div className="dashboard__list-toolbar">
           <div className="dashboard__list-heading-group">
             {list.items.length > 0 && (
-              <h3 className="dashboard__list-heading">Saved opportunities <span>({list.items.length})</span></h3>
+              <h3 className="dashboard__list-heading">Saved opportunities</h3>
             )}
             {removalStatus !== null && (
               <p className="dashboard__removal-status" role="status" aria-live="polite">

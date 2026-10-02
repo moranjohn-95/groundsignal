@@ -33,6 +33,7 @@ function server(options: { authenticated?: boolean; saves?: Array<{ id: number }
   const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
     if (url === '/api/v1/auth/me') return Promise.resolve(response(loggedIn ? account : null, loggedIn ? 200 : 401))
     if (url === '/api/v1/auth/login') { loggedIn = true; return Promise.resolve(response(account)) }
+    if (url === '/api/v1/auth/logout') { loggedIn = false; return Promise.resolve(response(null, 204)) }
     if (url.startsWith('/api/v1/saved-opportunities?')) return Promise.resolve(response({ items: saves, total: saves.length }, options.listStatus ?? 200))
     if (url === '/api/v1/saved-opportunities/9' && init?.method === 'DELETE') {
       if (!options.deleteStatus || options.deleteStatus === 204) saves = saves.filter((item) => item.id !== 9)
@@ -84,7 +85,12 @@ describe('customer dashboard', () => {
     expect(card).toHaveTextContent('42 Main Street, Dublin')
     expect(card).toHaveTextContent('No specific electrical work')
     expect(card).toHaveTextContent('Saved 30 September 2026')
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Opportunities' })).toHaveAttribute('href', '/')
+    expect(screen.getByText('customer@example.com')).toHaveClass('account-nav__email')
+    const avatar = document.querySelector('.account-nav__avatar')
+    expect(avatar).toHaveTextContent('C')
+    expect(avatar).toHaveAttribute('aria-hidden', 'true')
     await userEvent.setup().click(screen.getByRole('link', { name: 'View opportunity' }))
     expect(window.location.pathname).toBe('/opportunities/42')
     expect(await screen.findByRole('link', { name: 'Back to dashboard' })).toBeInTheDocument()
@@ -109,6 +115,33 @@ describe('customer dashboard', () => {
     expect(within(savedList as HTMLElement).getAllByRole('article')).toHaveLength(3)
     expect(within(savedList as HTMLElement).getAllByRole('link', { name: 'View opportunity' })).toHaveLength(3)
     expect(within(savedList as HTMLElement).getAllByRole('button', { name: 'Remove save' })).toHaveLength(3)
+  })
+
+  it('shows dashboard navigation for signed-in public visitors and a login link for signed-out visitors', async () => {
+    window.history.replaceState(null, '', '/')
+    server()
+    const first = render(<App />)
+
+    const dashboardLink = await screen.findByRole('link', { name: 'Dashboard' })
+    expect(dashboardLink).toHaveAttribute('href', '/dashboard')
+    expect(screen.queryByRole('link', { name: 'Opportunities' })).not.toBeInTheDocument()
+    await userEvent.setup().click(dashboardLink)
+    expect(window.location.pathname).toBe('/dashboard')
+
+    first.unmount()
+    window.history.replaceState(null, '', '/')
+    server({ authenticated: false })
+    render(<App />)
+    expect(await screen.findByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login')
+  })
+
+  it('logs out through the separate navigation action', async () => {
+    server()
+    render(<App />)
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Log out' }))
+    await screen.findByRole('link', { name: 'Log in' })
+    expect(window.location.pathname).toBe('/')
+    expect(screen.queryByText('customer@example.com')).not.toBeInTheDocument()
   })
 
   it('shows calculated saved-opportunity overview values', async () => {
@@ -223,7 +256,7 @@ describe('customer dashboard', () => {
     await act(async () => { await Promise.resolve() })
     const removalStatus = screen.getByText('Removed from saved opportunities')
     expect(removalStatus).toHaveAttribute('aria-live', 'polite')
-    expect(screen.getByRole('heading', { name: 'Saved opportunities (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Saved opportunities' })).toBeInTheDocument()
     expect(savedOpportunityPaths()).toEqual(['/opportunities/43'])
     expect(summaryCard('Saved opportunities')).toHaveTextContent('1')
     expect(summaryCard('Best opportunity')).toHaveTextContent('90')
